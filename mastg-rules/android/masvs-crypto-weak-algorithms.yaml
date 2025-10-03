@@ -1,0 +1,165 @@
+rules:
+  # MASVS-CRYPTO: Weak Cryptographic Algorithms
+  # Based on MASTG Mobile App Cryptography guidelines
+  # Detects usage of weak/broken cryptographic algorithms
+
+  - id: mastg-android-weak-hash-md5
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: MessageDigest.getInstance("md5")
+    message: |
+      MD5 hash algorithm detected (MASVS-CRYPTO).
+      MD5 is cryptographically broken and vulnerable to collision attacks.
+      Use SHA-256, SHA-384, SHA-512, or SHA-3 family instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH
+
+  - id: mastg-android-weak-hash-sha1
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("SHA-1")
+          - pattern: MessageDigest.getInstance("SHA1")
+          - pattern: MessageDigest.getInstance("sha-1")
+          - pattern: MessageDigest.getInstance("sha1")
+    message: |
+      SHA-1 hash algorithm detected (MASVS-CRYPTO).
+      SHA-1 is cryptographically broken and vulnerable to collision attacks.
+      Use SHA-256, SHA-384, SHA-512, or SHA-3 family instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH
+
+  - id: mastg-android-weak-cipher-des
+    patterns:
+      - pattern-either:
+          - pattern: Cipher.getInstance("DES")
+          - pattern: Cipher.getInstance("DES/...")
+          - pattern: Cipher.getInstance("DESede")
+          - pattern: Cipher.getInstance("DESede/...")
+    message: |
+      DES or 3DES cipher detected (MASVS-CRYPTO).
+      DES and 3DES are outdated block ciphers with insufficient key sizes.
+      Use AES-256 with GCM mode instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH
+
+  - id: mastg-android-weak-cipher-rc4
+    patterns:
+      - pattern-either:
+          - pattern: Cipher.getInstance("RC4")
+          - pattern: Cipher.getInstance("ARC4")
+          - pattern: Cipher.getInstance("ARCFOUR")
+    message: |
+      RC4 stream cipher detected (MASVS-CRYPTO).
+      RC4 is a broken stream cipher and should not be used.
+      Use AES-256 with GCM mode instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH
+
+  - id: mastg-android-ecb-mode-encryption
+    patterns:
+      - pattern-either:
+          - pattern: Cipher.getInstance("AES/ECB/...")
+          - pattern: Cipher.getInstance("DES/ECB/...")
+          - pattern: Cipher.getInstance(".../ECB/...")
+    message: |
+      ECB (Electronic Codebook) mode encryption detected (MASVS-CRYPTO).
+      ECB mode is insecure as identical plaintext blocks produce identical ciphertext blocks.
+      Use AES with GCM (Galois/Counter Mode) or CBC mode with proper IV instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH
+
+  - id: mastg-android-static-iv
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $IV = new byte[$SIZE]
+              ...
+              new IvParameterSpec($IV)
+          - pattern: |
+              $IV = new byte[] { ... }
+              ...
+              new IvParameterSpec($IV)
+    message: |
+      Static/hardcoded Initialization Vector (IV) detected (MASVS-CRYPTO).
+      Using a static IV defeats the purpose of encryption modes like CBC.
+      Generate a random IV using SecureRandom for each encryption operation.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-329: Generation of Predictable IV with CBC Mode"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: MEDIUM
+
+  - id: mastg-android-weak-key-size
+    patterns:
+      - pattern-either:
+          - pattern: KeyGenerator.getInstance("AES").init($SIZE)
+          - pattern: KeyPairGenerator.getInstance("RSA").initialize($SIZE)
+      - metavariable-comparison:
+          metavariable: $SIZE
+          comparison: $SIZE < 256
+    message: |
+      Weak cryptographic key size detected (MASVS-CRYPTO).
+      Use at least 256 bits for AES and 2048 bits for RSA.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-326: Inadequate Encryption Strength"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH

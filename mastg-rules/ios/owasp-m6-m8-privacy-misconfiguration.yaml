@@ -1,0 +1,462 @@
+rules:
+  # OWASP Mobile Top 10 - M6: Inadequate Privacy Controls & M8: Security Misconfiguration (iOS)
+  # Detects privacy violations and security misconfigurations in iOS applications
+
+  # ============ CLIPBOARD / PASTEBOARD SECURITY (M6) ============
+
+  - id: owasp-m6-ios-pasteboard-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UIPasteboard.general.string = $VALUE
+          - pattern: |
+              UIPasteboard.general.setValue($VALUE, forPasteboardType: ...)
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: (?i).*(password|token|secret|key|ssn|credit.*card|pin|auth).*
+    message: |
+      Sensitive data copied to pasteboard (OWASP M6: Inadequate Privacy Controls).
+      Pasteboard is globally accessible. Other apps can read copied content.
+      Avoid copying sensitive data or use custom pasteboards with expirationDate (iOS 10+).
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: privacy
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      mastg-test: "MASTG-TEST-0073"
+      confidence: HIGH
+
+  - id: owasp-m6-ios-pasteboard-expiration
+    patterns:
+      - pattern: |
+          UIPasteboard.general.$METHOD($VALUE)
+      - pattern-not-inside: |
+          UIPasteboard.general.setItems($ITEMS, options: [.expirationDate: ...])
+    message: |
+      Pasteboard item without expiration (OWASP M6: Inadequate Privacy Controls).
+      Data persists indefinitely without expiration, increasing exposure risk.
+      Use setItems(_:options:) with UIPasteboard.OptionsKey.expirationDate (iOS 10+).
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      mastg-test: "MASTG-TEST-0073"
+      confidence: MEDIUM
+
+  # ============ LOCATION PRIVACY (M6) ============
+
+  - id: owasp-m6-ios-location-always-authorization
+    patterns:
+      - pattern: |
+          locationManager.requestAlwaysAuthorization()
+    message: |
+      'Always' location authorization requested (OWASP M6: Inadequate Privacy Controls).
+      Background location tracking is highly privacy-invasive.
+      Use requestWhenInUseAuthorization() unless background access is essential.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, CCPA, Apple Privacy Policy"
+      confidence: HIGH
+
+  - id: owasp-m6-ios-location-missing-purpose
+    patterns:
+      - pattern: |
+          <key>NSLocationAlwaysUsageDescription</key>
+          <string>$DESC</string>
+      - metavariable-regex:
+          metavariable: $DESC
+          regex: ^.{0,20}$
+    message: |
+      Insufficient location usage description (OWASP M6: Inadequate Privacy Controls).
+      Privacy strings must clearly explain why location is needed.
+      Provide detailed, user-friendly purpose description (>20 characters).
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+
+  # ============ ADVERTISING & TRACKING (M6) ============
+
+  - id: owasp-m6-ios-idfa-tracking
+    patterns:
+      - pattern-either:
+          - pattern: |
+              ASIdentifierManager.shared().advertisingIdentifier
+          - pattern: |
+              ASIdentifierManager.shared().isAdvertisingTrackingEnabled
+    message: |
+      IDFA (Advertising Identifier) accessed (OWASP M6: Inadequate Privacy Controls).
+      IDFA enables cross-app tracking. iOS 14.5+ requires App Tracking Transparency.
+      Request tracking authorization with ATTrackingManager.requestTrackingAuthorization.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "Apple ATT Framework, GDPR"
+      confidence: HIGH
+
+  - id: owasp-m6-ios-att-missing
+    patterns:
+      - pattern: |
+          ASIdentifierManager.shared().advertisingIdentifier
+      - pattern-not-inside: |
+          ATTrackingManager.requestTrackingAuthorization { status in
+            ...
+          }
+    message: |
+      IDFA accessed without App Tracking Transparency (OWASP M6: Inadequate Privacy Controls).
+      iOS 14.5+ requires ATTrackingManager.requestTrackingAuthorization before IDFA access.
+      Request tracking authorization or app will be rejected.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "Apple ATT Framework"
+      confidence: HIGH
+
+  # ============ PHOTOS & MEDIA ACCESS (M6) ============
+
+  - id: owasp-m6-ios-photos-access-all
+    patterns:
+      - pattern: |
+          PHPhotoLibrary.requestAuthorization { status in
+            ...
+          }
+    message: |
+      Full photo library access requested (OWASP M6: Inadequate Privacy Controls).
+      iOS 14+ allows limited photo access.
+      Use PHPhotoLibrary.requestAuthorization(for: .readWrite) with .limited option.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: LOW
+
+  # ============ CONTACTS & CALENDAR (M6) ============
+
+  - id: owasp-m6-ios-contacts-access
+    patterns:
+      - pattern: |
+          CNContactStore().requestAccess(for: .contacts, ...)
+    message: |
+      Contacts access requested (OWASP M6: Inadequate Privacy Controls).
+      Contact data is personal information requiring explicit consent.
+      Minimize data collection and provide clear purpose in Info.plist.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, CCPA"
+      confidence: LOW
+
+  # ============ URL SCHEME HIJACKING (M8) ============
+
+  - id: owasp-m8-ios-custom-url-scheme
+    patterns:
+      - pattern: |
+          <key>CFBundleURLSchemes</key>
+          <array>
+            <string>$SCHEME</string>
+          </array>
+      - pattern-not-inside: |
+          <key>CFBundleURLTypes</key>
+          <array>
+            <dict>
+              ...
+              <key>CFBundleURLSchemes</key>
+              <array>
+                <string>https</string>
+              </array>
+            </dict>
+          </array>
+    message: |
+      Custom URL scheme without Universal Links (OWASP M8: Security Misconfiguration).
+      Custom schemes are vulnerable to hijacking - multiple apps can register the same scheme.
+      Use Universal Links (https) with Associated Domains for secure deep linking.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-939: Improper Authorization in Handler for Custom URL Scheme"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+
+  # ============ APP TRANSPORT SECURITY (M8) ============
+
+  - id: owasp-m8-ios-ats-globally-disabled
+    patterns:
+      - pattern: |
+          <key>NSAppTransportSecurity</key>
+          <dict>
+            <key>NSAllowsArbitraryLoads</key>
+            <true/>
+          </dict>
+    message: |
+      App Transport Security disabled globally (OWASP M8: Security Misconfiguration).
+      Disabling ATS allows insecure HTTP connections and weak TLS.
+      Use NSExceptionDomains for specific hosts only if absolutely necessary.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      mastg-test: "MASTG-TEST-0065"
+      confidence: HIGH
+
+  - id: owasp-m8-ios-ats-web-content-exception
+    patterns:
+      - pattern: |
+          <key>NSAllowsArbitraryLoadsInWebContent</key>
+          <true/>
+    message: |
+      ATS exception for web content (OWASP M8: Security Misconfiguration).
+      Allowing arbitrary loads in WKWebView bypasses ATS protections.
+      Restrict to specific domains with NSExceptionDomains.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+
+  - id: owasp-m8-ios-ats-weak-tls
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSExceptionMinimumTLSVersion</key>
+              <string>TLSv1.0</string>
+          - pattern: |
+              <key>NSExceptionMinimumTLSVersion</key>
+              <string>TLSv1.1</string>
+    message: |
+      Weak TLS version in ATS exception (OWASP M8: Security Misconfiguration).
+      TLSv1.0 and TLSv1.1 are deprecated and insecure.
+      Use TLSv1.2 or TLSv1.3 as minimum version.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-326: Inadequate Encryption Strength"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+
+  # ============ UNIVERSAL LINKS (M8) ============
+
+  - id: owasp-m8-ios-universal-links-no-validation
+    patterns:
+      - pattern: |
+          func application(_ application: UIApplication, continue userActivity: NSUserActivity, ...) -> Bool {
+            ...
+          }
+      - pattern-not-inside: |
+          if userActivity.webpageURL?.host == "$DOMAIN" {
+            ...
+          }
+    message: |
+      Universal Links accepted without validation (OWASP M8: Security Misconfiguration).
+      Unvalidated Universal Links can navigate to malicious sites.
+      Validate URL host and path in associated domains.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      mastg-test: "MASTG-TEST-0070"
+      confidence: HIGH
+
+  # ============ ENTITLEMENTS & CAPABILITIES (M8) ============
+
+  - id: owasp-m8-ios-get-task-allow
+    patterns:
+      - pattern: |
+          <key>get-task-allow</key>
+          <true/>
+    message: |
+      get-task-allow enabled in production (OWASP M8: Security Misconfiguration).
+      This entitlement allows debugger attachment and is for development only.
+      Remove from production builds - automatic in Release configuration.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/*.entitlements"
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+
+  - id: owasp-m8-ios-inter-app-audio
+    patterns:
+      - pattern: |
+          <key>inter-app-audio</key>
+          <true/>
+    message: |
+      Inter-App Audio enabled (OWASP M8: Security Misconfiguration).
+      Inter-App Audio is deprecated by Apple.
+      Use AVAudioEngine for audio processing instead.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/*.entitlements"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+
+  # ============ BACKGROUND MODES (M8) ============
+
+  - id: owasp-m8-ios-background-fetch
+    patterns:
+      - pattern: |
+          <key>UIBackgroundModes</key>
+          <array>
+            <string>fetch</string>
+          </array>
+    message: |
+      Background fetch mode enabled (OWASP M8: Security Misconfiguration).
+      Background modes drain battery and may access data when app is suspended.
+      Only enable if required and disclose in privacy policy.
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: LOW
+
+  # ============ THIRD-PARTY KEYBOARDS (M6) ============
+
+  - id: owasp-m6-ios-custom-keyboard-allowed
+    patterns:
+      - pattern: |
+          $TEXTFIELD.keyboardType = ...
+      - pattern-not: |
+          $TEXTFIELD.isSecureTextEntry = true
+    message: |
+      Sensitive field allows custom keyboards (OWASP M6: Inadequate Privacy Controls).
+      Third-party keyboards can log sensitive input.
+      Set isSecureTextEntry = true for password/PIN fields to disable custom keyboards.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+
+  # ============ SCREENSHOT PREVENTION (M6) ============
+
+  - id: owasp-m6-ios-screenshot-not-blocked
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $CLASS: UIViewController {
+                ...
+              }
+      - pattern-not-inside: |
+          NotificationCenter.default.addObserver(..., name: UIApplication.userDidTakeScreenshotNotification, ...)
+    message: |
+      Screenshot detection not implemented (OWASP M6: Inadequate Privacy Controls).
+      Screenshots can capture sensitive information.
+      Detect screenshots with UIApplication.userDidTakeScreenshotNotification or blur content in app switcher.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: LOW
+
+  # ============ ANALYTICS & CRASH REPORTING (M6) ============
+
+  - id: owasp-m6-ios-analytics-pii
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Analytics.logEvent("$EVENT", parameters: ["user_email": $EMAIL])
+          - pattern: |
+              Crashlytics.crashlytics().setUserID($EMAIL)
+          - pattern: |
+              Firebase.Analytics.setUserProperty($EMAIL, forName: ...)
+    message: |
+      PII sent to analytics/crash reporting (OWASP M6: Inadequate Privacy Controls).
+      Sending emails, phone numbers violates GDPR/CCPA.
+      Use anonymized user IDs instead of direct PII.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 5, CCPA"
+      confidence: HIGH
+
+  # ============ NETWORK ACTIVITY INDICATOR (M6) ============
+
+  - id: owasp-m6-ios-network-activity-indicator
+    patterns:
+      - pattern: |
+          UIApplication.shared.isNetworkActivityIndicatorVisible = true
+    message: |
+      Network activity indicator used (OWASP M6: Inadequate Privacy Controls).
+      Network indicator reveals app activity patterns to observers.
+      Consider privacy implications before showing network activity.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: LOW

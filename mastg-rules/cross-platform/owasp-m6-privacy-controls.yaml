@@ -1,0 +1,386 @@
+rules:
+  # OWASP Mobile Top 10 - M6: Inadequate Privacy Controls
+  # Detects privacy violations, excessive permissions, and data collection issues
+
+  # ============ EXCESSIVE PERMISSIONS ============
+
+  - id: owasp-m6-dangerous-permission-camera
+    patterns:
+      - pattern: |
+          <uses-permission android:name="android.permission.CAMERA" />
+    message: |
+      Camera permission requested (OWASP M6: Inadequate Privacy Controls).
+      Only request camera permission if essential for core functionality.
+      Provide clear privacy notice explaining camera usage.
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, CCPA"
+      confidence: LOW
+
+  - id: owasp-m6-dangerous-permission-location
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+          - pattern: |
+              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+          - pattern: |
+              <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    message: |
+      Location permission requested (OWASP M6: Inadequate Privacy Controls).
+      Location data is sensitive PII under GDPR/CCPA. Implement:
+      1. Clear privacy notice explaining location usage
+      2. Purpose limitation (only collect when needed)
+      3. User consent before collection
+      4. Background location only if justified
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 6, CCPA 1798.100"
+      confidence: MEDIUM
+
+  - id: owasp-m6-permission-contacts
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
+          - pattern: |
+              <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    message: |
+      Contacts permission requested (OWASP M6: Inadequate Privacy Controls).
+      Contact data is personal information requiring explicit consent.
+      Minimize data collection and provide opt-out mechanism.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, CCPA, PDPA"
+      confidence: MEDIUM
+
+  # ============ CLIPBOARD PRIVACY ============
+
+  - id: owasp-m6-clipboard-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CLIPBOARD.setPrimaryClip(ClipData.newPlainText($LABEL, $DATA))
+          - pattern: |
+              clipboardManager.setPrimaryClip(ClipData.newPlainText($LABEL, $DATA))
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|ssn|credit.*card|pin).*
+    message: |
+      Sensitive data copied to clipboard (OWASP M6: Inadequate Privacy Controls).
+      Clipboard is globally accessible on Android. Any app can read clipboard contents.
+      Avoid copying sensitive data or use ClipDescription.EXTRA_IS_SENSITIVE (Android 13+).
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: HIGH
+
+  - id: owasp-m6-clipboard-monitoring
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CLIPBOARD.addPrimaryClipChangedListener($LISTENER)
+          - pattern: |
+              clipboardManager.addPrimaryClipChangedListener { ... }
+    message: |
+      Clipboard monitoring detected (OWASP M6: Inadequate Privacy Controls).
+      Monitoring clipboard can capture sensitive user data like passwords.
+      Disclose clipboard access in privacy policy and get user consent.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      cwe: "CWE-359: Exposure of Private Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+
+  # ============ DATA COLLECTION & TRACKING ============
+
+  - id: owasp-m6-advertising-id-collection
+    patterns:
+      - pattern-either:
+          - pattern: AdvertisingIdClient.getAdvertisingIdInfo($CONTEXT)
+          - pattern: AdvertisingIdClient.Info.getId()
+    message: |
+      Advertising ID collected (OWASP M6: Inadequate Privacy Controls).
+      Advertising ID is used for tracking users across apps.
+      Disclose in privacy policy and allow users to opt-out per GDPR/CCPA.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 6(1)(a), CCPA 1798.120"
+      confidence: HIGH
+
+  - id: owasp-m6-device-fingerprinting
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Build.SERIAL
+          - pattern: |
+              Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+          - pattern: |
+              TelephonyManager.getDeviceId()
+          - pattern: |
+              TelephonyManager.getImei()
+    message: |
+      Device identifier collection for fingerprinting (OWASP M6: Inadequate Privacy Controls).
+      Device IDs enable persistent user tracking across apps.
+      Use privacy-preserving alternatives or get explicit consent (GDPR Art. 6).
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, CCPA, ePrivacy Directive"
+      confidence: HIGH
+
+  - id: owasp-m6-installed-apps-enumeration
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PM.getInstalledPackages(...)
+          - pattern: |
+              packageManager.getInstalledApplications(...)
+    message: |
+      Installed apps enumeration (OWASP M6: Inadequate Privacy Controls).
+      Listing installed apps can profile users for targeted advertising.
+      Android 11+ restricts this. Declare QUERY_ALL_PACKAGES if necessary and justify in privacy policy.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, Google Play Policy"
+      confidence: MEDIUM
+
+  # ============ ANALYTICS & THIRD-PARTY SDKS ============
+
+  - id: owasp-m6-analytics-pii-tracking
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $ANALYTICS.logEvent($EVENT, bundleOf("user_email" to $EMAIL))
+          - pattern: |
+              $ANALYTICS.logEvent($EVENT, bundleOf("user_phone" to $PHONE))
+          - pattern: |
+              $ANALYTICS.setUserProperty("email", $EMAIL)
+    message: |
+      PII sent to analytics (OWASP M6: Inadequate Privacy Controls).
+      Sending emails, phone numbers to analytics violates GDPR/CCPA.
+      Use anonymized user IDs instead of direct PII.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      cwe: "CWE-359: Exposure of Private Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 5, CCPA 1798.140"
+      confidence: HIGH
+
+  - id: owasp-m6-crashlytics-pii-logging
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Crashlytics.log("User: " + $EMAIL)
+          - pattern: |
+              FirebaseCrashlytics.getInstance().log("User email: " + $EMAIL)
+          - pattern: |
+              Crashlytics.setUserIdentifier($EMAIL)
+    message: |
+      PII logged to crash reporting (OWASP M6: Inadequate Privacy Controls).
+      Crash logs with PII may be stored/processed outside EU (GDPR violation).
+      Use anonymized user IDs for crash reporting.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 32, CCPA"
+      confidence: HIGH
+
+  # ============ CONSENT MANAGEMENT ============
+
+  - id: owasp-m6-missing-consent-dialog
+    patterns:
+      - pattern-either:
+          - pattern: |
+              ActivityCompat.requestPermissions($ACTIVITY, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), ...)
+          - pattern: |
+              ActivityCompat.requestPermissions($ACTIVITY, arrayOf(Manifest.permission.CAMERA), ...)
+      - pattern-not-inside: |
+          if ($USER_CONSENTED) {
+            ...
+          }
+    message: |
+      Permission requested without prior consent (OWASP M6: Inadequate Privacy Controls).
+      GDPR requires informed consent before data collection.
+      Show privacy notice explaining purpose before requesting permission.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 7, CCPA"
+      confidence: LOW
+
+  # ============ DATA RETENTION ============
+
+  - id: owasp-m6-no-data-deletion
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class UserRepository {
+                ...
+              }
+      - pattern-not-inside: |
+          fun deleteUserData($USER_ID) {
+            ...
+          }
+      - pattern-not-inside: |
+          public void deleteUserData(String userId) {
+            ...
+          }
+    message: |
+      Missing user data deletion functionality (OWASP M6: Inadequate Privacy Controls).
+      GDPR Art. 17 grants users "right to be forgotten".
+      Implement functionality to delete user data upon request.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 17, CCPA 1798.105"
+      confidence: LOW
+
+  # ============ iOS PRIVACY ============
+
+  - id: owasp-m6-ios-location-always-usage
+    patterns:
+      - pattern: |
+          <key>NSLocationAlwaysUsageDescription</key>
+          <string>$DESC</string>
+    message: |
+      'Always' location permission requested (OWASP M6: Inadequate Privacy Controls).
+      Background location tracking is highly privacy-invasive.
+      Use 'When In Use' permission unless background access is essential.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR, CCPA, Apple Privacy Policy"
+      confidence: HIGH
+
+  - id: owasp-m6-ios-tracking-authorization
+    patterns:
+      - pattern: |
+          ATTrackingManager.requestTrackingAuthorization
+    message: |
+      App Tracking Transparency request (OWASP M6: Inadequate Privacy Controls).
+      Cross-app tracking requires user consent per iOS 14.5+.
+      Ensure privacy policy explains tracking purpose and data usage.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "Apple ATT Framework, GDPR"
+      confidence: MEDIUM
+
+  # ============ GDPR/CCPA COMPLIANCE ============
+
+  - id: owasp-m6-third-party-data-sharing
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $HTTP.post("https://analytics.3rdparty.com/collect", userData)
+          - pattern: |
+              Facebook.logEvent($EVENT, $USER_DATA)
+    message: |
+      Data shared with third-party without disclosure (OWASP M6: Inadequate Privacy Controls).
+      GDPR Art. 13 requires disclosure of data recipients.
+      Update privacy policy to list all third-party data processors.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "GDPR Art. 13, CCPA 1798.115"
+      confidence: MEDIUM
+
+  - id: owasp-m6-children-data-collection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($AGE < 13) {
+                ...
+                $API.registerUser($USER_DATA)
+                ...
+              }
+    message: |
+      Data collection from children under 13 (OWASP M6: Inadequate Privacy Controls).
+      COPPA prohibits collecting data from children under 13 without parental consent.
+      Implement age verification and parental consent mechanisms.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+      - swift
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      compliance: "COPPA, GDPR (children's data), CCPA"
+      confidence: MEDIUM

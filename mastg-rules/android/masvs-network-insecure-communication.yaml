@@ -1,0 +1,158 @@
+rules:
+  # MASVS-NETWORK: Insecure Network Communication
+  # Based on MASTG-TEST-0019: Testing Data Encryption on the Network
+  # Detects cleartext HTTP and insecure TLS/SSL configurations
+
+  - id: mastg-android-cleartext-http-url
+    patterns:
+      - pattern-either:
+          - pattern: new URL("http://...")
+          - pattern: HttpURLConnection $CONN = (HttpURLConnection) new URL("http://...").openConnection()
+          - pattern: URL $URL = new URL("http://...")
+      - pattern-not: new URL("http://localhost...")
+      - pattern-not: new URL("http://127.0.0.1...")
+    message: |
+      Cleartext HTTP URL detected (MASVS-NETWORK).
+      Transmitting data over HTTP exposes it to interception and tampering.
+      Use HTTPS for all network communications. Since Android 9 (API 28),
+      cleartext HTTP is blocked by default.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0019"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-android-webview-cleartext-allowed
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
+          - pattern: |
+              $SETTINGS.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
+    message: |
+      WebView configured to allow mixed content (MASVS-NETWORK).
+      Allowing mixed content (HTTP in HTTPS pages) can expose users to
+      man-in-the-middle attacks. Use MIXED_CONTENT_NEVER_ALLOW instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      mastg-test: "MASTG-TEST-0019"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-android-trust-all-certificates
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $CLASS implements X509TrustManager {
+                ...
+                public void checkServerTrusted(...) { }
+                ...
+              }
+          - pattern: |
+              new X509TrustManager() {
+                ...
+                public void checkServerTrusted(...) { }
+                ...
+              }
+    message: |
+      Custom TrustManager that trusts all certificates (MASVS-NETWORK).
+      Disabling certificate validation makes the app vulnerable to
+      man-in-the-middle attacks. Implement proper certificate validation
+      or use certificate pinning.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0019"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-android-hostname-verifier-allow-all
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CONN.setHostnameVerifier(new HostnameVerifier() {
+                public boolean verify(...) { return true; }
+              })
+          - pattern: SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER
+    message: |
+      Hostname verification disabled (MASVS-NETWORK).
+      Disabling hostname verification allows attackers to perform
+      man-in-the-middle attacks. Always verify the hostname matches
+      the certificate.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-297: Improper Validation of Certificate with Host Mismatch"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0019"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-android-ssl-error-proceed
+    patterns:
+      - pattern: |
+          public void onReceivedSslError(WebView $VIEW, SslErrorHandler $HANDLER, ...) {
+            ...
+            $HANDLER.proceed()
+            ...
+          }
+    message: |
+      WebView SSL error handler calling proceed() (MASVS-NETWORK).
+      Proceeding despite SSL errors exposes users to man-in-the-middle attacks.
+      Call handler.cancel() to abort insecure connections.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      mastg-test: "MASTG-TEST-0019"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-android-insecure-socket-factory
+    patterns:
+      - pattern-either:
+          - pattern: |
+              SSLContext $CTX = SSLContext.getInstance("SSL")
+          - pattern: |
+              SSLContext.getInstance("SSLv3")
+          - pattern: |
+              SSLContext.getInstance("TLSv1")
+          - pattern: |
+              SSLContext.getInstance("TLSv1.1")
+    message: |
+      Insecure SSL/TLS protocol version detected (MASVS-NETWORK).
+      SSL, SSLv3, TLSv1, and TLSv1.1 are deprecated and insecure.
+      Use TLSv1.2 or TLSv1.3 instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-326: Inadequate Encryption Strength"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0019"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH

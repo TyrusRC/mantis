@@ -1,0 +1,184 @@
+rules:
+  # MASVS-NETWORK: Insecure Network Communication (iOS)
+  # Based on MASTG-TEST-0065: Testing Data Encryption on the Network
+  # Detects cleartext HTTP and insecure TLS/SSL configurations
+
+  - id: mastg-ios-ats-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSAppTransportSecurity</key>
+              <dict>
+                <key>NSAllowsArbitraryLoads</key>
+                <true/>
+              </dict>
+    message: |
+      App Transport Security (ATS) disabled globally (MASVS-NETWORK).
+      Disabling ATS allows insecure HTTP connections and weak TLS configurations.
+      Only disable ATS for specific domains if absolutely necessary.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-ios-http-url-string
+    patterns:
+      - pattern-either:
+          - pattern: URL(string: "http://...")
+          - pattern: NSURL(string: "http://...")
+          - pattern: URLRequest(url: URL(string: "http://...")!)
+      - pattern-not: URL(string: "http://localhost...")
+      - pattern-not: URL(string: "http://127.0.0.1...")
+    message: |
+      Cleartext HTTP URL detected (MASVS-NETWORK).
+      Transmitting data over HTTP exposes it to interception and tampering.
+      Use HTTPS for all network communications. ATS blocks HTTP by default.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-ios-http-url-objc
+    patterns:
+      - pattern-either:
+          - pattern: '[NSURL URLWithString:@"http://..."]'
+          - pattern: '[[NSURL alloc] initWithString:@"http://..."]'
+      - pattern-not: '[NSURL URLWithString:@"http://localhost..."]'
+      - pattern-not: '[NSURL URLWithString:@"http://127.0.0.1..."]'
+    message: |
+      Cleartext HTTP URL detected (MASVS-NETWORK).
+      Transmitting data over HTTP exposes it to interception and tampering.
+      Use HTTPS for all network communications.
+    severity: ERROR
+    languages:
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-ios-disable-certificate-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func urlSession(..., didReceive challenge: URLAuthenticationChallenge, completionHandler: ...) {
+                ...
+                completionHandler(.useCredential, URLCredential(trust: challenge.protectionSpace.serverTrust!))
+                ...
+              }
+          - pattern: |
+              func urlSession(...) {
+                ...
+                completionHandler(.useCredential, ...)
+                ...
+              }
+    message: |
+      Certificate validation potentially disabled (MASVS-NETWORK).
+      Accepting all server certificates makes the app vulnerable to
+      man-in-the-middle attacks. Implement proper certificate validation
+      or certificate pinning.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: MEDIUM
+
+  - id: mastg-ios-weak-tls-version
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSExceptionMinimumTLSVersion</key>
+              <string>TLSv1.0</string>
+          - pattern: |
+              <key>NSExceptionMinimumTLSVersion</key>
+              <string>TLSv1.1</string>
+    message: |
+      Weak TLS version allowed (MASVS-NETWORK).
+      TLSv1.0 and TLSv1.1 are deprecated and insecure.
+      Use TLSv1.2 or TLSv1.3 as minimum version.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-326: Inadequate Encryption Strength"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-ios-insecure-ssl-pinning
+    patterns:
+      - pattern: |
+          let $CRED = URLCredential(trust: $TRUST)
+      - pattern-not-inside: |
+          if $CONDITION {
+            ...
+            let $CRED = URLCredential(trust: $TRUST)
+            ...
+          } else {
+            ...
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            ...
+          }
+    message: |
+      SSL/TLS credential accepted without validation (MASVS-NETWORK).
+      Always validate server trust before creating credentials.
+      Implement certificate pinning for enhanced security.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: MEDIUM
+
+  - id: mastg-ios-webview-ats-exception
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+    message: |
+      ATS exception allowing insecure HTTP loads (MASVS-NETWORK).
+      Allowing insecure HTTP for specific domains should be avoided.
+      Use HTTPS for all connections.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH

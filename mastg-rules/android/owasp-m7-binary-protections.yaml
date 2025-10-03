@@ -1,0 +1,382 @@
+rules:
+  # OWASP Mobile Top 10 - M7: Insufficient Binary Protections
+  # Detects lack of obfuscation, debugging enabled, and reverse engineering risks
+
+  # ============ CODE OBFUSCATION ============
+
+  - id: owasp-m7-proguard-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              buildTypes {
+                release {
+                  ...
+                  minifyEnabled false
+                  ...
+                }
+              }
+          - pattern: |
+              minifyEnabled = false
+    message: |
+      ProGuard/R8 disabled in release build (OWASP M7: Insufficient Binary Protections).
+      Disabling code minification makes reverse engineering easier.
+      Enable minifyEnabled true for release builds to obfuscate code.
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+
+  - id: owasp-m7-shrink-resources-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              buildTypes {
+                release {
+                  ...
+                  shrinkResources false
+                  ...
+                }
+              }
+          - pattern: |
+              shrinkResources = false
+    message: |
+      Resource shrinking disabled (OWASP M7: Insufficient Binary Protections).
+      Unused resources may contain sensitive information or increase attack surface.
+      Enable shrinkResources true to remove unused resources.
+    severity: INFO
+    languages:
+      - gradle
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  # ============ DEBUGGING & LOGGING ============
+
+  - id: owasp-m7-debuggable-true
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:debuggable="true"
+            ...
+          />
+    message: |
+      Application is debuggable (OWASP M7: Insufficient Binary Protections).
+      Debuggable apps allow attackers to inspect memory, bypass security controls.
+      Set android:debuggable="false" or remove (defaults to false in release).
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+
+  - id: owasp-m7-excessive-logging
+    patterns:
+      - pattern-either:
+          - pattern: Log.d($TAG, $MSG)
+          - pattern: Log.v($TAG, $MSG)
+          - pattern: Log.i($TAG, $MSG)
+          - pattern: println($MSG)
+      - metavariable-regex:
+          metavariable: $MSG
+          regex: (?i).*(password|token|key|secret|credential|auth|pin).*
+    message: |
+      Sensitive data in logs (OWASP M7: Insufficient Binary Protections).
+      Logging sensitive information can expose it via logcat.
+      Remove debug logs from production or use ProGuard to strip Log calls.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+
+  - id: owasp-m7-stack-trace-exposed
+    patterns:
+      - pattern-either:
+          - pattern: $EXCEPTION.printStackTrace()
+          - pattern: Log.e($TAG, $MSG, $EXCEPTION)
+    message: |
+      Stack trace exposure (OWASP M7: Insufficient Binary Protections).
+      Printing stack traces can reveal application structure and logic.
+      Use proper error handling and remove debug traces in production.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-209: Information Exposure Through Error Message"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  # ============ ROOT DETECTION ============
+
+  - id: owasp-m7-missing-root-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class MainActivity : AppCompatActivity() {
+                ...
+              }
+          - pattern: |
+              public class MainActivity extends AppCompatActivity {
+                ...
+              }
+      - pattern-not-inside: |
+          if (isRooted()) {
+            ...
+          }
+      - pattern-not-inside: |
+          RootBeer($CONTEXT).isRooted()
+    message: |
+      Missing root detection (OWASP M7: Insufficient Binary Protections).
+      Apps handling sensitive data should detect rooted devices.
+      Implement root detection (check for su binary, test-keys, etc.).
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ TAMPER DETECTION ============
+
+  - id: owasp-m7-missing-signature-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class MainActivity : AppCompatActivity() {
+                ...
+              }
+          - pattern: |
+              public class MainActivity extends AppCompatActivity {
+                ...
+              }
+      - pattern-not-inside: |
+          $PKG.getPackageInfo(..., PackageManager.GET_SIGNATURES)
+      - pattern-not-inside: |
+          packageManager.getPackageInfo(..., PackageManager.GET_SIGNING_CERTIFICATES)
+    message: |
+      Missing app signature verification (OWASP M7: Insufficient Binary Protections).
+      Apps should verify their own signature to detect tampering.
+      Implement signature checking at runtime.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-missing-checksum-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $CLASS : Application() {
+                ...
+              }
+          - pattern: |
+              public class $CLASS extends Application {
+                ...
+              }
+      - pattern-not-inside: |
+          MessageDigest.getInstance("SHA-256")
+    message: |
+      Missing integrity check (OWASP M7: Insufficient Binary Protections).
+      Apps should validate their own integrity to detect modification.
+      Implement DEX/APK checksum validation at runtime.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ EMULATOR DETECTION ============
+
+  - id: owasp-m7-missing-emulator-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class MainActivity : AppCompatActivity() {
+                ...
+              }
+      - pattern-not-inside: |
+          Build.FINGERPRINT.contains("generic")
+      - pattern-not-inside: |
+          Build.MODEL.contains("Emulator")
+    message: |
+      Missing emulator detection (OWASP M7: Insufficient Binary Protections).
+      Banking/payment apps should detect emulators to prevent analysis.
+      Check Build.FINGERPRINT, Build.MODEL for emulator indicators.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ NATIVE CODE PROTECTION ============
+
+  - id: owasp-m7-stripped-native-libs
+    patterns:
+      - pattern-either:
+          - pattern: |
+              externalNativeBuild {
+                cmake {
+                  ...
+                }
+              }
+          - pattern: |
+              ndk {
+                ...
+              }
+      - pattern-not-inside: |
+          arguments "-DCMAKE_C_FLAGS=-s"
+      - pattern-not-inside: |
+          arguments "-DCMAKE_CXX_FLAGS=-s"
+    message: |
+      Native libraries not stripped (OWASP M7: Insufficient Binary Protections).
+      Unstripped native libraries contain debug symbols making analysis easier.
+      Add -s flag to strip symbols in release builds.
+    severity: INFO
+    languages:
+      - gradle
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ ANTI-DEBUGGING ============
+
+  - id: owasp-m7-missing-debugger-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $CLASS : Application() {
+                override fun onCreate() {
+                  ...
+                }
+              }
+      - pattern-not-inside: |
+          Debug.isDebuggerConnected()
+    message: |
+      Missing debugger detection (OWASP M7: Insufficient Binary Protections).
+      Apps handling sensitive operations should detect debuggers.
+      Use Debug.isDebuggerConnected() or ptrace anti-debugging.
+    severity: INFO
+    languages:
+      - kotlin
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-debug-wait-enabled
+    patterns:
+      - pattern: Debug.waitForDebugger()
+    message: |
+      Debug wait for debugger enabled (OWASP M7: Insufficient Binary Protections).
+      waitForDebugger() should only be used during development.
+      Remove this call from production code.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+
+  # ============ BACKUP & EXPORT ============
+
+  - id: owasp-m7-backup-allowed
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:allowBackup="true"
+            ...
+          />
+    message: |
+      Application backup enabled (OWASP M7: Insufficient Binary Protections).
+      Backup can expose sensitive data via ADB backup.
+      Set android:allowBackup="false" for apps with sensitive data.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-530: Exposure of Backup File to Unauthorized Control Sphere"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+
+  - id: owasp-m7-exported-component-no-permission
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <activity
+                ...
+                android:exported="true"
+                ...
+              />
+          - pattern: |
+              <service
+                ...
+                android:exported="true"
+                ...
+              />
+          - pattern: |
+              <receiver
+                ...
+                android:exported="true"
+                ...
+              />
+      - pattern-not-inside: |
+          <activity
+            ...
+            android:permission="..."
+            ...
+          />
+    message: |
+      Exported component without permission (OWASP M7: Insufficient Binary Protections).
+      Exported components without permissions can be accessed by malicious apps.
+      Add android:permission or set android:exported="false".
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-927: Use of Implicit Intent for Sensitive Communication"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM

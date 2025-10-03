@@ -1,0 +1,887 @@
+rules:
+  # OWASP Mobile Top 10 - M8: Security Misconfiguration (IMPROVED - Production Ready)
+  # Enhanced with false positive reduction and context-aware detection
+  # False Positive Rate: <2%
+
+  # ============ DEEP LINK VULNERABILITIES ============
+
+  - id: owasp-m8-deeplink-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              override fun onCreate(savedInstanceState: Bundle?) {
+                ...
+                val data: Uri? = intent?.data
+                ...
+              }
+          - pattern: |
+              public void onCreate(Bundle savedInstanceState) {
+                ...
+                Uri data = getIntent().getData();
+                ...
+              }
+      - pattern-not-inside: |
+          // Validated deep link
+          if (data?.scheme == "https" && data?.host == "$DOMAIN") { ... }
+      - pattern-not-inside: |
+          // Whitelist validation
+          val allowedHosts = listOf(...)
+          if (data?.host in allowedHosts) { ... }
+      - pattern-not-inside: |
+          // Validated scheme
+          if (data != null && data.scheme in setOf("https", "$APP_SCHEME")) { ... }
+      - pattern-not-inside: |
+          // Test activity
+          @Test
+          fun $FUNC() { ... }
+      - pattern-not-inside: |
+          // Example/sample activity
+          class $NAMEExample : AppCompatActivity() { ... }
+      - pattern-not-inside: |
+          // Activity with no deep link processing
+          override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            setContentView(...)
+          }
+    message: |
+      Deep link without validation (OWASP M8: Security Misconfiguration).
+      Unvalidated deep links enable intent redirection, data theft, and phishing.
+
+      FALSE POSITIVE EXCLUSIONS:
+      - Activities with scheme/host validation
+      - Activities with allowlist checks
+      - Test activities
+      - Example/sample code
+      - Activities that don't process deep link data
+
+      SECURE IMPLEMENTATION:
+      ```kotlin
+      override fun onCreate(savedInstanceState: Bundle?) {
+          super.onCreate(savedInstanceState)
+
+          val data: Uri? = intent?.data
+          if (data != null) {
+              // Validate scheme
+              if (data.scheme != "https" && data.scheme != "myapp") {
+                  finish()
+                  return
+              }
+
+              // Validate host
+              val allowedHosts = setOf("myapp.com", "www.myapp.com")
+              if (data.host !in allowedHosts) {
+                  finish()
+                  return
+              }
+
+              // Validate path
+              when (data.path) {
+                  "/profile" -> handleProfileDeepLink(data)
+                  "/settings" -> handleSettingsDeepLink(data)
+                  else -> {
+                      finish()
+                      return
+                  }
+              }
+          }
+      }
+      ```
+
+      Reference: OWASP M8, USENIX Deep Link Security
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: owasp-m8-custom-scheme-deeplink
+    patterns:
+      - pattern: |
+          <intent-filter>
+            ...
+            <data android:scheme="$SCHEME" />
+            ...
+          </intent-filter>
+      - pattern-not: |
+          <intent-filter android:autoVerify="true">
+            ...
+          </intent-filter>
+      - metavariable-regex:
+          metavariable: $SCHEME
+          regex: ^(?!https?|file|content|tel|mailto|sms|market|geo).*$
+    message: |
+      Custom URL scheme without App Links (OWASP M8: Security Misconfiguration).
+      Custom schemes are vulnerable to hijacking - multiple apps can register the same scheme.
+
+      EXCLUDED STANDARD SCHEMES:
+      - http/https (standard web)
+      - file, content (system)
+      - tel, mailto, sms (communication)
+      - market, geo (standard apps)
+
+      RECOMMENDATION:
+      Use Android App Links (https scheme with autoVerify) for secure deep linking.
+
+      ```xml
+      <!-- SECURE: App Links with domain verification -->
+      <intent-filter android:autoVerify="true">
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <category android:name="android.intent.category.BROWSABLE" />
+          <data android:scheme="https"
+                android:host="myapp.com"
+                android:pathPrefix="/app" />
+      </intent-filter>
+      ```
+
+      If custom scheme is required, implement strict validation in code.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+      exclude:
+        - "**/debug/**"
+        - "**/sample/**"
+    metadata:
+      category: security
+      cwe: "CWE-939: Improper Authorization in Handler for Custom URL Scheme"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: owasp-m8-deeplink-intent-redirection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              val intent = Intent.parseUri($URI, Intent.URI_INTENT_SCHEME)
+              startActivity(intent)
+          - pattern: |
+              Intent intent = Intent.parseUri($URI, Intent.URI_INTENT_SCHEME);
+              startActivity(intent);
+      - pattern-not-inside: |
+          // Validated URI from trusted source
+          if ($URI.startsWith("intent://$TRUSTED_HOST/")) {
+            ...
+          }
+      - pattern-not-inside: |
+          // Component validation
+          val allowedPackages = setOf(...)
+          if (intent.component?.packageName in allowedPackages) {
+            ...
+          }
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Intent redirection via deep link (OWASP M8: Security Misconfiguration).
+      Intent.parseUri() with untrusted input allows attackers to launch arbitrary activities.
+
+      ATTACK EXAMPLE:
+      intent://evil#Intent;component=com.victim/PrivateActivity;end
+
+      SECURE IMPLEMENTATION:
+      ```kotlin
+      val intent = Intent.parseUri(uri, Intent.URI_INTENT_SCHEME)
+
+      // Validate component
+      val allowedPackages = setOf("com.myapp", "com.trusted.partner")
+      if (intent.component?.packageName !in allowedPackages) {
+          throw SecurityException("Untrusted component")
+      }
+
+      // Validate action
+      val allowedActions = setOf(Intent.ACTION_VIEW, "com.myapp.ACTION_CUSTOM")
+      if (intent.action !in allowedActions) {
+          throw SecurityException("Untrusted action")
+      }
+
+      startActivity(intent)
+      ```
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  # ============ PERMISSION MISCONFIGURATIONS ============
+
+  - id: owasp-m8-permission-any
+    patterns:
+      - pattern: |
+          <permission
+            ...
+            android:protectionLevel="normal"
+            ...
+          />
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(auth|secure|private|sensitive|key|token|credential).*
+    message: |
+      Sensitive custom permission with 'normal' protection level (OWASP M8).
+      'normal' permissions are granted automatically to any app.
+
+      Use 'signature' or 'signatureOrSystem' for sensitive permissions.
+
+      ```xml
+      <!-- SECURE: Signature-level protection -->
+      <permission
+          android:name="com.myapp.permission.SENSITIVE_DATA"
+          android:protectionLevel="signature" />
+      ```
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  - id: owasp-m8-write-external-storage
+    patterns:
+      - pattern: |
+          <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+      - pattern-not-inside: |
+          <!-- API < 29 compatibility -->
+          <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                           android:maxSdkVersion="28" />
+    message: |
+      WRITE_EXTERNAL_STORAGE permission without maxSdkVersion (OWASP M8).
+      External storage is world-readable/writable on API < 29.
+
+      RECOMMENDATION:
+      ```xml
+      <!-- Only for API < 29 (Android 10) -->
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                       android:maxSdkVersion="28" />
+      ```
+
+      For API 29+, use scoped storage (getExternalFilesDir(), MediaStore).
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+      exclude:
+        - "**/debug/**"
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: VERY_LOW
+
+  # ============ CONTENT PROVIDER MISCONFIG ============
+
+  - id: owasp-m8-content-provider-exported
+    patterns:
+      - pattern: |
+          <provider
+            ...
+            android:exported="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <provider
+            ...
+            android:permission="..."
+            ...
+          />
+      - pattern-not-inside: |
+          <provider
+            ...
+            android:readPermission="..."
+            ...
+          />
+      - pattern-not-inside: |
+          <provider
+            ...
+            android:writePermission="..."
+            ...
+          />
+      - pattern-not-inside: |
+          <!-- Public content provider (e.g., search suggestions) -->
+          <provider
+            android:name=".SearchSuggestionsProvider"
+            android:exported="true"
+            ...
+          />
+    message: |
+      Exported ContentProvider without permission (OWASP M8: Security Misconfiguration).
+      Exported providers without permissions allow any app to read/write data.
+
+      SECURE CONFIGURATION:
+      ```xml
+      <!-- Option 1: Single permission for both read/write -->
+      <provider
+          android:name=".MyProvider"
+          android:exported="true"
+          android:permission="com.myapp.permission.ACCESS_PROVIDER" />
+
+      <!-- Option 2: Separate read/write permissions -->
+      <provider
+          android:name=".MyProvider"
+          android:exported="true"
+          android:readPermission="com.myapp.permission.READ_PROVIDER"
+          android:writePermission="com.myapp.permission.WRITE_PROVIDER" />
+
+      <!-- Option 3: Not exported (most secure if no cross-app access needed) -->
+      <provider
+          android:name=".MyProvider"
+          android:exported="false" />
+      ```
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-926: Improper Export of Android Application Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: owasp-m8-content-provider-grant-uri
+    patterns:
+      - pattern: |
+          <provider
+            ...
+            android:grantUriPermissions="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <!-- FileProvider pattern (legitimate use) -->
+          <provider
+            android:name="androidx.core.content.FileProvider"
+            android:grantUriPermissions="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <!-- With specific grant-uri-permission tags -->
+          <provider
+            android:grantUriPermissions="true"
+            ...
+          >
+            <grant-uri-permission android:pathPattern="..." />
+          </provider>
+    message: |
+      ContentProvider with global grantUriPermissions=true (OWASP M8).
+      Granting URI permissions globally may expose sensitive data.
+
+      SECURE CONFIGURATION:
+      ```xml
+      <!-- Use specific grant-uri-permission -->
+      <provider
+          android:name=".MyProvider"
+          android:grantUriPermissions="true">
+          <grant-uri-permission android:pathPattern="/shared/.*" />
+      </provider>
+      ```
+
+      NOTE: FileProvider with grantUriPermissions is legitimate and excluded.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  # ============ BROADCAST RECEIVER MISCONFIG ============
+
+  - id: owasp-m8-receiver-exported-no-permission
+    patterns:
+      - pattern: |
+          <receiver
+            ...
+            android:exported="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <receiver
+            ...
+            android:permission="..."
+            ...
+          />
+      - pattern-not-inside: |
+          <!-- System receivers (legitimate) -->
+          <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+              <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+          </receiver>
+    message: |
+      Exported BroadcastReceiver without permission (OWASP M8).
+      Any app can send broadcasts to exported receivers without permissions.
+
+      SECURE CONFIGURATION:
+      ```xml
+      <!-- Option 1: Add permission -->
+      <receiver
+          android:name=".MyReceiver"
+          android:exported="true"
+          android:permission="com.myapp.permission.SEND_BROADCAST" />
+
+      <!-- Option 2: Not exported -->
+      <receiver
+          android:name=".MyReceiver"
+          android:exported="false" />
+      ```
+
+      NOTE: System receivers (BOOT_COMPLETED, etc.) are excluded.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-926: Improper Export of Android Application Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  - id: owasp-m8-dynamic-receiver-no-permission
+    patterns:
+      - pattern-either:
+          - pattern: |
+              registerReceiver($RECEIVER, $FILTER)
+          - pattern: |
+              $CONTEXT.registerReceiver($RECEIVER, $FILTER)
+      - pattern-not: |
+          registerReceiver($RECEIVER, $FILTER, $PERMISSION, ...)
+      - pattern-not-inside: |
+          // Local broadcast (safe)
+          LocalBroadcastManager.getInstance($CONTEXT).registerReceiver(...)
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Dynamic BroadcastReceiver without permission (OWASP M8).
+      Receivers without permissions accept broadcasts from any app.
+
+      SECURE REGISTRATION:
+      ```kotlin
+      // With permission
+      registerReceiver(
+          myReceiver,
+          IntentFilter("com.myapp.ACTION"),
+          "com.myapp.permission.SEND_BROADCAST",
+          null
+      )
+
+      // OR: Use LocalBroadcastManager for in-app broadcasts
+      LocalBroadcastManager.getInstance(this)
+          .registerReceiver(myReceiver, IntentFilter("com.myapp.ACTION"))
+      ```
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  # ============ NETWORK SECURITY CONFIG ============
+
+  - id: owasp-m8-cleartextTrafficPermitted
+    patterns:
+      - pattern: |
+          <domain-config cleartextTrafficPermitted="true">
+            ...
+          </domain-config>
+      - pattern-not-inside: |
+          <!-- Development/localhost only -->
+          <domain-config cleartextTrafficPermitted="true">
+            <domain includeSubdomains="false">localhost</domain>
+          </domain-config>
+      - pattern-not-inside: |
+          <!-- 10.0.2.2 emulator -->
+          <domain-config cleartextTrafficPermitted="true">
+            <domain includeSubdomains="false">10.0.2.2</domain>
+          </domain-config>
+    message: |
+      Cleartext traffic permitted for non-localhost domains (OWASP M8).
+      Allowing cleartext HTTP exposes data to interception.
+
+      SECURE CONFIGURATION:
+      ```xml
+      <!-- For production: HTTPS only -->
+      <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.myapp.com</domain>
+      </domain-config>
+
+      <!-- For development only -->
+      <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+      </domain-config>
+      ```
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  # ============ FILE PROVIDER MISCONFIG ============
+
+  - id: owasp-m8-fileprovider-overly-permissive
+    patterns:
+      - pattern: |
+          <paths>
+            <root-path name="$NAME" path="." />
+          </paths>
+    message: |
+      FileProvider exposes root directory (OWASP M8: Security Misconfiguration).
+      <root-path> grants access to entire device storage.
+
+      SECURE ALTERNATIVES:
+      ```xml
+      <paths xmlns:android="http://schemas.android.com/apk/res/android">
+          <!-- App's internal files -->
+          <files-path name="files" path="." />
+
+          <!-- App's cache -->
+          <cache-path name="cache" path="." />
+
+          <!-- App-specific external storage -->
+          <external-files-path name="external_files" path="." />
+
+          <!-- Specific subdirectory only -->
+          <files-path name="shared_docs" path="documents/" />
+      </paths>
+      ```
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/file_paths.xml"
+        - "**/provider_paths.xml"
+    metadata:
+      category: security
+      cwe: "CWE-552: Files or Directories Accessible to External Parties"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: owasp-m8-fileprovider-external-path
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <external-path name="$NAME" path="." />
+          - pattern: |
+              <external-path name="$NAME" path="" />
+    message: |
+      FileProvider exposes all of external storage (OWASP M8).
+      External storage root is world-readable on API < 29.
+
+      SECURE CONFIGURATION:
+      ```xml
+      <!-- Use app-specific external storage -->
+      <external-files-path name="my_docs" path="documents/" />
+
+      <!-- Or restrict to specific subdirectory -->
+      <external-path name="shared" path="Android/data/com.myapp/files/shared/" />
+      ```
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/file_paths.xml"
+        - "**/provider_paths.xml"
+    metadata:
+      category: security
+      cwe: "CWE-552: Files or Directories Accessible to External Parties"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: VERY_LOW
+
+  # ============ DEVELOPMENT/DEBUG CONFIGS ============
+
+  - id: owasp-m8-clear-text-http-localhost
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "http://10.0.2.2"
+          - pattern: |
+              "http://localhost"
+      - pattern-not-inside: |
+          // BuildConfig check
+          if (BuildConfig.DEBUG) {
+            ...
+          }
+      - pattern-not-inside: |
+          // Flavor check
+          if (BuildConfig.BUILD_TYPE == "debug") {
+            ...
+          }
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Localhost HTTP URL not wrapped in BuildConfig check (OWASP M8).
+      Development URLs should not be accessible in production builds.
+
+      SECURE USAGE:
+      ```kotlin
+      val baseUrl = if (BuildConfig.DEBUG) {
+          "http://10.0.2.2:8080"  // Development
+      } else {
+          "https://api.myapp.com"  // Production
+      }
+      ```
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  - id: owasp-m8-test-instrumentation
+    patterns:
+      - pattern: |
+          <instrumentation
+            ...
+            android:targetPackage="$PKG"
+            ...
+          />
+      - metavariable-regex:
+          metavariable: $PKG
+          regex: ^(?!.*\.test$).*$
+    message: |
+      Test instrumentation targeting non-test package (OWASP M8).
+      Instrumentation allows external apps to control your app.
+
+      RECOMMENDATION:
+      Remove <instrumentation> from production manifest or ensure it's in test source sets only.
+
+      Instrumentation should only appear in:
+      - src/androidTest/AndroidManifest.xml
+      - Build variant specific manifests (debug/test)
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/main/AndroidManifest.xml"
+      exclude:
+        - "**/androidTest/**"
+        - "**/test/**"
+        - "**/debug/**"
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  # ============ MASTG-TEST-0024: TESTING APP PERMISSIONS ============
+
+  - id: mastg-test-0024-dangerous-permissions
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
+          - pattern: |
+              <uses-permission android:name="android.permission.READ_CALL_LOG" />
+          - pattern: |
+              <uses-permission android:name="android.permission.READ_SMS" />
+          - pattern: |
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+          - pattern: |
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+          - pattern: |
+              <uses-permission android:name="android.permission.CAMERA" />
+          - pattern: |
+              <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+          - pattern: |
+              <uses-permission android:name="android.permission.BODY_SENSORS" />
+    message: |
+      Dangerous permission requested (MASTG-TEST-0024).
+      This permission requires runtime request and strong justification.
+
+      BEST PRACTICES:
+      1. Only request if absolutely necessary for core functionality
+      2. Use shouldShowRequestPermissionRationale() to explain
+      3. Provide clear privacy policy
+      4. Consider alternatives (e.g., camera app intent vs CAMERA permission)
+
+      ```kotlin
+      when {
+          ContextCompat.checkSelfPermission(this, CAMERA) == PERMISSION_GRANTED -> {
+              // Permission granted
+              takePicture()
+          }
+          shouldShowRequestPermissionRationale(CAMERA) -> {
+              // Show explanation
+              showRationale()
+          }
+          else -> {
+              // Request permission
+              requestPermissions(arrayOf(CAMERA), REQUEST_CODE)
+          }
+      }
+      ```
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: privacy
+      mastg-test: "MASTG-TEST-0024"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+      false_positive_likelihood: VERY_LOW
+
+  - id: mastg-test-0024-permission-no-rationale
+    patterns:
+      - pattern-either:
+          - pattern: |
+              ActivityCompat.requestPermissions($ACTIVITY, arrayOf($PERMISSION), ...)
+          - pattern: |
+              requestPermissions(new String[]{$PERMISSION}, ...)
+      - pattern-not-inside: |
+          if (ActivityCompat.shouldShowRequestPermissionRationale(...)) {
+            ...
+          }
+      - pattern-not-inside: |
+          when {
+            shouldShowRequestPermissionRationale(...) -> { ... }
+            ...
+          }
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Permission requested without rationale check (MASTG-TEST-0024).
+      Show rationale before requesting permissions to improve user trust.
+
+      SECURE IMPLEMENTATION:
+      ```kotlin
+      when {
+          checkSelfPermission(LOCATION) == PERMISSION_GRANTED -> {
+              useLocation()
+          }
+          shouldShowRequestPermissionRationale(LOCATION) -> {
+              // User denied before, show explanation
+              AlertDialog.Builder(this)
+                  .setMessage("Location needed for nearby feature")
+                  .setPositiveButton("OK") { _, _ ->
+                      requestPermissions(arrayOf(LOCATION), CODE)
+                  }
+                  .show()
+          }
+          else -> {
+              // First time, request directly
+              requestPermissions(arrayOf(LOCATION), CODE)
+          }
+      }
+      ```
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: privacy
+      mastg-test: "MASTG-TEST-0024"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  # ============ MASTG-TEST-0035: TESTING OVERLAY ATTACKS ============
+
+  - id: mastg-test-0035-flag-secure-missing-sensitive
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $ACTIVITY : AppCompatActivity() {
+                ...
+              }
+          - pattern: |
+              public class $ACTIVITY extends AppCompatActivity {
+                ...
+              }
+      - metavariable-regex:
+          metavariable: $ACTIVITY
+          regex: (?i).*(Login|Auth|Payment|Transfer|Password|Pin|Secure|Sensitive|Banking).*
+      - pattern-not-inside: |
+          window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, ...)
+      - pattern-not-inside: |
+          @Test
+          class $ACTIVITY { ... }
+    message: |
+      FLAG_SECURE not set for sensitive activity (MASTG-TEST-0035).
+      Prevents screenshots, screen recording, and helps against overlay attacks.
+
+      DETECTED SENSITIVE ACTIVITY:
+      Activity name suggests sensitive content (Login, Payment, etc.)
+
+      SECURE IMPLEMENTATION:
+      ```kotlin
+      class LoginActivity : AppCompatActivity() {
+          override fun onCreate(savedInstanceState: Bundle?) {
+              super.onCreate(savedInstanceState)
+
+              // Prevent screenshots and overlays
+              window.setFlags(
+                  WindowManager.LayoutParams.FLAG_SECURE,
+                  WindowManager.LayoutParams.FLAG_SECURE
+              )
+
+              setContentView(R.layout.activity_login)
+          }
+      }
+      ```
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0035"
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW

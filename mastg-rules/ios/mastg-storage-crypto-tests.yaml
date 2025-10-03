@@ -1,0 +1,473 @@
+rules:
+  # MASTG Test Cases - Storage & Cryptography (iOS)
+  # Additional MASTG test coverage for complete MASVS compliance
+
+  # ============ MASTG-TEST-0053: CHECKING LOGS FOR SENSITIVE DATA ============
+
+  - id: mastg-test-0053-nslog-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSLog("%@", $DATA)
+          - pattern: |
+              NSLog($FORMAT, $DATA)
+          - pattern: |
+              print($DATA)
+          - pattern: |
+              debugPrint($DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|pin|auth|credit.*card|ssn|api.*key|bearer|session).*
+    message: |
+      Sensitive data in logs (MASTG-TEST-0053).
+      NSLog and print output to system logs which persist on the device.
+      Use os_log with custom privacy options or remove logging in production builds.
+      Reference: https://mas.owasp.org/MASTG/tests/ios/MASVS-STORAGE/MASTG-TEST-0053/
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0053"
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+
+  - id: mastg-test-0053-os-log-no-privacy
+    patterns:
+      - pattern-either:
+          - pattern: |
+              os_log("%@", $DATA)
+          - pattern: |
+              Logger().log("$MESSAGE: \($DATA)")
+      - pattern-not-inside: |
+          os_log("%{private}@", $DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|pin).*
+    message: |
+      os_log without privacy annotation (MASTG-TEST-0053).
+      Logged data is visible in Console.app and system logs.
+      Use %{private} format specifier: os_log("%{private}@", sensitiveData)
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0053"
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+
+  - id: mastg-test-0053-exception-description-leak
+    patterns:
+      - pattern-either:
+          - pattern: |
+              do {
+                ...
+              } catch {
+                print(error)
+              }
+          - pattern: |
+              do {
+                ...
+              } catch let error {
+                NSLog("%@", error.localizedDescription)
+              }
+    message: |
+      Exception details in logs (MASTG-TEST-0053).
+      Error descriptions may contain sensitive information or app internals.
+      Log generic error messages in production; detailed errors only in debug builds.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0053"
+      cwe: "CWE-209: Information Exposure Through Error Message"
+      masvs: "MASVS-STORAGE-2"
+      confidence: MEDIUM
+
+  # ============ MASTG-TEST-0058: TESTING BACKUPS FOR SENSITIVE DATA ============
+
+  - id: mastg-test-0058-file-no-backup-protection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              try $DATA.write(to: $URL, ...)
+          - pattern: |
+              FileManager.default.createFile(atPath: $PATH, contents: $DATA, ...)
+      - pattern-not-inside: |
+          var resourceValues = URLResourceValues()
+          resourceValues.isExcludedFromBackup = true
+    message: |
+      File without backup exclusion (MASTG-TEST-0058).
+      Files are backed up to iCloud/iTunes by default.
+      Exclude sensitive files: var values = URLResourceValues(); values.isExcludedFromBackup = true; url.setResourceValues(values)
+      Reference: https://mas.owasp.org/MASTG/tests/ios/MASVS-STORAGE/MASTG-TEST-0058/
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0058"
+      cwe: "CWE-530: Exposure of Backup File to an Unauthorized Control Sphere"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+
+  - id: mastg-test-0058-userdefaults-in-backup
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UserDefaults.standard.set($VALUE, forKey: $KEY)
+          - pattern: |
+              [[NSUserDefaults standardUserDefaults] setObject:$VALUE forKey:$KEY]
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|key|pin|auth).*
+    message: |
+      Sensitive data in UserDefaults (MASTG-TEST-0058).
+      UserDefaults are included in backups and are stored in plaintext.
+      Store sensitive data in Keychain with appropriate accessibility attributes.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0058"
+      masvs: "MASVS-STORAGE-1"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+
+  - id: mastg-test-0058-coredata-no-encryption
+    patterns:
+      - pattern-either:
+          - pattern: |
+              let container = NSPersistentContainer(name: $NAME)
+              container.loadPersistentStores { ... }
+      - pattern-not-inside: |
+          NSPersistentStoreDescription()
+            ...
+            .setOption(FileProtectionType.complete as NSObject, forKey: NSPersistentStoreFileProtectionKey)
+    message: |
+      Core Data without file protection (MASTG-TEST-0058).
+      Core Data stores are backed up and accessible when device is unlocked.
+      Enable file protection: storeDescription.setOption(FileProtectionType.complete, forKey: NSPersistentStoreFileProtectionKey)
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0058"
+      masvs: "MASVS-STORAGE-1"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+
+  # ============ MASTG-TEST-0060: TESTING MEMORY FOR SENSITIVE DATA ============
+
+  - id: mastg-test-0060-string-password-in-memory
+    patterns:
+      - pattern-either:
+          - pattern: |
+              let $VAR: String = $PASSWORD
+          - pattern: |
+              var $VAR = $PASSWORD
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i).*(password|pin|secret|key).*
+    message: |
+      Sensitive data stored as String (MASTG-TEST-0060).
+      Strings are immutable in Swift and remain in memory until deallocated.
+      Use Data or [UInt8] for passwords and zero them after use.
+      Reference: https://mas.owasp.org/MASTG/tests/ios/MASVS-STORAGE/MASTG-TEST-0060/
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0060"
+      cwe: "CWE-316: Cleartext Storage of Sensitive Information in Memory"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+
+  - id: mastg-test-0060-password-not-cleared
+    patterns:
+      - pattern-either:
+          - pattern: |
+              let $PASSWORD = $TEXTFIELD.text
+          - pattern: |
+              NSString *$PASSWORD = $TEXTFIELD.text
+      - pattern-not-inside: |
+          $PASSWORD_DATA.resetBytes(in: NSRange(location: 0, length: $PASSWORD_DATA.count))
+      - pattern-not-inside: |
+          memset_s(&$PASSWORD, $SIZE, 0, $SIZE)
+    message: |
+      Password not cleared from memory (MASTG-TEST-0060).
+      Passwords should be stored in Data/NSMutableData and cleared after use.
+      Use memset_s() or resetBytes(in:) to zero sensitive data.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0060"
+      cwe: "CWE-316: Cleartext Storage of Sensitive Information in Memory"
+      masvs: "MASVS-STORAGE-2"
+      confidence: MEDIUM
+
+  - id: mastg-test-0060-pasteboard-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UIPasteboard.general.string = $DATA
+          - pattern: |
+              [[UIPasteboard generalPasteboard] setString:$DATA]
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|pin|auth|credit.*card|ssn).*
+    message: |
+      Sensitive data in pasteboard (MASTG-TEST-0060).
+      Pasteboard data remains in memory and is accessible to other apps.
+      Avoid copying sensitive data or use custom pasteboards with expiration.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0060"
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: HIGH
+
+  - id: mastg-test-0060-secure-text-entry-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $TEXTFIELD.isSecureTextEntry = false
+          - pattern: |
+              $TEXTFIELD.secureTextEntry = NO
+      - metavariable-regex:
+          metavariable: $TEXTFIELD
+          regex: (?i).*(password|pin|secret).*
+    message: |
+      Password field without secure text entry (MASTG-TEST-0060).
+      Non-secure text fields cache input in memory and autocorrect suggestions.
+      Set isSecureTextEntry = true for password/PIN fields.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0060"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: MEDIUM
+
+  # ============ MASTG-TEST-0063: TESTING RANDOM NUMBER GENERATION ============
+
+  - id: mastg-test-0063-arc4random-for-crypto
+    patterns:
+      - pattern-either:
+          - pattern: |
+              arc4random()
+          - pattern: |
+              arc4random_uniform($BOUND)
+    message: |
+      arc4random() for cryptographic operations (MASTG-TEST-0063).
+      While arc4random is better than rand(), use SecRandomCopyBytes for cryptography.
+      Use: var bytes = [UInt8](repeating: 0, count: size); SecRandomCopyBytes(kSecRandomDefault, size, &bytes)
+      Reference: https://mas.owasp.org/MASTG/tests/ios/MASVS-CRYPTO/MASTG-TEST-0063/
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0063"
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: MEDIUM
+
+  - id: mastg-test-0063-random-int-for-crypto
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Int.random(in: ...)
+          - pattern: |
+              Double.random(in: ...)
+          - pattern: |
+              Float.random(in: ...)
+    message: |
+      Swift random for cryptographic operations (MASTG-TEST-0063).
+      Swift's random() uses system RNG but SecRandomCopyBytes is preferred for crypto.
+      Use SecRandomCopyBytes(kSecRandomDefault, count, &bytes) for tokens, keys, IVs.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0063"
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: LOW
+
+  - id: mastg-test-0063-drand48-for-crypto
+    patterns:
+      - pattern-either:
+          - pattern: |
+              drand48()
+          - pattern: |
+              lrand48()
+          - pattern: |
+              mrand48()
+          - pattern: |
+              rand()
+    message: |
+      Weak random number generator (MASTG-TEST-0063).
+      drand48(), lrand48(), and rand() are not cryptographically secure.
+      Use SecRandomCopyBytes(kSecRandomDefault, size, &bytes) for cryptographic operations.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0063"
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  - id: mastg-test-0063-predictable-seed
+    patterns:
+      - pattern-either:
+          - pattern: |
+              srand(time(NULL))
+          - pattern: |
+              srand48(time(NULL))
+          - pattern: |
+              srandom(UInt32(Date().timeIntervalSince1970))
+    message: |
+      Predictable random seed (MASTG-TEST-0063).
+      Time-based seeds are predictable and can be brute-forced.
+      Use SecRandomCopyBytes for cryptographic random numbers (no seeding required).
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0063"
+      cwe: "CWE-337: Predictable Seed in Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  # ============ MASTG-TEST-0062: TESTING KEY MANAGEMENT ============
+
+  - id: mastg-test-0062-keychain-accessible-always
+    patterns:
+      - pattern-either:
+          - pattern: |
+              kSecAttrAccessibleAlways
+          - pattern: |
+              kSecAttrAccessibleAlwaysThisDeviceOnly
+    message: |
+      Keychain item accessible when locked (MASTG-TEST-0062).
+      kSecAttrAccessibleAlways allows access even when device is locked.
+      Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly or kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly.
+      Reference: https://mas.owasp.org/MASTG/tests/ios/MASVS-CRYPTO/MASTG-TEST-0062/
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0062"
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      masvs: "MASVS-CRYPTO-1"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  - id: mastg-test-0062-keychain-no-access-control
+    patterns:
+      - pattern: |
+          let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            ...
+          ]
+      - pattern-not-inside: |
+          kSecAttrAccessControl as String: $ACCESS_CONTROL
+    message: |
+      Keychain item without access control (MASTG-TEST-0062).
+      Missing access control allows unrestricted access to keychain items.
+      Use SecAccessControlCreateWithFlags with biometry or passcode requirement.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0062"
+      masvs: "MASVS-CRYPTO-1"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: mastg-test-0062-hardcoded-encryption-key
+    patterns:
+      - pattern-either:
+          - pattern: |
+              let key = "$KEY"
+          - pattern: |
+              let key = Data([$BYTES])
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: ^[A-Za-z0-9+/=]{16,}$
+    message: |
+      Hardcoded encryption key (MASTG-TEST-0062).
+      Hardcoded keys can be extracted from the binary.
+      Generate keys using CryptoKit and store in Keychain with appropriate protection.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0062"
+      cwe: "CWE-321: Use of Hard-coded Cryptographic Key"
+      masvs: "MASVS-CRYPTO-1"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  - id: mastg-test-0062-keychain-sharing-enabled
+    patterns:
+      - pattern: |
+          let query: [String: Any] = [
+            ...
+            kSecAttrAccessGroup as String: $GROUP,
+            ...
+          ]
+    message: |
+      Keychain access group sharing (MASTG-TEST-0062).
+      Keychain items are shared across apps with the same access group.
+      Ensure access group is necessary and apps in group are trusted.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0062"
+      masvs: "MASVS-CRYPTO-1"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: LOW

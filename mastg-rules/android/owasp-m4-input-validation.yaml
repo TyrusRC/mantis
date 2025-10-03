@@ -1,0 +1,356 @@
+rules:
+  # OWASP Mobile Top 10 - M4: Insufficient Input/Output Validation
+  # Detects injection vulnerabilities and improper input validation
+
+  # ============ SQL INJECTION ============
+
+  - id: owasp-m4-sql-injection-rawquery
+    patterns:
+      - pattern-either:
+          - pattern: $DB.rawQuery($QUERY, ...)
+          - pattern: $DB.execSQL($SQL)
+      - pattern-not: $DB.rawQuery("...", ...)
+      - pattern-not: $DB.execSQL("...")
+    message: |
+      SQL Injection vulnerability (OWASP M4: Insufficient Input/Output Validation).
+      Using rawQuery() or execSQL() with dynamic input can lead to SQL injection.
+      Use parameterized queries with ? placeholders or Room ORM.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-sql-string-concatenation
+    patterns:
+      - pattern-either:
+          - pattern: $DB.rawQuery($BASE + $INPUT, ...)
+          - pattern: $DB.rawQuery("$STATIC" + $INPUT, ...)
+          - pattern: $DB.execSQL($BASE + $INPUT)
+    message: |
+      SQL Injection via string concatenation (OWASP M4: Insufficient Input/Output Validation).
+      Building SQL queries with string concatenation is vulnerable to injection.
+      Use parameterized queries with ContentValues or prepared statements.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-content-provider-sql-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              public Cursor query(..., String selection, ...) {
+                ...
+                $DB.query($TABLE, ..., selection, ...)
+                ...
+              }
+          - pattern: |
+              override fun query(..., selection: String?, ...) {
+                ...
+                db.query($TABLE, ..., selection, ...)
+                ...
+              }
+      - pattern-not-inside: |
+          if ($VALIDATION) {
+            ...
+          }
+    message: |
+      ContentProvider SQL injection risk (OWASP M4: Insufficient Input/Output Validation).
+      Using untrusted selection parameter directly in queries can cause injection.
+      Validate and sanitize selection strings or use parameterized queries.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ PATH TRAVERSAL ============
+
+  - id: owasp-m4-path-traversal-file
+    patterns:
+      - pattern-either:
+          - pattern: new File($DIR, $FILENAME)
+          - pattern: File($DIR, $FILENAME)
+          - pattern: File($PATH)
+      - pattern-not: new File($DIR, "...")
+    message: |
+      Path Traversal vulnerability (OWASP M4: Insufficient Input/Output Validation).
+      Creating files with user-controlled paths can access unauthorized directories.
+      Validate filename doesn't contain '../' and use getCanonicalPath().
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  - id: owasp-m4-path-traversal-openfileinput
+    patterns:
+      - pattern: openFileInput($FILENAME)
+      - pattern-not: openFileInput("...")
+    message: |
+      Path Traversal in file operations (OWASP M4: Insufficient Input/Output Validation).
+      Opening files with user-controlled names can access sensitive data.
+      Validate filename against whitelist and check for path traversal.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ COMMAND INJECTION ============
+
+  - id: owasp-m4-command-injection-runtime
+    patterns:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec($CMD)
+          - pattern: ProcessBuilder($CMDS).start()
+      - pattern-not: Runtime.getRuntime().exec("...")
+      - pattern-not: ProcessBuilder(new String[]{"...", ...}).start()
+    message: |
+      Command Injection vulnerability (OWASP M4: Insufficient Input/Output Validation).
+      Executing commands with user input can lead to arbitrary command execution.
+      Avoid Runtime.exec() with user input or use strict input validation.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-shell-command-injection
+    patterns:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", $CMD})
+          - pattern: Runtime.getRuntime().exec("/bin/sh -c " + $CMD)
+    message: |
+      Shell Command Injection (OWASP M4: Insufficient Input/Output Validation).
+      Executing shell commands with user input allows arbitrary code execution.
+      Never pass user input to shell interpreters.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ XSS IN WEBVIEW ============
+
+  - id: owasp-m4-webview-xss
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.loadData($DATA, ...)
+          - pattern: $WEBVIEW.loadDataWithBaseURL(..., $DATA, ...)
+      - pattern-not: $WEBVIEW.loadData("...", ...)
+    message: |
+      Cross-Site Scripting (XSS) in WebView (OWASP M4: Insufficient Input/Output Validation).
+      Loading untrusted HTML can execute malicious JavaScript.
+      Sanitize HTML input and set proper Content Security Policy.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-Site Scripting"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-webview-url-injection
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.loadUrl($URL)
+      - pattern-not: $WEBVIEW.loadUrl("https://...")
+      - pattern-not: $WEBVIEW.loadUrl("http://localhost...")
+    message: |
+      URL Injection in WebView (OWASP M4: Insufficient Input/Output Validation).
+      Loading user-controlled URLs can navigate to malicious sites.
+      Validate URLs against whitelist before loading.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ INTENT INJECTION ============
+
+  - id: owasp-m4-intent-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Intent $INTENT = new Intent($ACTION);
+              $INTENT.setComponent($COMPONENT);
+              startActivity($INTENT);
+          - pattern: |
+              val $INTENT = Intent($ACTION)
+              $INTENT.component = $COMPONENT
+              startActivity($INTENT)
+      - pattern-not-inside: |
+          if ($VALIDATION) {
+            ...
+          }
+    message: |
+      Intent Injection vulnerability (OWASP M4: Insufficient Input/Output Validation).
+      Using untrusted input for Intent actions/components can launch malicious activities.
+      Validate Intent parameters and use explicit Intents when possible.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-927: Use of Implicit Intent for Sensitive Communication"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ XML INJECTION ============
+
+  - id: owasp-m4-xxe-vulnerability
+    patterns:
+      - pattern-either:
+          - pattern: |
+              DocumentBuilderFactory $FACTORY = DocumentBuilderFactory.newInstance();
+          - pattern: |
+              val $FACTORY = DocumentBuilderFactory.newInstance()
+      - pattern-not-inside: |
+          $FACTORY.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      - pattern-not-inside: |
+          $FACTORY.setFeature("http://xml.org/sax/features/external-general-entities", false);
+    message: |
+      XML External Entity (XXE) vulnerability (OWASP M4: Insufficient Input/Output Validation).
+      Default XML parsers are vulnerable to XXE attacks.
+      Disable external entity processing and DTDs.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-611: XML External Entity Reference"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ DESERIALIZATION ============
+
+  - id: owasp-m4-unsafe-deserialization
+    patterns:
+      - pattern-either:
+          - pattern: |
+              ObjectInputStream $OIS = new ObjectInputStream(...);
+              $OBJ = $OIS.readObject();
+          - pattern: |
+              val $OIS = ObjectInputStream(...)
+              val $OBJ = $OIS.readObject()
+    message: |
+      Unsafe Deserialization (OWASP M4: Insufficient Input/Output Validation).
+      Deserializing untrusted data can lead to remote code execution.
+      Use safer alternatives like JSON or validate object types strictly.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ REGEX INJECTION / ReDoS ============
+
+  - id: owasp-m4-regex-dos
+    patterns:
+      - pattern-either:
+          - pattern: Pattern.compile($PATTERN)
+          - pattern: $STR.matches($PATTERN)
+      - pattern-not: Pattern.compile("...")
+    message: |
+      Regular Expression Denial of Service (ReDoS) risk (OWASP M4: Insufficient Input/Output Validation).
+      User-controlled regex patterns can cause catastrophic backtracking.
+      Use pre-defined patterns or limit regex complexity.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-1333: Inefficient Regular Expression Complexity"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ DEEPLINK VALIDATION ============
+
+  - id: owasp-m4-deeplink-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Uri $URI = getIntent().getData();
+              $WEBVIEW.loadUrl($URI.toString());
+          - pattern: |
+              val $URI = intent.data
+              $WEBVIEW.loadUrl($URI.toString())
+    message: |
+      Unvalidated deep link URL (OWASP M4: Insufficient Input/Output Validation).
+      Loading deep link URLs without validation can navigate to malicious sites.
+      Validate scheme, host, and path before using deep link data.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ FORMAT STRING ============
+
+  - id: owasp-m4-format-string-injection
+    patterns:
+      - pattern-either:
+          - pattern: String.format($FORMAT, ...)
+          - pattern: Log.d($TAG, String.format($FORMAT, ...))
+      - pattern-not: String.format("...", ...)
+    message: |
+      Format String Injection (OWASP M4: Insufficient Input/Output Validation).
+      Using user input as format string can leak information or crash app.
+      Use hardcoded format strings with user input as arguments.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-134: Format String Vulnerability"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM

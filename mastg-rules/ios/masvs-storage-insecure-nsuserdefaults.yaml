@@ -1,0 +1,147 @@
+rules:
+  # MASVS-STORAGE: Insecure NSUserDefaults Usage (iOS)
+  # Based on MASTG-TEST-0052: Testing Local Data Storage
+  # Detects sensitive data stored in NSUserDefaults without encryption
+
+  - id: mastg-ios-nsuserdefaults-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSUserDefaults.standard.set($VALUE, forKey: $KEY)
+          - pattern: |
+              UserDefaults.standard.set($VALUE, forKey: $KEY)
+          - pattern: |
+              $DEFAULTS.set($VALUE, forKey: $KEY)
+          - pattern: |
+              [$DEFAULTS setObject:$VALUE forKey:$KEY]
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|api[_-]?key|auth|credential|session|pin|private[_-]?key).*
+    message: |
+      Sensitive data stored in NSUserDefaults/UserDefaults (MASVS-STORAGE).
+      NSUserDefaults stores data in plaintext plist files. Use iOS Keychain
+      for sensitive data like passwords, tokens, or API keys.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile: "M2: Inadequate Supply Chain Security"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+
+  - id: mastg-ios-nsuserdefaults-sensitive-data-objc
+    patterns:
+      - pattern-either:
+          - pattern: |
+              [[NSUserDefaults standardUserDefaults] setObject:$VALUE forKey:$KEY]
+          - pattern: |
+              [$DEFAULTS setObject:$VALUE forKey:$KEY]
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|api[_-]?key|auth|credential|session|pin|private[_-]?key).*
+    message: |
+      Sensitive data stored in NSUserDefaults (MASVS-STORAGE).
+      NSUserDefaults stores data in plaintext plist files. Use iOS Keychain
+      for sensitive data like passwords, tokens, or API keys.
+    severity: ERROR
+    languages:
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+
+  - id: mastg-ios-keychain-missing-access-control
+    patterns:
+      - pattern-either:
+          - pattern: |
+              var $QUERY: [String: Any] = [
+                kSecClass as String: ...,
+                ...
+              ]
+          - pattern: |
+              let $QUERY: [String: Any] = [
+                kSecClass as String: ...,
+                ...
+              ]
+      - pattern-not-inside: |
+          var $QUERY: [String: Any] = [
+            ...,
+            kSecAttrAccessible as String: ...,
+            ...
+          ]
+      - pattern-not-inside: |
+          let $QUERY: [String: Any] = [
+            ...,
+            kSecAttrAccessible as String: ...,
+            ...
+          ]
+    message: |
+      Keychain item without access control attribute (MASVS-STORAGE).
+      Always specify kSecAttrAccessible to control when keychain items can be accessed.
+      Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly for sensitive data.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-2"
+      confidence: MEDIUM
+
+  - id: mastg-ios-coredata-unencrypted
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSPersistentStoreCoordinator(managedObjectModel: $MODEL)
+          - pattern: |
+              let $STORE = NSPersistentStoreCoordinator(...)
+      - pattern-not-inside: |
+          $OPTIONS[NSPersistentStoreFileProtectionKey] = ...
+    message: |
+      Core Data persistent store without encryption (MASVS-STORAGE).
+      Core Data does not encrypt data by default. Enable file protection
+      using NSPersistentStoreFileProtectionKey or use encrypted attributes.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: MEDIUM
+
+  - id: mastg-ios-file-write-without-protection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DATA.write(to: $URL)
+          - pattern: |
+              try $DATA.write(to: $URL)
+          - pattern: |
+              FileManager.default.createFile(atPath: $PATH, contents: $DATA)
+      - pattern-not: |
+          $DATA.write(to: $URL, options: .completeFileProtection)
+      - pattern-not: |
+          $DATA.write(to: $URL, options: .completeFileProtectionUnlessOpen)
+    message: |
+      File written without data protection (MASVS-STORAGE).
+      Files written without protection class can be accessed when device is locked.
+      Use Data.WritingOptions.completeFileProtection for sensitive data.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: MEDIUM

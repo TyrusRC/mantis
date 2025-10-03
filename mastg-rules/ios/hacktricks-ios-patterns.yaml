@@ -1,0 +1,531 @@
+rules:
+  # HackTricks iOS Pentesting Patterns
+  # Additional security patterns from HackTricks iOS pentesting guide
+  # Reference: https://book.hacktricks.wiki/en/mobile-pentesting/ios-pentesting/
+
+  # ============ UNSAFE C FUNCTIONS (HackTricks) ============
+
+  - id: hacktricks-ios-unsafe-gets
+    patterns:
+      - pattern-either:
+          - pattern: |
+              gets($BUFFER)
+          - pattern: |
+              fgets($BUFFER, $SIZE, stdin)
+    message: |
+      Unsafe C function gets() detected (HackTricks: Binary Analysis).
+      gets() does not check buffer boundaries and causes buffer overflow.
+      Use fgets() with proper buffer size or safer Swift/Objective-C APIs.
+      Detection via: otool -Iv <app> | grep -w "_gets"
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/ios-pentesting/
+    severity: ERROR
+    languages:
+      - objc
+      - c
+    metadata:
+      category: security
+      cwe: "CWE-120: Buffer Copy without Checking Size of Input"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-ios-unsafe-strcpy
+    patterns:
+      - pattern-either:
+          - pattern: |
+              strcpy($DEST, $SRC)
+          - pattern: |
+              strcat($DEST, $SRC)
+    message: |
+      Unsafe string function (HackTricks: Binary Analysis).
+      strcpy() and strcat() do not check buffer boundaries.
+      Can lead to buffer overflow vulnerabilities.
+      Use strncpy(), strncat(), or strlcpy() with proper size limits.
+      Detection via: otool -Iv <app> | grep -w "_strcpy"
+    severity: ERROR
+    languages:
+      - objc
+      - c
+    metadata:
+      category: security
+      cwe: "CWE-120: Buffer Copy without Checking Size of Input"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-ios-malloc-without-free
+    patterns:
+      - pattern: |
+          $VAR = malloc($SIZE)
+      - pattern-not-inside: |
+          free($VAR)
+    message: |
+      malloc() without corresponding free() (HackTricks: Memory Management).
+      Manual memory allocation without deallocation causes memory leaks.
+      In Objective-C/Swift, prefer automatic memory management or ensure free().
+      Detection via: otool -Iv <app> | grep -w "_malloc"
+    severity: WARNING
+    languages:
+      - objc
+      - c
+    metadata:
+      category: security
+      cwe: "CWE-401: Missing Release of Memory after Effective Lifetime"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: MEDIUM
+
+  # ============ PLIST SECURITY (HackTricks) ============
+
+  - id: hacktricks-ios-plist-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>$KEY</key>
+              <string>$VALUE</string>
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|api.*key|auth.*key|private.*key).*
+    message: |
+      Sensitive data in Plist file (HackTricks: Data Storage).
+      Plist files are stored in plaintext and easily readable from app bundle.
+      Never store passwords, tokens, or API keys in Info.plist or other plists.
+      Use Keychain for sensitive data storage with appropriate kSecAttrAccessible.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/ios-pentesting/
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/*.plist"
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      source: "HackTricks iOS Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-ios-plist-unsafe-deserialization
+    patterns:
+      - pattern-either:
+          - pattern: |
+              PropertyListSerialization.propertyList(from: $DATA, options: [], format: nil)
+          - pattern: |
+              [NSPropertyListSerialization propertyListWithData:$DATA options:0 format:nil error:nil]
+      - pattern-not-inside: |
+          if $DATA.count < $LIMIT {
+            ...
+          }
+    message: |
+      Plist deserialization without validation (HackTricks: Data Storage).
+      Deserializing untrusted plist data can lead to crashes or exploits.
+      Validate data size and format before deserializing.
+      Similar to XML External Entity (XXE) attacks - validate all inputs.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks iOS Pentesting"
+      confidence: MEDIUM
+
+  # ============ SQLITE/CORE DATA (HackTricks) ============
+
+  - id: hacktricks-ios-sqlite-fmdb-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.executeUpdate("$SQL" + $INPUT, ...)
+          - pattern: |
+              $DB.executeQuery("SELECT * FROM $TABLE WHERE id = '\($INPUT)'", ...)
+    message: |
+      SQL injection in FMDB (HackTricks: SQLite Security).
+      String interpolation in SQL queries enables SQL injection.
+      Use parameterized queries: executeUpdate("... WHERE id = ?", withArgumentsIn: [input])
+      All user input must be parameterized to prevent injection.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks iOS Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-ios-core-data-plaintext
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSPersistentStoreCoordinator(managedObjectModel: $MODEL)
+      - pattern-not-inside: |
+          storeDescription.setOption(FileProtectionType.complete as NSObject, forKey: NSPersistentStoreFileProtectionKey)
+    message: |
+      Core Data without file protection (HackTricks: Data Storage).
+      Core Data SQLite stores are unencrypted by default.
+      Data accessible via file system access or backups.
+      Set NSPersistentStoreFileProtectionKey to FileProtectionType.complete.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      source: "HackTricks iOS Pentesting"
+      confidence: MEDIUM
+
+  # ============ COOKIES & CACHING (HackTricks) ============
+
+  - id: hacktricks-ios-cookies-persistent
+    patterns:
+      - pattern-either:
+          - pattern: |
+              HTTPCookie.init(properties: [
+                ...
+                .expires: $DATE,
+                ...
+              ])
+          - pattern: |
+              HTTPCookieStorage.shared.setCookie($COOKIE)
+    message: |
+      Persistent HTTP cookies (HackTricks: Data Storage).
+      Cookies are stored in ~/Library/Cookies/Cookies.binarycookies.
+      Sensitive session cookies should have HttpOnly, Secure flags.
+      Consider using ephemeral sessions or clearing cookies on logout.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-539: Use of Persistent Cookies Containing Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  - id: hacktricks-ios-url-cache-sensitive
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URLCache.shared.storeCachedResponse($RESPONSE, for: $REQUEST)
+          - pattern: |
+              URLCache(memoryCapacity: $MEM, diskCapacity: $DISK, diskPath: $PATH)
+    message: |
+      URL caching enabled (HackTricks: Data Storage).
+      URLCache stores responses in ~/Library/Caches which may contain sensitive data.
+      Cached data persists across app launches and may be backed up.
+      Use ephemeral URLSession or disable caching for sensitive requests.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-524: Use of Cache Containing Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  # ============ SNAPSHOT SECURITY (HackTricks) ============
+
+  - id: hacktricks-ios-snapshot-no-blur
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func applicationDidEnterBackground(_ application: UIApplication) {
+                ...
+              }
+      - pattern-not-inside: |
+          let blurEffect = UIBlurEffect(style: .light)
+          let blurView = UIVisualEffectView(effect: blurEffect)
+      - pattern-not-inside: |
+          window?.isHidden = true
+    message: |
+      App snapshot without blur/hide (HackTricks: Snapshot Security).
+      iOS takes snapshot when app enters background, visible in app switcher.
+      Snapshots stored in /Library/Caches/Snapshots/ may contain sensitive data.
+      Add blur effect or hide sensitive views in applicationDidEnterBackground.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/ios-pentesting/
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      source: "HackTricks iOS Pentesting"
+      confidence: MEDIUM
+
+  # ============ BIOMETRIC BYPASS (HackTricks) ============
+
+  - id: hacktricks-ios-biometric-frida-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, ...) { success, error in
+                if success {
+                  $SENSITIVE_ACTION
+                }
+              }
+      - pattern-not-inside: |
+          let access = SecAccessControlCreateWithFlags(...)
+    message: |
+      Biometric auth vulnerable to Frida bypass (HackTricks: Authentication).
+      Event-based biometric checks can be bypassed via runtime hooking.
+      Frida can intercept evaluatePolicy callback and force success=true.
+      Use CryptoKit with SecAccessControl for cryptographically-bound biometrics.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/ios-pentesting/
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      source: "HackTricks iOS Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-ios-lacontext-no-invalidation
+    patterns:
+      - pattern: |
+          let context = LAContext()
+          context.evaluatePolicy(...) { ... }
+      - pattern-not-inside: |
+          context.invalidate()
+    message: |
+      LAContext not invalidated after use (HackTricks: Authentication).
+      LAContext should be invalidated after authentication to prevent reuse.
+      Failure to invalidate may allow bypasses via context manipulation.
+      Call context.invalidate() after successful authentication.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      source: "HackTricks iOS Pentesting"
+      confidence: MEDIUM
+
+  # ============ JAILBREAK DETECTION (HackTricks) ============
+
+  - id: hacktricks-ios-file-based-jailbreak-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FileManager.default.fileExists(atPath: "/Applications/Cydia.app")
+          - pattern: |
+              FileManager.default.fileExists(atPath: "/bin/bash")
+          - pattern: |
+              FileManager.default.fileExists(atPath: "/usr/sbin/sshd")
+    message: |
+      File-based jailbreak detection (HackTricks: Jailbreak Detection).
+      File existence checks are easily bypassed by hooking FileManager methods.
+      Combine with multiple detection techniques: fork() test, sandbox check, dylib detection.
+      Use IOSSecuritySuite or implement custom multi-layer detection.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  - id: hacktricks-ios-fork-jailbreak-test
+    patterns:
+      - pattern-either:
+          - pattern: |
+              fork()
+          - pattern: |
+              vfork()
+    message: |
+      fork() jailbreak detection (HackTricks: Jailbreak Detection).
+      fork() succeeds on jailbroken devices but fails on non-jailbroken (sandbox).
+      While effective, can be hooked/bypassed via Frida or Substrate.
+      Use as part of multi-layer jailbreak detection strategy.
+    severity: INFO
+    languages:
+      - c
+      - objc
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  # ============ ENVIRONMENT VARIABLE CHECKS (HackTricks) ============
+
+  - id: hacktricks-ios-dyld-insert-libraries
+    patterns:
+      - pattern-either:
+          - pattern: |
+              getenv("DYLD_INSERT_LIBRARIES")
+          - pattern: |
+              String(cString: getenv("DYLD_INSERT_LIBRARIES"))
+    message: |
+      DYLD_INSERT_LIBRARIES check (HackTricks: Runtime Integrity).
+      Detects if libraries are being injected (Frida, Cycript).
+      Can be bypassed by hooking getenv() or environment manipulation.
+      Use with other checks: dyld_image_count(), code signature validation.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+      - c
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  # ============ THIRD-PARTY SDK TRACKING (HackTricks) ============
+
+  - id: hacktricks-ios-firebase-analytics
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Analytics.logEvent($EVENT, parameters: $PARAMS)
+          - pattern: |
+              FIRAnalytics.logEvent(withName: $EVENT, parameters: $PARAMS)
+    message: |
+      Firebase Analytics usage (HackTricks: Privacy).
+      Third-party analytics SDKs transmit user behavior data.
+      Ensure compliance with privacy policies (GDPR, CCPA).
+      Disclose data collection in privacy policy and obtain consent.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      source: "HackTricks iOS Pentesting"
+      compliance: "GDPR, CCPA"
+      confidence: LOW
+
+  - id: hacktricks-ios-facebook-sdk
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FBSDKApplicationDelegate.shared
+          - pattern: |
+              AppEvents.activateApp()
+    message: |
+      Facebook SDK usage (HackTricks: Privacy).
+      Facebook SDK collects device data and user behavior.
+      May track users across apps (ATTrackingManager required in iOS 14.5+).
+      Ensure App Tracking Transparency consent and privacy policy disclosure.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      source: "HackTricks iOS Pentesting"
+      compliance: "ATT Framework, GDPR"
+      confidence: LOW
+
+  # ============ UIWEBVIEW DEPRECATED (HackTricks) ============
+
+  - id: hacktricks-ios-uiwebview-deprecated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UIWebView()
+          - pattern: |
+              let $VAR = UIWebView(frame: $FRAME)
+          - pattern: |
+              UIWebView *$VAR = [[UIWebView alloc] init]
+    message: |
+      UIWebView usage (HackTricks: WebView Security).
+      UIWebView is deprecated since iOS 12 and banned by App Store since 2020.
+      Vulnerable to JavaScript injection and lacks modern security features.
+      Migrate to WKWebView which has better security and performance.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/ios-pentesting/
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-477: Use of Obsolete Function"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks iOS Pentesting"
+      confidence: HIGH
+
+  # ============ CODE SIGNING (HackTricks) ============
+
+  - id: hacktricks-ios-code-signature-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              SecStaticCodeCheckValidity($CODE, [], nil)
+    message: |
+      Code signature validation (HackTricks: Binary Protections).
+      Validates app's code signature to detect tampering.
+      Good security practice but can be bypassed via binary patching.
+      Combine with runtime integrity checks for better protection.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  # ============ NETWORK INTERCEPTION (HackTricks) ============
+
+  - id: hacktricks-ios-nsurlsession-default
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URLSession.shared
+          - pattern: |
+              [NSURLSession sharedSession]
+    message: |
+      Default URLSession usage (HackTricks: Network Security).
+      URLSession.shared uses default configuration without custom trust evaluation.
+      Vulnerable to proxy interception (Burp Suite, Charles) if no certificate pinning.
+      Implement certificate pinning or use custom URLSession with challenge handler.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW
+
+  - id: hacktricks-ios-ssl-pinning-trustkit
+    patterns:
+      - pattern-either:
+          - pattern: |
+              TrustKit.initSharedInstance(withConfiguration: $CONFIG)
+    message: |
+      TrustKit SSL pinning (HackTricks: Network Security).
+      TrustKit provides certificate/public key pinning.
+      Good practice but can be bypassed via SSL Kill Switch or Frida.
+      Monitor for bypass attempts and consider runtime integrity checks.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      owasp-mobile-2024: "M5: Insecure Communication"
+      source: "HackTricks iOS Pentesting"
+      confidence: LOW

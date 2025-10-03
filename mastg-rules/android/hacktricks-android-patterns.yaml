@@ -1,0 +1,450 @@
+rules:
+  # HackTricks Android Pentesting Patterns
+  # Additional security patterns from HackTricks Android pentesting guide
+  # Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+
+  # ============ WEBVIEW SECURITY (HackTricks) ============
+
+  - id: hacktricks-webview-file-access
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setAllowFileAccess(true)
+          - pattern: |
+              $SETTINGS.setAllowFileAccess(true)
+    message: |
+      WebView file access enabled (HackTricks: WebView Security).
+      setAllowFileAccess(true) allows WebView to access local files via file:// URLs.
+      This can lead to arbitrary file read if combined with JavaScript injection.
+      Set to false unless absolutely necessary, or use WebViewAssetLoader for local content.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-552: Files or Directories Accessible to External Parties"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-webview-file-access-from-file-urls
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setAllowFileAccessFromFileURLs(true)
+          - pattern: |
+              $SETTINGS.setAllowFileAccessFromFileURLs(true)
+    message: |
+      WebView file access from file URLs enabled (HackTricks: WebView Security).
+      Allows JavaScript in file:// context to access other local files.
+      Major security risk - enables local file inclusion attacks.
+      Keep disabled (false) for all WebViews loading untrusted content.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-webview-universal-access-from-file-urls
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setAllowUniversalAccessFromFileURLs(true)
+          - pattern: |
+              $SETTINGS.setAllowUniversalAccessFromFileURLs(true)
+    message: |
+      WebView universal access from file URLs enabled (HackTricks: WebView Security).
+      Allows file:// URLs to access content from any origin (CORS bypass).
+      Critical vulnerability - can access arbitrary files and send to remote servers.
+      Must be set to false for security.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-942: Overly Permissive Cross-domain Whitelist"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-webview-mixed-content-always-allow
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
+          - pattern: |
+              $SETTINGS.setMixedContentMode(0)
+    message: |
+      WebView allows mixed content (HackTricks: WebView Security).
+      MIXED_CONTENT_ALWAYS_ALLOW permits loading HTTP content in HTTPS pages.
+      Enables man-in-the-middle attacks on supposedly secure pages.
+      Use MIXED_CONTENT_NEVER_ALLOW or MIXED_CONTENT_COMPATIBILITY_MODE.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-webview-database-enabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setDatabaseEnabled(true)
+          - pattern: |
+              $SETTINGS.setDatabaseEnabled(true)
+    message: |
+      WebView database enabled (HackTricks: WebView Security).
+      Enables HTML5 Web SQL Database API which stores data in plaintext.
+      Data accessible via root/backup or other vulnerabilities.
+      Use encrypted storage or disable if not needed.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM
+
+  - id: hacktricks-webview-dom-storage-enabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setDomStorageEnabled(true)
+          - pattern: |
+              $SETTINGS.setDomStorageEnabled(true)
+    message: |
+      WebView DOM storage enabled (HackTricks: WebView Security).
+      Enables localStorage and sessionStorage which store data in plaintext.
+      Sensitive data in DOM storage can be extracted from app data directory.
+      Avoid storing sensitive data or encrypt before storing.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      source: "HackTricks Android Pentesting"
+      confidence: LOW
+
+  # ============ ACTIVITY RESULT SECURITY (HackTricks) ============
+
+  - id: hacktricks-activity-set-result-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              setResult(Activity.RESULT_OK, $INTENT)
+          - pattern: |
+              setResult(RESULT_OK, Intent().putExtra($KEY, $VALUE))
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|key|auth|pin|credit.*card).*
+    message: |
+      Sensitive data in Activity result (HackTricks: Activity Security).
+      setResult() returns data to calling activity which may be malicious.
+      Malicious apps can use startActivityForResult() to steal sensitive data.
+      Validate calling activity or avoid returning sensitive data via intents.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-927: Use of Implicit Intent for Sensitive Communication"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  - id: hacktricks-pending-intent-mutable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              PendingIntent.getActivity($CONTEXT, $CODE, $INTENT, PendingIntent.FLAG_MUTABLE)
+          - pattern: |
+              PendingIntent.getBroadcast($CONTEXT, $CODE, $INTENT, PendingIntent.FLAG_MUTABLE)
+          - pattern: |
+              PendingIntent.getService($CONTEXT, $CODE, $INTENT, PendingIntent.FLAG_MUTABLE)
+    message: |
+      Mutable PendingIntent (HackTricks: Intent Security).
+      FLAG_MUTABLE allows other apps to modify the Intent after creation.
+      Can lead to privilege escalation or intent hijacking attacks.
+      Use FLAG_IMMUTABLE for Android 12+ or FLAG_UPDATE_CURRENT with validation.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM
+
+  # ============ TASK HIJACKING (HackTricks) ============
+
+  - id: hacktricks-task-hijacking-single-task
+    patterns:
+      - pattern: |
+          <activity
+            ...
+            android:launchMode="singleTask"
+            ...
+          />
+      - pattern-not-inside: |
+          <activity
+            ...
+            android:taskAffinity="$UNIQUE_AFFINITY"
+            ...
+          />
+    message: |
+      Task hijacking vulnerability (HackTricks: Task Hijacking).
+      singleTask without unique taskAffinity enables task hijacking attacks.
+      Malicious apps can intercept activity launches and overlay phishing screens.
+      Use unique taskAffinity or switch to standard launchMode for sensitive activities.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-284: Improper Access Control"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM
+
+  - id: hacktricks-task-hijacking-single-instance
+    patterns:
+      - pattern: |
+          <activity
+            ...
+            android:launchMode="singleInstance"
+            ...
+          />
+    message: |
+      singleInstance launch mode (HackTricks: Task Hijacking).
+      Creates activity in its own task, potentially vulnerable to task hijacking.
+      Sensitive activities may be overlaid by malicious apps.
+      Use FLAG_ACTIVITY_NEW_TASK with validation or standard launchMode.
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-284: Improper Access Control"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: LOW
+
+  # ============ STRINGS.XML SENSITIVE DATA (HackTricks) ============
+
+  - id: hacktricks-strings-xml-api-key
+    patterns:
+      - pattern: |
+          <string name="$NAME">$VALUE</string>
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(api.*key|secret|token|password|auth.*key).*
+    message: |
+      Potential sensitive data in strings.xml (HackTricks: Static Analysis).
+      API keys and secrets in strings.xml are easily extractable from APK.
+      Use BuildConfig fields with different values per build type or NDK obfuscation.
+      Store sensitive keys server-side and fetch at runtime with authentication.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/strings.xml"
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M1: Improper Credential Usage"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM
+
+  # ============ TAPJACKING ADVANCED (HackTricks) ============
+
+  - id: hacktricks-toast-overlay-attack
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Toast.makeText($CONTEXT, $TEXT, Toast.LENGTH_LONG).show()
+          - pattern: |
+              Toast.makeText($CONTEXT, $TEXT, Toast.LENGTH_SHORT).show()
+    message: |
+      Toast without overlay protection (HackTricks: Tapjacking).
+      Custom toast views can be overlaid by malicious apps.
+      While standard toasts are safe, custom toast layouts may be vulnerable.
+      Use Snackbar instead of Toast for important messages, or validate no overlays.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: LOW
+
+  # ============ INTENT SCHEME HIJACKING (HackTricks) ============
+
+  - id: hacktricks-intent-scheme-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Intent.parseUri($URI, Intent.URI_INTENT_SCHEME)
+          - pattern: |
+              Intent.parseUri($URI, Intent.URI_ANDROID_APP_SCHEME)
+    message: |
+      Intent scheme URI parsing (HackTricks: Intent Security).
+      Intent.parseUri() with untrusted input can launch arbitrary components.
+      Attackers can craft intent:// or android-app:// URLs to launch sensitive activities.
+      Validate URI source, whitelist allowed components, or avoid parseUri() entirely.
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-939: Improper Authorization in Handler for Custom URL Scheme"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  # ============ SHARED USER ID (HackTricks) ============
+
+  - id: hacktricks-shared-user-id-vulnerability
+    patterns:
+      - pattern: |
+          <manifest
+            ...
+            android:sharedUserId="$UID"
+            ...
+          >
+      - metavariable-regex:
+          metavariable: $UID
+          regex: ^(?!android\.uid\.).*
+    message: |
+      Custom sharedUserId usage (HackTricks: Manifest Security).
+      Apps with same sharedUserId share data directory and run in same process.
+      Vulnerable to privilege escalation if one app is compromised.
+      Deprecated in Android 10+. Use content providers or services for IPC instead.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-250: Execution with Unnecessary Privileges"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM
+
+  # ============ CLEARTEXT NETWORK TRAFFIC (HackTricks) ============
+
+  - id: hacktricks-cleartext-traffic-permitted-manifest
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:usesCleartextTraffic="true"
+            ...
+          />
+    message: |
+      Cleartext traffic permitted globally (HackTricks: Network Security).
+      android:usesCleartextTraffic="true" allows HTTP connections app-wide.
+      Exposes all network communication to interception and modification.
+      Use HTTPS only or use Network Security Config for specific domain exceptions.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  # ============ SQL INJECTION ADVANCED (HackTricks) ============
+
+  - id: hacktricks-sql-like-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query($TABLE, $COLS, "$COLUMN LIKE '" + $INPUT + "%'", ...)
+          - pattern: |
+              $DB.rawQuery("SELECT * FROM $TABLE WHERE $COLUMN LIKE '%" + $INPUT + "%'", ...)
+    message: |
+      SQL LIKE clause injection (HackTricks: SQL Injection).
+      LIKE clauses with string concatenation are vulnerable to SQL injection.
+      Attackers can use wildcards and SQL syntax to extract unauthorized data.
+      Use parameterized queries: "column LIKE ?" with args array.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+
+  # ============ RUNTIME PERMISSIONS BYPASS (HackTricks) ============
+
+  - id: hacktricks-permission-check-bypass
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if (checkSelfPermission($PERMISSION) == PackageManager.PERMISSION_GRANTED) {
+                $SENSITIVE_OPERATION
+              }
+      - pattern-not-inside: |
+          else {
+            requestPermissions(...)
+          }
+    message: |
+      Permission check without request fallback (HackTricks: Permission Security).
+      Missing requestPermissions() in else block means functionality silently fails.
+      Attackers can hook checkSelfPermission() to always return GRANTED.
+      Always request permissions if not granted; don't just skip functionality.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM

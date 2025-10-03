@@ -1,0 +1,418 @@
+rules:
+  # OWASP Mobile Top 10 - M7: Insufficient Binary Protections (iOS)
+  # Detects lack of jailbreak detection, anti-debugging, and reverse engineering protections
+
+  # ============ JAILBREAK DETECTION ============
+
+  - id: owasp-m7-ios-missing-jailbreak-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class AppDelegate: UIResponder, UIApplicationDelegate {
+                ...
+              }
+          - pattern: |
+              @main
+              struct $APP: App {
+                ...
+              }
+      - pattern-not-inside: |
+          FileManager.default.fileExists(atPath: "/Applications/Cydia.app")
+      - pattern-not-inside: |
+          FileManager.default.fileExists(atPath: "/bin/bash")
+      - pattern-not-inside: |
+          canOpenURL(URL(string: "cydia://")!)
+    message: |
+      Missing jailbreak detection (OWASP M7: Insufficient Binary Protections).
+      Apps with sensitive data should detect jailbroken devices.
+      Check for: Cydia, /bin/bash, /usr/sbin/sshd, /etc/apt, fork() capability.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-ios-cydia-url-scheme-check
+    patterns:
+      - pattern: |
+          UIApplication.shared.canOpenURL(URL(string: "cydia://")!)
+    message: |
+      Basic jailbreak detection via Cydia URL scheme (OWASP M7: Insufficient Binary Protections).
+      This check can be easily bypassed. Implement multiple jailbreak indicators:
+      - File existence checks (/Applications/Cydia.app, /bin/bash)
+      - fork() test (jailbroken devices allow fork())
+      - Sandbox integrity check (write to /private)
+      - Link register check (detect hooking frameworks)
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ ANTI-DEBUGGING ============
+
+  - id: owasp-m7-ios-missing-debugger-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @main
+              struct $APP: App {
+                ...
+              }
+      - pattern-not-inside: |
+          sysctl($INFO, ...)
+      - pattern-not-inside: |
+          ptrace(PT_DENY_ATTACH, 0, nil, 0)
+    message: |
+      Missing debugger detection (OWASP M7: Insufficient Binary Protections).
+      Apps handling sensitive operations should detect debuggers.
+      Use: sysctl to check P_TRACED flag or ptrace(PT_DENY_ATTACH).
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-ios-ptrace-deny-attach
+    patterns:
+      - pattern: |
+          ptrace(PT_DENY_ATTACH, 0, nil, 0)
+    message: |
+      PT_DENY_ATTACH anti-debugging detected (OWASP M7: Insufficient Binary Protections).
+      While PT_DENY_ATTACH prevents debugger attachment, it can be bypassed.
+      Consider additional checks: sysctl P_TRACED flag, isatty() checks, timing checks.
+    severity: INFO
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ REVERSE ENGINEERING PROTECTION ============
+
+  - id: owasp-m7-ios-string-obfuscation-missing
+    patterns:
+      - pattern-either:
+          - pattern: |
+              let $VAR = "$VALUE"
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i).*(api[_-]?key|secret|password|token).*
+    message: |
+      Sensitive string literal without obfuscation (OWASP M7: Insufficient Binary Protections).
+      String literals are easily visible in binary disassembly.
+      Consider string obfuscation techniques or runtime generation.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-ios-class-dump-exposure
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @objc class $CLASS: $PARENT {
+                ...
+              }
+          - pattern: |
+              @objc public class $CLASS {
+                ...
+              }
+    message: |
+      @objc class exposed to Objective-C runtime (OWASP M7: Insufficient Binary Protections).
+      @objc classes can be inspected via class-dump and runtime manipulation.
+      Minimize @objc exposure; pure Swift classes are harder to reverse engineer.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ CODE INTEGRITY ============
+
+  - id: owasp-m7-ios-missing-code-signature-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class AppDelegate: UIResponder, UIApplicationDelegate {
+                ...
+              }
+      - pattern-not-inside: |
+          SecStaticCodeCheckValidity($CODE, ...)
+    message: |
+      Missing code signature validation (OWASP M7: Insufficient Binary Protections).
+      Apps should verify their own signature to detect tampering.
+      Use SecStaticCodeCheckValidity to validate app signature.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-ios-dylib-injection-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @main
+              struct $APP: App {
+                ...
+              }
+      - pattern-not-inside: |
+          _dyld_image_count()
+    message: |
+      Missing dynamic library injection detection (OWASP M7: Insufficient Binary Protections).
+      Check for suspicious dylib injections (Frida, Cycript, Substrate).
+      Use _dyld_image_count() and _dyld_get_image_name() to detect injected libraries.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ LOGGING & DEBUG INFO ============
+
+  - id: owasp-m7-ios-nslog-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSLog("%@", $DATA)
+          - pattern: |
+              print($DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|key|secret|pin|auth).*
+    message: |
+      Sensitive data in logs (OWASP M7: Insufficient Binary Protections).
+      NSLog and print statements persist in device logs.
+      Remove debug logs from production or use os_log with custom categories.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+
+  - id: owasp-m7-ios-assertion-failure
+    patterns:
+      - pattern-either:
+          - pattern: |
+              assert($CONDITION)
+          - pattern: |
+              precondition($CONDITION)
+          - pattern: |
+              fatalError($MESSAGE)
+    message: |
+      Assertion in production code (OWASP M7: Insufficient Binary Protections).
+      Assertions can reveal internal logic and crash production apps.
+      Use #if DEBUG to conditionally compile assertions.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  # ============ EXCEPTION HANDLING ============
+
+  - id: owasp-m7-ios-exception-handler-info-leak
+    patterns:
+      - pattern-either:
+          - pattern: |
+              do {
+                ...
+              } catch {
+                print(error)
+              }
+          - pattern: |
+              do {
+                ...
+              } catch let error {
+                NSLog("%@", error)
+              }
+    message: |
+      Exception details printed to logs (OWASP M7: Insufficient Binary Protections).
+      Error messages can reveal application structure and logic.
+      Use generic error messages in production and log details server-side.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-209: Information Exposure Through Error Message"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  # ============ APP SWITCHER / SCREENSHOT SECURITY ============
+
+  - id: owasp-m7-ios-app-switcher-content-visible
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func applicationDidEnterBackground(_ application: UIApplication) {
+                ...
+              }
+      - pattern-not-inside: |
+          window?.isHidden = true
+      - pattern-not-inside: |
+          window?.alpha = 0
+    message: |
+      Sensitive content visible in app switcher (OWASP M7: Insufficient Binary Protections).
+      App screenshots in switcher can expose sensitive data.
+      Hide or blur sensitive views when entering background.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  # ============ SIMULATOR DETECTION ============
+
+  - id: owasp-m7-ios-missing-simulator-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @main
+              struct $APP: App {
+                ...
+              }
+      - pattern-not-inside: |
+          #if targetEnvironment(simulator)
+    message: |
+      Missing simulator detection (OWASP M7: Insufficient Binary Protections).
+      Sensitive apps should detect iOS Simulator for analysis prevention.
+      Use #if targetEnvironment(simulator) or check device identifier.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ RUNTIME MANIPULATION DETECTION ============
+
+  - id: owasp-m7-ios-method-swizzling-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @objc dynamic func $METHOD(...) {
+                ...
+              }
+    message: |
+      Dynamic method exposed to swizzling (OWASP M7: Insufficient Binary Protections).
+      @objc dynamic methods can be swizzled at runtime (Cycript, Frida).
+      Minimize dynamic method exposure for security-critical functions.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  # ============ BINARY HARDENING ============
+
+  - id: owasp-m7-ios-pie-not-enabled
+    patterns:
+      - pattern: |
+          OTHER_LDFLAGS = ...
+      - pattern-not: |
+          OTHER_LDFLAGS = ... -Wl,-pie ...
+    message: |
+      Position Independent Executable (PIE) not enabled (OWASP M7: Insufficient Binary Protections).
+      PIE with ASLR makes memory exploitation harder.
+      Enable PIE in Xcode build settings (enabled by default in modern Xcode).
+    severity: INFO
+    languages:
+      - txt
+    paths:
+      include:
+        - "**/project.pbxproj"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-ios-stack-canary-disabled
+    patterns:
+      - pattern: |
+          OTHER_CFLAGS = ... -fno-stack-protector ...
+    message: |
+      Stack protection disabled (OWASP M7: Insufficient Binary Protections).
+      Stack canaries detect buffer overflow attacks.
+      Remove -fno-stack-protector flag; enable stack protection.
+    severity: WARNING
+    languages:
+      - txt
+    paths:
+      include:
+        - "**/project.pbxproj"
+    metadata:
+      category: security
+      cwe: "CWE-121: Stack-based Buffer Overflow"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  # ============ BITCODE & SYMBOLS ============
+
+  - id: owasp-m7-ios-bitcode-enabled
+    patterns:
+      - pattern: |
+          ENABLE_BITCODE = YES
+    message: |
+      Bitcode enabled (OWASP M7: Insufficient Binary Protections).
+      Bitcode allows Apple to recompile your app, but reduces reverse engineering difficulty.
+      Consider disabling Bitcode for apps with sensitive IP.
+    severity: INFO
+    languages:
+      - txt
+    paths:
+      include:
+        - "**/project.pbxproj"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+
+  - id: owasp-m7-ios-debug-symbols-not-stripped
+    patterns:
+      - pattern: |
+          STRIP_INSTALLED_PRODUCT = NO
+    message: |
+      Debug symbols not stripped (OWASP M7: Insufficient Binary Protections).
+      Debug symbols make reverse engineering easier.
+      Enable STRIP_INSTALLED_PRODUCT for Release builds.
+    severity: WARNING
+    languages:
+      - txt
+    paths:
+      include:
+        - "**/project.pbxproj"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM

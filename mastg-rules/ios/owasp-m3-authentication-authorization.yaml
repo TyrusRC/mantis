@@ -1,0 +1,400 @@
+rules:
+  # OWASP Mobile Top 10 - M3: Insecure Authentication/Authorization (iOS)
+  # Detects authentication and authorization vulnerabilities in iOS applications
+
+  # ============ BIOMETRIC AUTHENTICATION ============
+
+  - id: owasp-m3-ios-biometric-no-crypto
+    patterns:
+      - pattern-either:
+          - pattern: |
+              LAContext().evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, ...) { success, error in
+                if success {
+                  ...
+                }
+              }
+          - pattern: |
+              context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, ...) { success, error in
+                ...
+              }
+      - pattern-not-inside: |
+          let access = SecAccessControlCreateWithFlags(...)
+    message: |
+      Biometric authentication without Keychain integration (OWASP M3: Insecure Authentication/Authorization).
+      Event-based biometric checks can be bypassed via hooking (Frida/Objection).
+      Use LAContext with SecAccessControl and Keychain-protected keys for cryptographic operations.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-ios-biometric-fallback-password
+    patterns:
+      - pattern: |
+          LAContext().evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, ...)
+      - pattern-not: |
+          LAContext().evaluatePolicy(.deviceOwnerAuthentication, ...)
+    message: |
+      Biometric authentication without passcode fallback (OWASP M3: Insecure Authentication/Authorization).
+      .deviceOwnerAuthenticationWithBiometrics doesn't allow passcode fallback.
+      Use .deviceOwnerAuthentication to allow users to authenticate with passcode when biometrics fail.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============ KEYCHAIN SECURITY ============
+
+  - id: owasp-m3-ios-keychain-accessible-always
+    patterns:
+      - pattern-either:
+          - pattern: |
+              kSecAttrAccessibleAlways
+          - pattern: |
+              kSecAttrAccessibleAlwaysThisDeviceOnly
+    message: |
+      Keychain item accessible always (OWASP M3: Insecure Authentication/Authorization).
+      kSecAttrAccessibleAlways allows access even when device is locked.
+      Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly or kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-ios-keychain-no-access-control
+    patterns:
+      - pattern-either:
+          - pattern: |
+              var query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                ...
+              ]
+          - pattern: |
+              let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                ...
+              ]
+      - pattern-not-inside: |
+          query[kSecAttrAccessControl as String] = ...
+    message: |
+      Keychain item without access control (OWASP M3: Insecure Authentication/Authorization).
+      Items without SecAccessControl can be accessed without authentication.
+      Use SecAccessControlCreateWithFlags with biometry or passcode requirements.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-ios-keychain-shared-access-group
+    patterns:
+      - pattern-either:
+          - pattern: |
+              kSecAttrAccessGroup as String: "$GROUP"
+      - metavariable-regex:
+          metavariable: $GROUP
+          regex: ^(?!.*\.self$).*$
+    message: |
+      Keychain access group shared with other apps (OWASP M3: Insecure Authentication/Authorization).
+      Shared access groups allow multiple apps to access the same Keychain items.
+      Ensure only trusted apps share Keychain data and validate app signatures.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============ JWT & TOKEN VALIDATION ============
+
+  - id: owasp-m3-ios-jwt-no-verification
+    patterns:
+      - pattern-either:
+          - pattern: |
+              JWT.decode($TOKEN)
+          - pattern: |
+              try JWT.decode($TOKEN)
+    message: |
+      JWT decoded without signature verification (OWASP M3: Insecure Authentication/Authorization).
+      Decoding without verification allows forged tokens.
+      Use JWT verification with public key or shared secret: JWT.decode(token, verify: true, algorithm: .rs256, key: publicKey)
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-ios-token-in-userdefaults
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UserDefaults.standard.set($TOKEN, forKey: $KEY)
+          - pattern: |
+              defaults.set($TOKEN, forKey: $KEY)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(token|jwt|auth|session|access|refresh).*
+    message: |
+      Authentication token stored in UserDefaults (OWASP M3: Insecure Authentication/Authorization).
+      UserDefaults is not encrypted and accessible via iTunes/iCloud backup.
+      Store tokens in Keychain with proper access control.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============ SESSION MANAGEMENT ============
+
+  - id: owasp-m3-ios-token-in-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URL(string: "$URL?token=$TOKEN")
+          - pattern: |
+              URL(string: "$URL?access_token=$TOKEN")
+          - pattern: |
+              "$URL?auth=$TOKEN"
+    message: |
+      Authentication token in URL parameter (OWASP M3: Insecure Authentication/Authorization).
+      Tokens in URLs are logged in server logs and browser history.
+      Use Authorization header: request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-598: Use of GET Request Method With Sensitive Query Strings"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-ios-session-no-expiry
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UserDefaults.standard.set($TOKEN, forKey: "sessionToken")
+      - pattern-not-inside: |
+          UserDefaults.standard.set($EXPIRY, forKey: "sessionExpiry")
+    message: |
+      Session token stored without expiry (OWASP M3: Insecure Authentication/Authorization).
+      Sessions without expiry remain valid indefinitely if stolen.
+      Implement session expiry and token refresh mechanisms.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============ OAUTH & SOCIAL LOGIN ============
+
+  - id: owasp-m3-ios-oauth-implicit-flow
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "response_type=token"
+          - pattern: |
+              responseType = "token"
+    message: |
+      OAuth Implicit Flow used (OWASP M3: Insecure Authentication/Authorization).
+      Implicit flow exposes access tokens in URL fragments.
+      Use Authorization Code flow with PKCE for iOS apps.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-ios-oauth-no-state
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "$OAUTH_URL?client_id=$CLIENT&redirect_uri=$REDIRECT"
+      - pattern-not: |
+          "$OAUTH_URL?client_id=$CLIENT&redirect_uri=$REDIRECT&state=$STATE"
+    message: |
+      OAuth request without state parameter (OWASP M3: Insecure Authentication/Authorization).
+      Missing state parameter enables CSRF attacks on OAuth flow.
+      Always include a random state parameter to prevent CSRF.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-352: Cross-Site Request Forgery"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============ AUTHENTICATION BYPASS ============
+
+  - id: owasp-m3-ios-client-side-auth
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $USERNAME == "admin" && $PASSWORD == "$PASS" {
+                ...
+              }
+          - pattern: |
+              if UserDefaults.standard.bool(forKey: "isLoggedIn") {
+                ...
+              }
+    message: |
+      Client-side authentication check (OWASP M3: Insecure Authentication/Authorization).
+      Authentication logic in apps can be bypassed via hooking (Frida/Cycript).
+      Perform authentication server-side and use secure tokens.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-603: Use of Client-Side Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-ios-api-no-auth-header
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URLSession.shared.dataTask(with: $REQUEST)
+          - pattern: |
+              session.dataTask(with: $REQUEST)
+      - pattern-not-inside: |
+          $REQUEST.setValue($TOKEN, forHTTPHeaderField: "Authorization")
+      - pattern-not-inside: |
+          $REQUEST.addValue($TOKEN, forHTTPHeaderField: "Authorization")
+    message: |
+      API request without authentication header (OWASP M3: Insecure Authentication/Authorization).
+      Backend requests without authentication allow unauthorized access.
+      Add Authorization header to all authenticated requests.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-306: Missing Authentication for Critical Function"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW
+
+  # ============ AUTHORIZATION & IDOR ============
+
+  - id: owasp-m3-ios-idor-vulnerability
+    patterns:
+      - pattern-either:
+          - pattern: |
+              fetchUserData(userId: $USER_ID)
+          - pattern: |
+              getOrder(orderId: $ORDER_ID)
+      - pattern-not-inside: |
+          if currentUserId == $USER_ID {
+            ...
+          }
+    message: |
+      Potential IDOR vulnerability (OWASP M3: Insecure Authentication/Authorization).
+      Accessing resources by ID without authorization checks allows IDOR attacks.
+      Verify that the authenticated user owns the resource before access.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============ PASSWORD SECURITY ============
+
+  - id: owasp-m3-ios-weak-password-policy
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $PASSWORD.count >= 4 {
+                ...
+              }
+          - pattern: |
+              if password.count < 8 {
+                ...
+              }
+    message: |
+      Weak password policy (OWASP M3: Insecure Authentication/Authorization).
+      Minimum password length should be at least 8 characters.
+      Enforce strong passwords with complexity requirements.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-521: Weak Password Requirements"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-ios-password-in-log
+    patterns:
+      - pattern-either:
+          - pattern: |
+              print("Password: \($PASSWORD)")
+          - pattern: |
+              NSLog("Password: %@", $PASSWORD)
+          - pattern: |
+              os_log("User password: %@", $PASSWORD)
+    message: |
+      Password logged to console (OWASP M3: Insecure Authentication/Authorization).
+      Logging credentials exposes them via device logs.
+      Never log passwords or authentication tokens.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============ TOUCH ID / FACE ID SPECIFIC ============
+
+  - id: owasp-m3-ios-touchid-no-invalidation
+    patterns:
+      - pattern: |
+          LAContext().evaluatePolicy(...)
+      - pattern-not-inside: |
+          context.invalidate()
+    message: |
+      LAContext not invalidated after use (OWASP M3: Insecure Authentication/Authorization).
+      Reusing LAContext can lead to authentication bypass.
+      Call context.invalidate() after authentication to clear credentials.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW

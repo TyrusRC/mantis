@@ -1,0 +1,395 @@
+rules:
+  # OWASP Mobile Top 10 - M3: Insecure Authentication/Authorization
+  # Detects authentication and authorization vulnerabilities in mobile apps
+
+  # ============ BIOMETRIC AUTHENTICATION ============
+
+  - id: owasp-m3-biometric-event-based-auth
+    patterns:
+      - pattern-either:
+          - pattern: |
+              override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                ...
+              }
+          - pattern: |
+              public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                ...
+              }
+      - pattern-not-inside: |
+          override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+            val cipher = result.cryptoObject?.cipher
+            ...
+          }
+      - pattern-not-inside: |
+          result.getCryptoObject()
+    message: |
+      Event-based biometric authentication without cryptography (OWASP M3: Insecure Authentication/Authorization).
+      70% of apps with biometric auth can be bypassed. Use BiometricPrompt.CryptoObject
+      and encrypt data with biometric-protected Keystore keys, not just event callbacks.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-biometric-no-crypto-object
+    patterns:
+      - pattern-either:
+          - pattern: |
+              BiometricPrompt.Builder($CONTEXT)
+                ...
+                .build()
+          - pattern: |
+              BiometricPrompt($EXECUTOR, $CALLBACK)
+      - pattern-not-inside: |
+          $PROMPT.authenticate($PROMPT_INFO, BiometricPrompt.CryptoObject($CIPHER))
+    message: |
+      BiometricPrompt without CryptoObject (OWASP M3: Insecure Authentication/Authorization).
+      Biometric authentication should use cryptographic operations with Keystore-protected keys.
+      Implement BiometricPrompt.CryptoObject for secure authentication.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============ JWT TOKEN VALIDATION ============
+
+  - id: owasp-m3-jwt-no-signature-verification
+    patterns:
+      - pattern-either:
+          - pattern: JWT.decode($TOKEN)
+          - pattern: Jwts.parser().parse($TOKEN)
+          - pattern: JWT.require(Algorithm.none())
+    message: |
+      JWT decoded without signature verification (OWASP M3: Insecure Authentication/Authorization).
+      Decoding JWTs without verifying signatures allows token forgery.
+      Always verify JWT signatures with Jwts.parserBuilder().setSigningKey().build().
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-jwt-none-algorithm
+    patterns:
+      - pattern-either:
+          - pattern: Algorithm.none()
+          - pattern: JWT.require(Algorithm.none())
+          - pattern: |
+              "alg": "none"
+    message: |
+      JWT 'none' algorithm used (OWASP M3: Insecure Authentication/Authorization).
+      The 'none' algorithm allows unsigned tokens that bypass verification.
+      Use secure algorithms like RS256, ES256, or HS256.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+      - json
+    metadata:
+      category: security
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-jwt-hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Algorithm.HMAC256("$SECRET")
+          - pattern: |
+              Jwts.parserBuilder().setSigningKey("$SECRET")
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: ^[A-Za-z0-9]{10,}$
+    message: |
+      JWT with hardcoded signing key (OWASP M3: Insecure Authentication/Authorization).
+      Hardcoded JWT secrets can be reverse-engineered from the app.
+      Store signing keys on backend only; mobile apps should only verify, not sign.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============ SESSION MANAGEMENT ============
+
+  - id: owasp-m3-session-no-timeout
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PREFS.edit().putString("session_token", $TOKEN).apply()
+          - pattern: |
+              $PREFS.edit().putString("auth_token", $TOKEN).apply()
+      - pattern-not-inside: |
+          $PREFS.edit()
+            .putString("session_token", $TOKEN)
+            .putLong("session_expiry", ...)
+            .apply()
+    message: |
+      Session token stored without expiry (OWASP M3: Insecure Authentication/Authorization).
+      Session tokens without timeouts remain valid indefinitely if stolen.
+      Implement session expiry and refresh token mechanisms.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-token-in-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "$URL?token=$TOKEN"
+          - pattern: |
+              "$URL?access_token=$TOKEN"
+          - pattern: |
+              Uri.parse("$URL?token=$TOKEN")
+    message: |
+      Authentication token in URL parameter (OWASP M3: Insecure Authentication/Authorization).
+      Tokens in URLs are logged in server logs, browser history, and referrer headers.
+      Use Authorization header instead: Authorization: Bearer <token>
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-598: Use of GET Request Method With Sensitive Query Strings"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============ AUTHORIZATION CHECKS ============
+
+  - id: owasp-m3-idor-no-authorization
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $API.getUserData($USER_ID)
+          - pattern: |
+              $API.getOrder($ORDER_ID)
+          - pattern: |
+              $DB.query("SELECT * FROM users WHERE id = ?", new String[]{$USER_ID})
+      - pattern-not-inside: |
+          if ($CURRENT_USER_ID.equals($USER_ID)) {
+            ...
+          }
+      - pattern-not-inside: |
+          if (hasPermission($USER_ID)) {
+            ...
+          }
+    message: |
+      Potential IDOR vulnerability (OWASP M3: Insecure Authentication/Authorization).
+      Accessing resources by ID without authorization checks allows IDOR attacks.
+      Verify that the authenticated user owns the resource before access.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-missing-role-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              fun adminAction() {
+                ...
+              }
+          - pattern: |
+              public void adminAction() {
+                ...
+              }
+      - pattern-not-inside: |
+          if ($USER.isAdmin()) {
+            ...
+          }
+      - pattern-not-inside: |
+          if ($USER.hasRole("ADMIN")) {
+            ...
+          }
+    message: |
+      Admin action without role-based access control (OWASP M3: Insecure Authentication/Authorization).
+      Privileged functions should verify user roles before execution.
+      Implement proper RBAC checks for sensitive operations.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW
+
+  # ============ AUTHENTICATION BYPASS ============
+
+  - id: owasp-m3-client-side-auth-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($USERNAME == "admin" && $PASSWORD == "...") {
+                ...
+              }
+          - pattern: |
+              if ($PREFS.getBoolean("is_logged_in", false)) {
+                ...
+              }
+    message: |
+      Client-side authentication check (OWASP M3: Insecure Authentication/Authorization).
+      Authentication logic in mobile apps can be bypassed via hooking or tampering.
+      Perform authentication server-side and use secure tokens.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-603: Use of Client-Side Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-api-call-no-auth-header
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CLIENT.newCall($REQUEST).execute()
+          - pattern: |
+              Retrofit.Builder()
+                ...
+                .build()
+      - pattern-not-inside: |
+          $REQUEST.addHeader("Authorization", ...)
+      - pattern-not-inside: |
+          .addInterceptor($AUTH_INTERCEPTOR)
+    message: |
+      API call without authentication header (OWASP M3: Insecure Authentication/Authorization).
+      Backend requests without authentication allow unauthorized access.
+      Add Authorization header or use OkHttp interceptor for authentication.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-306: Missing Authentication for Critical Function"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW
+
+  # ============ PASSWORD & CREDENTIALS ============
+
+  - id: owasp-m3-weak-password-policy
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($PASSWORD.length() >= 4) {
+                ...
+              }
+          - pattern: |
+              if ($PASSWORD.length >= 4) {
+                ...
+              }
+      - metavariable-comparison:
+          metavariable: $LENGTH
+          comparison: $LENGTH < 8
+    message: |
+      Weak password policy (OWASP M3: Insecure Authentication/Authorization).
+      Minimum password length should be at least 8 characters.
+      Enforce strong passwords with complexity requirements.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-521: Weak Password Requirements"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: owasp-m3-password-in-log
+    patterns:
+      - pattern-either:
+          - pattern: Log.d($TAG, "Password: " + $PASSWORD)
+          - pattern: Log.i($TAG, "User credentials: " + $CREDS)
+          - pattern: println("Password: $PASSWORD")
+    message: |
+      Password logged to console (OWASP M3: Insecure Authentication/Authorization).
+      Logging credentials exposes them via logcat/console.
+      Never log passwords or authentication tokens.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============ OAUTH & SOCIAL LOGIN ============
+
+  - id: owasp-m3-oauth-implicit-flow
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "response_type=token"
+          - pattern: |
+              responseType = "token"
+    message: |
+      OAuth Implicit Flow used (OWASP M3: Insecure Authentication/Authorization).
+      Implicit flow exposes access tokens in URL fragments.
+      Use Authorization Code flow with PKCE for mobile apps.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: owasp-m3-oauth-no-state-parameter
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "$OAUTH_URL?client_id=$CLIENT_ID&redirect_uri=$REDIRECT"
+      - pattern-not: |
+          "$OAUTH_URL?client_id=$CLIENT_ID&redirect_uri=$REDIRECT&state=$STATE"
+    message: |
+      OAuth request without state parameter (OWASP M3: Insecure Authentication/Authorization).
+      Missing state parameter enables CSRF attacks on OAuth flow.
+      Always include a random state parameter to prevent CSRF.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-352: Cross-Site Request Forgery"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM

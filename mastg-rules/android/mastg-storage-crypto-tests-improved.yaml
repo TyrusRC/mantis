@@ -1,0 +1,360 @@
+rules:
+  # MASTG Test Cases - IMPROVED (False Positive Reduction)
+  # Enhanced with context awareness and negative patterns
+
+  # ============ MASTG-TEST-0003: TESTING LOGS FOR SENSITIVE DATA - IMPROVED ============
+
+  - id: mastg-test-0003-log-sensitive-data-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Log.$METHOD($TAG, $DATA)
+          - pattern: |
+              android.util.Log.$METHOD($TAG, $DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|apikey|api_key|pin|bearer|session.*id|credit.*card|ssn|auth.*token).*
+      - pattern-not-inside: |
+          // Exclude error messages
+          Log.$METHOD($TAG, "Failed to ...")
+      - pattern-not-inside: |
+          Log.$METHOD($TAG, "Error $ERR ...")
+      - pattern-not-inside: |
+          Log.$METHOD($TAG, "$PREFIX validation ...")
+      - pattern-not-inside: |
+          Log.$METHOD($TAG, "$PREFIX successful")
+      - pattern-not-inside: |
+          // BuildConfig check
+          if (BuildConfig.DEBUG) {
+            ...
+          }
+      - pattern-not-inside: |
+          // Test code
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Potential sensitive data in logs (MASTG-TEST-0003).
+      Logs persist in logcat and can be read by apps with READ_LOGS permission.
+
+      FALSE POSITIVE EXCLUSIONS:
+      - Error messages ("Failed to...", "Error...")
+      - Validation messages ("validation successful")
+      - BuildConfig.DEBUG wrapped logs
+      - Test code
+
+      DETECTED PATTERNS:
+      password, token, secret, api_key, pin, bearer, session_id, credit_card, ssn
+
+      FIX: Remove from production:
+      ```kotlin
+      // Option 1: ProGuard/R8 removal
+      // In proguard-rules.pro:
+      -assumenosideeffects class android.util.Log {
+          public static *** d(...);
+          public static *** v(...);
+      }
+
+      // Option 2: BuildConfig check
+      if (BuildConfig.DEBUG) {
+          Log.d(TAG, "Sensitive data: ...")
+      }
+
+      // Option 3: Use library with redaction
+      Timber.d("User: %s", user.redactedEmail())
+      ```
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0003/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0003"
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: mastg-test-0011-string-password-in-memory-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              val $VAR: String = $VALUE
+          - pattern: |
+              String $VAR = $VALUE;
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)^(password|passwd|pwd|pin|secret|passphrase)$
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: ^(?!.*(MIN|MAX|LENGTH|REGEX|PATTERN|RULE|REQUIREMENT|VALIDATOR|FORMAT|HINT|LABEL|ERROR)).*$
+      - pattern-not-inside: |
+          // Exclude password rules/validators
+          val $VAR: String = "$STATIC"
+      - pattern-not-inside: |
+          // Exclude constants
+          companion object {
+            const val $VAR: String = ...
+          }
+      - pattern-not-inside: |
+          // Test code
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Sensitive data stored as String (MASTG-TEST-0011).
+      Strings are immutable - remain in memory until GC, visible in memory dumps.
+
+      FALSE POSITIVE EXCLUSIONS:
+      - Variables containing MIN/MAX/LENGTH/REGEX/PATTERN/RULE/REQUIREMENT/VALIDATOR
+      - String literals (password rules, error messages)
+      - Companion object constants
+      - Test code
+
+      SECURE ALTERNATIVES:
+      ```kotlin
+      // INSECURE: String remains in memory
+      val password: String = editText.text.toString()
+
+      // SECURE: Use char[] and clear after use
+      val passwordChars: CharArray = editText.text.toString().toCharArray()
+      try {
+          // Use password
+          authenticate(passwordChars)
+      } finally {
+          passwordChars.fill('\u0000')  // Clear memory
+      }
+
+      // OR: Use SecureString wrapper
+      class SecureString(private val chars: CharArray) : AutoCloseable {
+          fun use(block: (CharArray) -> Unit) {
+              block(chars)
+          }
+          override fun close() {
+              chars.fill('\u0000')
+          }
+      }
+      ```
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0011/
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0011"
+      cwe: "CWE-316: Cleartext Storage of Sensitive Information in Memory"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      false_positive_likelihood: MEDIUM
+
+  - id: mastg-test-0016-insecure-random-improved
+    patterns:
+      - pattern-either:
+          - pattern: Random()
+          - pattern: java.util.Random()
+          - pattern: Math.random()
+          - pattern: kotlin.random.Random
+      - pattern-not-inside: |
+          // Test/mock data generation
+          @Test
+          fun $FUNC() { ... }
+      - pattern-not-inside: |
+          // UI/animation randomization (not security-critical)
+          val randomDelay = Random().nextInt(100, 500)
+          Handler().postDelayed(...)
+      - pattern-not-inside: |
+          // Non-crypto use cases
+          val colors = listOf(...)
+          val randomColor = colors[Random().nextInt(colors.size)]
+    message: |
+      Insecure random number generation (MASTG-TEST-0016).
+      java.util.Random and Math.random() are NOT cryptographically secure.
+
+      FALSE POSITIVE EXCLUSIONS:
+      - Test code random data generation
+      - UI/animation timing randomization
+      - Non-security color/style selection
+
+      USE CASES REQUIRING SecureRandom:
+      - Token generation
+      - Session IDs
+      - Cryptographic keys/IVs/nonces
+      - Password reset codes
+      - OTP generation
+      - Challenge-response values
+
+      FIX: Use SecureRandom:
+      ```kotlin
+      // INSECURE: Predictable
+      val token = Random().nextLong().toString()
+
+      // SECURE: Cryptographically strong
+      val secureRandom = SecureRandom()
+      val tokenBytes = ByteArray(32)
+      secureRandom.nextBytes(tokenBytes)
+      val token = Base64.encodeToString(tokenBytes, Base64.NO_WRAP)
+
+      // For simple random string
+      val token = UUID.randomUUID().toString()  // Uses SecureRandom internally
+      ```
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-CRYPTO/MASTG-TEST-0016/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0016"
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: mastg-test-0022-missing-certificate-pinning-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <network-security-config>
+                ...
+              </network-security-config>
+      - pattern-not-inside: |
+          <pin-set>
+            ...
+          </pin-set>
+      - pattern-not-inside: |
+          <!-- Development/staging only -->
+          <domain-config cleartextTrafficPermitted="false">
+            <domain includeSubdomains="true">localhost</domain>
+          </domain-config>
+    message: |
+      Missing certificate pinning (MASTG-TEST-0022).
+      Without pinning, app trusts any CA-signed certificate (rogue CA attacks possible).
+
+      FALSE POSITIVE EXCLUSIONS:
+      - Development/localhost configurations
+      - Test network configs
+
+      WHEN PINNING IS REQUIRED:
+      - Banking/financial apps
+      - Healthcare apps (HIPAA)
+      - Apps handling sensitive personal data
+      - High-value transaction apps
+
+      FIX: Implement certificate pinning:
+      ```xml
+      <!-- res/xml/network_security_config.xml -->
+      <network-security-config>
+        <domain-config>
+          <domain includeSubdomains="true">api.yourapp.com</domain>
+          <pin-set expiration="2026-01-01">
+            <!-- SHA-256 hash of certificate or public key -->
+            <pin digest="SHA-256">base64EncodedHash==</pin>
+            <!-- Backup pin for rotation -->
+            <pin digest="SHA-256">backupPinHash==</pin>
+          </pin-set>
+        </domain-config>
+      </network-security-config>
+      ```
+
+      Generate pin hash:
+      ```bash
+      openssl s_client -connect api.yourapp.com:443 | \
+        openssl x509 -pubkey -noout | \
+        openssl pkey -pubin -outform der | \
+        openssl dgst -sha256 -binary | \
+        base64
+      ```
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-NETWORK/MASTG-TEST-0022/
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+      exclude:
+        - "**/test/**"
+        - "**/debug/**"
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0022"
+      cwe: "CWE-295: Improper Certificate Validation"
+      masvs: "MASVS-NETWORK-1"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: MEDIUM
+      false_positive_likelihood: MEDIUM
+
+  - id: mastg-test-0009-backup-enabled-improved
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:allowBackup="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <application
+            ...
+            android:fullBackupContent="@xml/backup_rules"
+            ...
+          />
+      - pattern-not-inside: |
+          <!-- Debug variant -->
+          <application
+            ...
+            tools:replace="android:allowBackup"
+            ...
+          />
+    message: |
+      Auto-backup enabled without exclusion rules (MASTG-TEST-0009).
+      ALL app data backed up by default - including SharedPreferences, databases, files.
+
+      BACKUP LOCATIONS:
+      - Android 6+: Cloud backup (Google Drive)
+      - Via ADB: `adb backup -f backup.ab com.yourapp`
+
+      EXTRACTION METHOD:
+      ```bash
+      adb backup -f backup.ab -noapk com.yourapp
+      dd if=backup.ab bs=24 skip=1 | openssl zlib -d > backup.tar
+      tar xvf backup.tar
+      ```
+
+      FIX: Define backup exclusion rules:
+      ```xml
+      <!-- AndroidManifest.xml -->
+      <application
+          android:allowBackup="true"
+          android:fullBackupContent="@xml/backup_rules">
+
+      <!-- res/xml/backup_rules.xml -->
+      <full-backup-content>
+        <exclude domain="sharedpref" path="secure_prefs.xml"/>
+        <exclude domain="database" path="sensitive.db"/>
+        <exclude domain="file" path="keys/"/>
+      </full-backup-content>
+      ```
+
+      OR disable entirely for sensitive apps:
+      ```xml
+      <application android:allowBackup="false">
+      ```
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0009/
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+      exclude:
+        - "**/debug/**"
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0009"
+      cwe: "CWE-530: Exposure of Backup File to an Unauthorized Control Sphere"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW

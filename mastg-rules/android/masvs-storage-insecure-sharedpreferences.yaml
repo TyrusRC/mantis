@@ -1,0 +1,77 @@
+rules:
+  # MASVS-STORAGE: Insecure SharedPreferences Usage
+  # Based on MASTG-TEST-0001: Testing Local Storage for Sensitive Data
+  # Detects sensitive data stored in SharedPreferences without encryption
+
+  - id: mastg-android-insecure-sharedpreferences-sensitive-data
+    patterns:
+      - pattern-either:
+          # SharedPreferences.edit().putString() for sensitive data
+          - pattern: |
+              $PREFS.edit().putString($KEY, $VALUE)
+          - pattern: |
+              $EDITOR.putString($KEY, $VALUE)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|api[_-]?key|auth|credential|session|pin|private[_-]?key).*
+    message: |
+      Sensitive data stored in SharedPreferences without encryption (MASVS-STORAGE).
+      SharedPreferences stores data in plaintext XML files. Use EncryptedSharedPreferences
+      or Android Keystore for sensitive data like passwords, tokens, or API keys.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile: "M2: Inadequate Supply Chain Security"
+      mastg-test: "MASTG-TEST-0001"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+
+  - id: mastg-android-sharedpreferences-world-readable
+    patterns:
+      - pattern-either:
+          - pattern: getSharedPreferences($NAME, MODE_WORLD_READABLE)
+          - pattern: getSharedPreferences($NAME, MODE_WORLD_WRITEABLE)
+          - pattern: getSharedPreferences($NAME, Context.MODE_WORLD_READABLE)
+          - pattern: getSharedPreferences($NAME, Context.MODE_WORLD_WRITEABLE)
+    message: |
+      World-readable/writable SharedPreferences detected (MASVS-STORAGE).
+      MODE_WORLD_READABLE and MODE_WORLD_WRITEABLE are deprecated and insecure.
+      Use MODE_PRIVATE or EncryptedSharedPreferences instead.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      mastg-test: "MASTG-TEST-0001"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+
+  - id: mastg-android-commit-without-apply
+    patterns:
+      - pattern: |
+          $EDITOR = $PREFS.edit()
+          ...
+          $EDITOR.commit()
+      - pattern-not: |
+          $EDITOR = $PREFS.edit()
+          ...
+          $EDITOR.apply()
+    message: |
+      SharedPreferences using commit() instead of apply().
+      While not a direct security issue, commit() is synchronous and can cause
+      performance issues. Use apply() for asynchronous saving.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: performance
+      mastg-test: "MASTG-TEST-0001"
+      masvs: "MASVS-STORAGE-1"
+      confidence: MEDIUM

@@ -1,0 +1,388 @@
+rules:
+  # HackTricks Android Pentesting Patterns - IMPROVED (False Positive Reduction)
+  # Enhanced with context-aware detection and negative patterns
+  # Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+
+  # ============ WEBVIEW SECURITY (HackTricks) - IMPROVED ============
+
+  - id: hacktricks-webview-file-access-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.getSettings().setAllowFileAccess(true)
+          - pattern: |
+              $SETTINGS.setAllowFileAccess(true)
+      - pattern-not-inside: |
+          // Legitimate: Loading only from bundled assets
+          $WEBVIEW.loadUrl("file:///android_asset/$PATH")
+      - pattern-not-inside: |
+          // Legitimate: Checking URL before allowing
+          if ($URL.startsWith("file:///android_asset/")) {
+            ...
+          }
+      - pattern-not-inside: |
+          // Using WebViewAssetLoader (secure alternative)
+          WebViewAssetLoader.Builder()
+    message: |
+      WebView file access enabled without proper URL validation (HackTricks).
+      setAllowFileAccess(true) with untrusted URLs can lead to arbitrary file read.
+
+      FIX: Use WebViewAssetLoader for local content:
+      ```kotlin
+      val assetLoader = WebViewAssetLoader.Builder()
+          .addPathHandler("/assets/", AssetsPathHandler(this))
+          .build()
+      webView.webViewClient = object : WebViewClient() {
+          override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest):
+              WebResourceResponse? = assetLoader.shouldInterceptRequest(request.url)
+      }
+      ```
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-552: Files or Directories Accessible to External Parties"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: hacktricks-activity-set-result-sensitive-data-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              setResult(Activity.RESULT_OK, Intent().putExtra($KEY, $VALUE))
+          - pattern: |
+              setResult(RESULT_OK, $INTENT.putExtra($KEY, $VALUE))
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i)^(password|passwd|pwd|token|auth_token|api_key|secret|secret_key|pin|credit_card|ssn|bearer_token)$
+      - pattern-not-inside: |
+          // Test code
+          @Test
+          fun $FUNC() { ... }
+      - pattern-not-inside: |
+          // JUnit tests
+          class $CLASS extends TestCase { ... }
+    message: |
+      Sensitive data returned via Activity result (HackTricks).
+      Intent extras are accessible to ANY calling activity, including malicious apps.
+
+      VULNERABLE KEY NAMES: password, token, api_key, secret, pin, credit_card, ssn
+
+      FIX: Validate caller identity or use alternative data transfer:
+      ```kotlin
+      // Option 1: Validate caller
+      val caller = callingActivity
+      if (caller != null && isT rustedCaller(caller)) {
+          setResult(RESULT_OK, Intent().putExtra("data", sensitiveData))
+      }
+
+      // Option 2: Use encrypted storage instead
+      SecureStorage.save("temp_data", encryptedData)
+      setResult(RESULT_OK, Intent().putExtra("data_id", "temp_data"))
+      ```
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-927: Use of Implicit Intent for Sensitive Communication"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: hacktricks-strings-xml-api-key-improved
+    patterns:
+      - pattern: |
+          <string name="$NAME">$VALUE</string>
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i)^(api_key|apikey|secret_key|secretkey|auth_token|authtoken|client_secret|clientsecret|private_key|privatekey)$
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: ^(?!.*(@string|%[sd]|%[0-9]|Enter|Input|Invalid|Error|Label|Hint|example|test|TODO|FIXME)).{12,}$
+      - pattern-not-inside: |
+          <!-- Exclude commented examples -->
+          <!-- <string name="$NAME">$VALUE</string> -->
+    message: |
+      Potential hardcoded secret in strings.xml (HackTricks).
+      API keys in strings.xml are trivially extractable from APK (aapt dump strings).
+
+      VALUE VALIDATION:
+      - Must be >= 12 characters (actual key, not placeholder)
+      - Excludes: @string references, format specifiers, UI labels
+      - Excludes: "Enter", "Invalid", "Error", "example", "test"
+
+      FIX: Use secure alternatives:
+      ```kotlin
+      // 1. BuildConfig with different values per build type
+      buildConfigField("String", "API_KEY", "\"${getApiKey()}\"")
+
+      // 2. NDK obfuscation
+      external fun getApiKey(): String
+
+      // 3. Server-side key exchange
+      val apiKey = networkClient.fetchApiKey(userId, deviceToken)
+      ```
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/strings.xml"
+        - "**/values/strings.xml"
+      exclude:
+        - "**/test/**"
+        - "**/androidTest/**"
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M1: Improper Credential Usage"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: hacktricks-sql-like-injection-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query($TABLE, $COLS, "$COLUMN LIKE '" + $INPUT + "%'", ...)
+          - pattern: |
+              $DB.rawQuery("SELECT * FROM $TABLE WHERE $COLUMN LIKE '%" + $INPUT + "%'", ...)
+          - pattern: |
+              $DB.rawQuery("$QUERY" + $INPUT + "$REST", ...)
+      - metavariable-regex:
+          metavariable: $INPUT
+          regex: ^(?!(.*Constants\.|.*STATIC_|.*final )).*$
+      - pattern-not-inside: |
+          // Test/example code
+          @Test
+          fun $FUNC() { ... }
+      - pattern-not-inside: |
+          // Already sanitized
+          val $SAFE = $INPUT.replace("'", "''").replace("%", "\\%")
+    message: |
+      SQL injection via string concatenation in LIKE clause (HackTricks).
+      LIKE wildcards (%, _) and quotes (') can be exploited for data extraction.
+
+      ATTACK EXAMPLE:
+      Input: "a%' OR '1'='1"
+      Query: SELECT * FROM users WHERE name LIKE '%a%' OR '1'='1%'
+      Result: Bypasses authentication, returns all rows
+
+      FIX: Use parameterized queries:
+      ```kotlin
+      // SECURE: Use ? placeholders
+      val selection = "column LIKE ?"
+      val args = arrayOf("%${input.escapeForLike()}%")
+      db.query(table, cols, selection, args, null, null, null)
+
+      // Helper function
+      fun String.escapeForLike() = this.replace("\\", "\\\\")
+          .replace("%", "\\%")
+          .replace("_", "\\_")
+      ```
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: hacktricks-intent-scheme-url-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Intent.parseUri($URI, Intent.URI_INTENT_SCHEME)
+          - pattern: |
+              Intent.parseUri($URI, Intent.URI_ANDROID_APP_SCHEME)
+      - pattern-not-inside: |
+          // Validated URI from trusted source
+          if ($URI.startsWith("intent://yourapp.com/")) {
+            ...
+          }
+      - pattern-not-inside: |
+          // Whitelist validation
+          val allowedHosts = listOf("yourapp.com", "trusted.com")
+          if ($URI.contains(...) && allowedHosts.any { ... }) {
+            ...
+          }
+      - pattern-not-inside: |
+          // Test code
+          @Test
+          fun $FUNC() { ... }
+    message: |
+      Intent URI parsing without validation (HackTricks).
+      Intent.parseUri() with untrusted input can launch arbitrary app components.
+
+      ATTACK EXAMPLE:
+      URL: intent://evil#Intent;component=com.victim/SensitiveActivity;end
+      Result: Launches SensitiveActivity even if not exported
+
+      ADDITIONAL RISKS:
+      - Can set arbitrary extras
+      - Can specify component, package, action
+      - Bypasses exported=false restrictions on some Android versions
+
+      FIX: Validate and whitelist:
+      ```kotlin
+      val intent = Intent.parseUri(uri, Intent.URI_INTENT_SCHEME)
+
+      // Validate component
+      val allowedPackages = setOf("com.myapp", "com.trusted")
+      if (intent.component?.packageName !in allowedPackages) {
+          throw SecurityException("Untrusted component")
+      }
+
+      // Validate action
+      val allowedActions = setOf(Intent.ACTION_VIEW, "com.myapp.CUSTOM")
+      if (intent.action !in allowedActions) {
+          throw SecurityException("Untrusted action")
+      }
+
+      startActivity(intent)
+      ```
+      Reference: https://book.hacktricks.wiki/en/mobile-pentesting/android-app-pentesting/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-939: Improper Authorization in Handler for Custom URL Scheme"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      confidence: HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: hacktricks-pending-intent-mutable-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              PendingIntent.getActivity($CONTEXT, $CODE, $INTENT, PendingIntent.FLAG_MUTABLE)
+          - pattern: |
+              PendingIntent.getBroadcast($CONTEXT, $CODE, $INTENT, PendingIntent.FLAG_MUTABLE)
+          - pattern: |
+              PendingIntent.getService($CONTEXT, $CODE, $INTENT, PendingIntent.FLAG_MUTABLE)
+      - pattern-not-inside: |
+          // Android 12+ with explicit intent
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+              val intent = Intent(this, SpecificActivity::class.java)
+              PendingIntent.getActivity(..., FLAG_MUTABLE or FLAG_IMMUTABLE)
+          }
+      - pattern-not-inside: |
+          // Test code
+          @RunWith(...)
+          class $CLASS { ... }
+    message: |
+      Mutable PendingIntent allows intent hijacking (HackTricks).
+      FLAG_MUTABLE lets other apps modify the Intent after PendingIntent creation.
+
+      ATTACK SCENARIO (Android 12+):
+      1. App creates: PendingIntent.getActivity(ctx, 0, implicitIntent, FLAG_MUTABLE)
+      2. Attacker fills in: intent.setComponent("com.attacker/.MaliciousActivity")
+      3. When triggered: Launches attacker's activity with victim's privileges
+
+      RISK LEVEL:
+      - Android 12+: Requires FLAG_MUTABLE explicitly (default is IMMUTABLE)
+      - Android <12: FLAG_MUTABLE is default behavior
+
+      FIX: Use FLAG_IMMUTABLE (Android 6+):
+      ```kotlin
+      val intent = Intent(this, ExplicitActivity::class.java)  // Explicit!
+      val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          PendingIntent.getActivity(this, 0, intent,
+              PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+      } else {
+          PendingIntent.getActivity(this, 0, intent,
+              PendingIntent.FLAG_UPDATE_CURRENT)
+      }
+      ```
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      source: "HackTricks Android Pentesting"
+      masvs: "MASVS-CODE-4"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: hacktricks-permission-check-bypass-improved
+    patterns:
+      - pattern: |
+          if (checkSelfPermission($PERMISSION) == PackageManager.PERMISSION_GRANTED) {
+            $SENSITIVE_OPERATION
+          }
+      - pattern-not-inside: |
+          if (checkSelfPermission($PERMISSION) == PackageManager.PERMISSION_GRANTED) {
+            $SENSITIVE_OPERATION
+          } else {
+            requestPermissions(...)
+          }
+      - pattern-not-inside: |
+          if (checkSelfPermission($PERMISSION) == PackageManager.PERMISSION_GRANTED) {
+            $SENSITIVE_OPERATION
+          } else {
+            // Show rationale or request
+            ...
+            ActivityCompat.requestPermissions(...)
+          }
+      - metavariable-regex:
+          metavariable: $PERMISSION
+          regex: (?i).*(CAMERA|LOCATION|CONTACTS|READ_SMS|RECORD_AUDIO|READ_CALL_LOG|READ_PHONE_STATE).*
+    message: |
+      Permission check without request fallback (HackTricks).
+      Missing requestPermissions() means functionality silently fails or uses alternatives.
+
+      SECURITY ISSUE:
+      Attackers can hook checkSelfPermission() to always return GRANTED,
+      bypassing the permission requirement entirely.
+
+      DETECTION METHOD:
+      Checks for dangerous permissions (CAMERA, LOCATION, CONTACTS, etc.)
+      without corresponding requestPermissions() call.
+
+      FIX: Always include permission request:
+      ```kotlin
+      when {
+          checkSelfPermission(CAMERA) == PERMISSION_GRANTED -> {
+              // Permission granted, proceed
+              takePicture()
+          }
+          shouldShowRequestPermissionRationale(CAMERA) -> {
+              // Show explanation
+              showRationale()
+          }
+          else -> {
+              // Request permission
+              requestPermissions(arrayOf(CAMERA), REQUEST_CODE)
+          }
+      }
+      ```
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      source: "HackTricks Android Pentesting"
+      confidence: MEDIUM
+      false_positive_likelihood: MEDIUM

@@ -1,0 +1,423 @@
+rules:
+  # OWASP Mobile Top 10 - M4: Insufficient Input/Output Validation (iOS)
+  # Detects injection vulnerabilities and improper input validation in iOS apps
+
+  # ============ CORE DATA / SQL INJECTION ============
+
+  - id: owasp-m4-ios-nspredicate-format-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSPredicate(format: $FORMAT, ...)
+          - pattern: |
+              NSPredicate(format: "$STATIC" + $INPUT, ...)
+    message: |
+      NSPredicate format string injection (OWASP M4: Insufficient Input/Output Validation).
+      Similar to SQL injection - string concatenation in predicates is vulnerable.
+      Use parameterized predicates: NSPredicate(format: "name == %@", userInput)
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-ios-nspredicate-like-wildcard
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSPredicate(format: "$FIELD LIKE $VALUE")
+          - pattern: |
+              NSPredicate(format: "$FIELD CONTAINS $VALUE")
+          - pattern: |
+              NSPredicate(format: "$FIELD BEGINSWITH $VALUE")
+          - pattern: |
+              NSPredicate(format: "$FIELD ENDSWITH $VALUE")
+    message: |
+      NSPredicate using wildcard operators (OWASP M4: Insufficient Input/Output Validation).
+      LIKE, CONTAINS, BEGINSWITH, ENDSWITH allow wildcards enabling injection.
+      Use exact equality (==) with parameterized values instead.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  - id: owasp-m4-ios-sqlite-string-interpolation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              sqlite3_exec($DB, "SELECT * FROM users WHERE id = \($USER_ID)", ...)
+          - pattern: |
+              let query = "SELECT * FROM $TABLE WHERE $COLUMN = '\($VALUE)'"
+    message: |
+      SQLite query with string interpolation (OWASP M4: Insufficient Input/Output Validation).
+      String interpolation in SQL queries enables injection attacks.
+      Use prepared statements: sqlite3_prepare_v2 with sqlite3_bind_text.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ XML / XXE INJECTION ============
+
+  - id: owasp-m4-ios-xml-external-entity
+    patterns:
+      - pattern-either:
+          - pattern: |
+              XMLParser(data: $DATA)
+          - pattern: |
+              let parser = XMLParser(data: $DATA)
+      - pattern-not-inside: |
+          parser.shouldResolveExternalEntities = false
+    message: |
+      XML parser without external entity protection (OWASP M4: Insufficient Input/Output Validation).
+      Default XMLParser settings allow XXE attacks on iOS 9 and earlier.
+      Set shouldResolveExternalEntities = false to prevent XXE.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-611: XML External Entity Reference"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-ios-plist-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              PropertyListSerialization.propertyList(from: $DATA, ...)
+          - pattern: |
+              try PropertyListDecoder().decode($TYPE.self, from: $DATA)
+    message: |
+      Property list deserialization without validation (OWASP M4: Insufficient Input/Output Validation).
+      Plist injection can allow XML/XXE attacks (CVE-2025-iOS-Activation).
+      Validate plist structure and disable external entity resolution.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-611: XML External Entity Reference"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ PATH TRAVERSAL ============
+
+  - id: owasp-m4-ios-path-traversal
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FileManager.default.contents(atPath: $PATH)
+          - pattern: |
+              try String(contentsOfFile: $PATH)
+          - pattern: |
+              try Data(contentsOf: URL(fileURLWithPath: $PATH))
+      - pattern-not: |
+              FileManager.default.contents(atPath: "...")
+    message: |
+      Path traversal vulnerability (OWASP M4: Insufficient Input/Output Validation).
+      Reading files with user-controlled paths can access unauthorized directories.
+      Validate paths don't contain '../' and use path canonicalization.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  - id: owasp-m4-ios-file-write-traversal
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DATA.write(to: URL(fileURLWithPath: $PATH))
+          - pattern: |
+              try $DATA.write(to: URL(fileURLWithPath: $PATH))
+    message: |
+      File write with user-controlled path (OWASP M4: Insufficient Input/Output Validation).
+      Writing to user-controlled paths enables directory traversal.
+      Validate filename and use app-specific directories.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ JAVASCRIPT INJECTION (WEBVIEW) ============
+
+  - id: owasp-m4-ios-wkwebview-eval-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              webView.evaluateJavaScript($JS, ...)
+          - pattern: |
+              webView.evaluateJavaScript("\($SCRIPT)", ...)
+    message: |
+      JavaScript injection in WKWebView (OWASP M4: Insufficient Input/Output Validation).
+      Evaluating untrusted JavaScript can execute malicious code.
+      Sanitize JavaScript strings and avoid dynamic script construction.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-ios-wkuserscript-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              WKUserScript(source: $SCRIPT, injectionTime: ..., forMainFrameOnly: ...)
+          - pattern: |
+              WKUserScript(source: "\($CODE)", ...)
+    message: |
+      WKUserScript with dynamic content (OWASP M4: Insufficient Input/Output Validation).
+      Injecting user-controlled scripts can execute arbitrary JavaScript.
+      Use static scripts or properly escape/validate dynamic content.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-ios-wkwebview-load-html
+    patterns:
+      - pattern-either:
+          - pattern: |
+              webView.loadHTMLString($HTML, baseURL: ...)
+          - pattern: |
+              webView.loadHTMLString("\($HTML)", ...)
+    message: |
+      WKWebView loading untrusted HTML (OWASP M4: Insufficient Input/Output Validation).
+      Loading user-controlled HTML can execute malicious JavaScript (XSS).
+      Sanitize HTML and implement Content Security Policy.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-Site Scripting"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ URL / DEEP LINK INJECTION ============
+
+  - id: owasp-m4-ios-url-scheme-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func application(_ app: UIApplication, open url: URL, ...) -> Bool {
+                ...
+              }
+          - pattern: |
+              func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+                ...
+              }
+      - pattern-not-inside: |
+          if url.scheme == "$SCHEME" && url.host == "$HOST" {
+            ...
+          }
+    message: |
+      URL scheme handler without validation (OWASP M4: Insufficient Input/Output Validation).
+      Unvalidated deep links enable URL injection, phishing, and intent redirection.
+      Validate scheme, host, and parameters before processing.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-ios-universal-link-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func application(_ application: UIApplication, continue userActivity: NSUserActivity, ...) -> Bool {
+                ...
+                let url = userActivity.webpageURL
+                ...
+              }
+      - pattern-not-inside: |
+          if url?.host == "yourdomain.com" {
+            ...
+          }
+    message: |
+      Universal Link without host validation (OWASP M4: Insufficient Input/Output Validation).
+      Unvalidated Universal Links can navigate to malicious sites.
+      Validate URL host and path before processing.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ COMMAND INJECTION ============
+
+  - id: owasp-m4-ios-shell-command-execution
+    patterns:
+      - pattern-either:
+          - pattern: |
+              system($CMD)
+          - pattern: |
+              popen($CMD, "r")
+    message: |
+      Shell command execution (OWASP M4: Insufficient Input/Output Validation).
+      Executing shell commands with user input allows command injection.
+      Avoid system() and popen() with user-controlled input.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ DESERIALIZATION ============
+
+  - id: owasp-m4-ios-unsafe-unarchiving
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSKeyedUnarchiver.unarchiveObject(with: $DATA)
+          - pattern: |
+              try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData($DATA)
+      - pattern-not: |
+              try NSKeyedUnarchiver.unarchivedObject(ofClasses: ..., from: $DATA)
+    message: |
+      Unsafe object deserialization (OWASP M4: Insufficient Input/Output Validation).
+      unarchiveObject(with:) is deprecated and vulnerable to arbitrary object instantiation.
+      Use unarchivedObject(ofClasses:from:) with explicit class allowlist.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-ios-json-decoder-no-validation
+    patterns:
+      - pattern: |
+          try JSONDecoder().decode($TYPE.self, from: $DATA)
+      - pattern-not-inside: |
+          do {
+            let $OBJ = try JSONDecoder().decode($TYPE.self, from: $DATA)
+            if $VALIDATION {
+              ...
+            }
+          }
+    message: |
+      JSON deserialization without validation (OWASP M4: Insufficient Input/Output Validation).
+      Deserializing untrusted JSON without validation can lead to data corruption.
+      Validate decoded objects against expected schema and ranges.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: LOW
+
+  # ============ FORMAT STRING ============
+
+  - id: owasp-m4-ios-format-string-vulnerability
+    patterns:
+      - pattern-either:
+          - pattern: |
+              String(format: $FORMAT, ...)
+          - pattern: |
+              NSString(format: $FORMAT, ...)
+      - pattern-not: |
+              String(format: "...", ...)
+    message: |
+      Format string with user input (OWASP M4: Insufficient Input/Output Validation).
+      Using user input as format string can leak information or crash app.
+      Use hardcoded format strings with user input as arguments.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-134: Format String Vulnerability"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ REGEX INJECTION / ReDoS ============
+
+  - id: owasp-m4-ios-regex-dos
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSRegularExpression(pattern: $PATTERN, ...)
+          - pattern: |
+              try NSRegularExpression(pattern: $PATTERN, options: ...)
+      - pattern-not: |
+              NSRegularExpression(pattern: "...", ...)
+    message: |
+      Regular Expression Denial of Service (ReDoS) risk (OWASP M4: Insufficient Input/Output Validation).
+      User-controlled regex patterns can cause catastrophic backtracking.
+      Use pre-defined patterns or limit regex complexity.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-1333: Inefficient Regular Expression Complexity"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ CUSTOM SCHEME PARAMETER INJECTION ============
+
+  - id: owasp-m4-ios-url-components-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URLComponents(url: $URL, resolvingAgainstBaseURL: true)
+          - pattern: |
+              let components = URLComponents(string: $URL_STRING)
+              let $PARAM = components?.queryItems?.first(where: { $0.name == $NAME })?.value
+    message: |
+      URL parameters extracted without validation (OWASP M4: Insufficient Input/Output Validation).
+      URL parameters can contain malicious payloads (XSS, SQLi, path traversal).
+      Validate and sanitize all URL parameter values.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-20: Improper Input Validation"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM

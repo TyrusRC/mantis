@@ -1,0 +1,410 @@
+rules:
+  # MASTG Test Cases - Storage & Cryptography (Android)
+  # Additional MASTG test coverage for complete MASVS compliance
+
+  # ============ MASTG-TEST-0003: TESTING LOGS FOR SENSITIVE DATA ============
+
+  - id: mastg-test-0003-log-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Log.$METHOD($TAG, $DATA)
+          - pattern: |
+              android.util.Log.$METHOD($TAG, $DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|pin|auth|credit.*card|ssn|api.*key|bearer|session).*
+    message: |
+      Sensitive data in logs (MASTG-TEST-0003).
+      Logs can be read by any app with READ_LOGS permission and persist in logcat.
+      Remove logging of sensitive data from production builds using ProGuard or BuildConfig.DEBUG checks.
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0003/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0003"
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+
+  - id: mastg-test-0003-system-out-println
+    patterns:
+      - pattern-either:
+          - pattern: |
+              System.out.println($DATA)
+          - pattern: |
+              System.err.println($DATA)
+          - pattern: |
+              e.printStackTrace()
+    message: |
+      Debug output in production code (MASTG-TEST-0003).
+      System.out/err and stack traces are logged to logcat and can expose sensitive information.
+      Remove debug statements and use proper error handling in production.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0003"
+      cwe: "CWE-489: Active Debug Code"
+      masvs: "MASVS-STORAGE-2"
+      confidence: MEDIUM
+
+  # ============ MASTG-TEST-0009: TESTING BACKUPS FOR SENSITIVE DATA ============
+
+  - id: mastg-test-0009-backup-enabled
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:allowBackup="true"
+            ...
+          />
+    message: |
+      Android backup enabled (MASTG-TEST-0009).
+      allowBackup="true" allows ADB backup which can extract app data including SharedPreferences.
+      Set android:allowBackup="false" or use android:fullBackupContent to exclude sensitive data.
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0009/
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0009"
+      cwe: "CWE-530: Exposure of Backup File to an Unauthorized Control Sphere"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+
+  - id: mastg-test-0009-auto-backup-no-exclusions
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:allowBackup="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <application
+            ...
+            android:fullBackupContent="@xml/backup_rules"
+            ...
+          />
+    message: |
+      Auto-backup without exclusion rules (MASTG-TEST-0009).
+      All app data will be backed up by default.
+      Define android:fullBackupContent with exclusion rules for sensitive files.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0009"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+
+  # ============ MASTG-TEST-0011: TESTING MEMORY FOR SENSITIVE DATA ============
+
+  - id: mastg-test-0011-string-password-in-memory
+    patterns:
+      - pattern-either:
+          - pattern: |
+              val $VAR: String = $PASSWORD
+          - pattern: |
+              String $VAR = $PASSWORD;
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i).*(password|pin|secret|key).*
+    message: |
+      Sensitive data stored as String (MASTG-TEST-0011).
+      Strings are immutable in Java/Kotlin and remain in memory until garbage collected.
+      Use char[] or ByteArray for passwords and clear them immediately after use.
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0011/
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0011"
+      cwe: "CWE-316: Cleartext Storage of Sensitive Information in Memory"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+
+  - id: mastg-test-0011-password-not-cleared
+    patterns:
+      - pattern-either:
+          - pattern: |
+              val $PASSWORD = $EDIT_TEXT.text.toString()
+          - pattern: |
+              String $PASSWORD = $EDIT_TEXT.getText().toString();
+      - pattern-not-inside: |
+          $PASSWORD_ARRAY.fill(0.toChar())
+      - pattern-not-inside: |
+          Arrays.fill($PASSWORD_ARRAY, ' ')
+    message: |
+      Password not cleared from memory (MASTG-TEST-0011).
+      Passwords should be stored in char[] and cleared after use.
+      Use EditText.text for temporary access and clear arrays with fill(0).
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0011"
+      cwe: "CWE-316: Cleartext Storage of Sensitive Information in Memory"
+      masvs: "MASVS-STORAGE-2"
+      confidence: MEDIUM
+
+  - id: mastg-test-0011-clipboard-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+              clipboard.setPrimaryClip(ClipData.newPlainText($LABEL, $DATA))
+          - pattern: |
+              ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+              clipboard.setPrimaryClip(ClipData.newPlainText($LABEL, $DATA));
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|pin|auth|credit.*card|ssn).*
+    message: |
+      Sensitive data in clipboard (MASTG-TEST-0011).
+      Clipboard data remains in memory and is accessible to other apps.
+      Avoid copying sensitive data or use setSensitiveContent(true) (Android 13+).
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0011"
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      masvs: "MASVS-STORAGE-2"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: HIGH
+
+  # ============ MASTG-TEST-0016: TESTING RANDOM NUMBER GENERATION ============
+
+  - id: mastg-test-0016-insecure-random
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Random()
+          - pattern: |
+              java.util.Random()
+          - pattern: |
+              Math.random()
+          - pattern: |
+              kotlin.random.Random
+    message: |
+      Insecure random number generation (MASTG-TEST-0016).
+      java.util.Random and Math.random() are not cryptographically secure.
+      Use SecureRandom for security-sensitive operations (tokens, IVs, keys, nonces).
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-CRYPTO/MASTG-TEST-0016/
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0016"
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  - id: mastg-test-0016-securerandom-default-seed
+    patterns:
+      - pattern: |
+          val random = SecureRandom()
+          random.setSeed($SEED)
+    message: |
+      SecureRandom with manual seed (MASTG-TEST-0016).
+      Setting a seed on SecureRandom makes it deterministic and predictable.
+      Allow SecureRandom to self-seed using system entropy sources.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0016"
+      cwe: "CWE-337: Predictable Seed in Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  - id: mastg-test-0016-system-currenttimemillis-seed
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Random(System.currentTimeMillis())
+          - pattern: |
+              SecureRandom.getInstance($ALGO).setSeed(System.currentTimeMillis())
+    message: |
+      Predictable random seed using System.currentTimeMillis() (MASTG-TEST-0016).
+      Time-based seeds are predictable and can be brute-forced.
+      Use SecureRandom without manual seeding for cryptographic operations.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0016"
+      cwe: "CWE-337: Predictable Seed in Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+
+  # ============ MASTG-TEST-0017: TESTING CONFIRM CREDENTIALS ============
+
+  - id: mastg-test-0017-missing-biometric-fallback
+    patterns:
+      - pattern: |
+          val biometricPrompt = BiometricPrompt(...)
+          biometricPrompt.authenticate($PROMPT_INFO)
+      - pattern-not-inside: |
+          BiometricPrompt.PromptInfo.Builder()
+            ...
+            .setDeviceCredentialAllowed(true)
+            ...
+    message: |
+      Biometric authentication without device credential fallback (MASTG-TEST-0017).
+      Users without enrolled biometrics cannot authenticate.
+      Use setDeviceCredentialAllowed(true) or setNegativeButtonText() for PIN/password fallback.
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-AUTH/MASTG-TEST-0017/
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0017"
+      masvs: "MASVS-AUTH-2"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: mastg-test-0017-keyguard-manager-legacy
+    patterns:
+      - pattern-either:
+          - pattern: |
+              val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+              keyguardManager.createConfirmDeviceCredentialIntent($TITLE, $DESC)
+          - pattern: |
+              KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+              keyguardManager.createConfirmDeviceCredentialIntent($TITLE, $DESC);
+    message: |
+      Legacy KeyguardManager credential confirmation (MASTG-TEST-0017).
+      createConfirmDeviceCredentialIntent() is deprecated.
+      Use BiometricPrompt with setDeviceCredentialAllowed(true) for modern authentication.
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0017"
+      masvs: "MASVS-AUTH-2"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW
+
+  # ============ MASTG-TEST-0022: TESTING CERTIFICATE PINNING ============
+
+  - id: mastg-test-0022-missing-certificate-pinning
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <network-security-config>
+                ...
+              </network-security-config>
+      - pattern-not-inside: |
+          <pin-set>
+            ...
+          </pin-set>
+    message: |
+      Missing certificate pinning (MASTG-TEST-0022).
+      Certificate pinning prevents man-in-the-middle attacks using rogue certificates.
+      Add <pin-set> with SHA-256 certificate/public key pins in network_security_config.xml.
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-NETWORK/MASTG-TEST-0022/
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0022"
+      cwe: "CWE-295: Improper Certificate Validation"
+      masvs: "MASVS-NETWORK-1"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: MEDIUM
+
+  - id: mastg-test-0022-certificate-pinner-okhttp
+    patterns:
+      - pattern: |
+          OkHttpClient.Builder()
+            ...
+      - pattern-not-inside: |
+          .certificatePinner(...)
+    message: |
+      OkHttp client without certificate pinning (MASTG-TEST-0022).
+      Use CertificatePinner.Builder() to pin certificates for your domains.
+      Example: .certificatePinner(CertificatePinner.Builder().add("domain.com", "sha256/...").build())
+    severity: INFO
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0022"
+      masvs: "MASVS-NETWORK-1"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: LOW
+
+  - id: mastg-test-0022-trustmanager-accepts-all
+    patterns:
+      - pattern-either:
+          - pattern: |
+              object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+              }
+          - pattern: |
+              new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+              }
+    message: |
+      Custom TrustManager that accepts all certificates (MASTG-TEST-0022).
+      Empty check methods disable certificate validation entirely.
+      Implement proper certificate pinning or use default TrustManager.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0022"
+      cwe: "CWE-295: Improper Certificate Validation"
+      masvs: "MASVS-NETWORK-1"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: HIGH

@@ -1,0 +1,355 @@
+rules:
+  # OWASP Mobile Top 10 - M2: Inadequate Supply Chain Security
+  # Detects insecure dependencies, outdated libraries, and supply chain risks
+
+  # ============ INSECURE DEPENDENCIES ============
+
+  - id: owasp-m2-http-dependency-url
+    patterns:
+      - pattern-either:
+          # Gradle dependencies
+          - pattern: |
+              maven {
+                url "http://..."
+              }
+          - pattern: |
+              maven { url "http://..." }
+          # npm/yarn
+          - pattern: |
+              "repository": "http://..."
+          # CocoaPods
+          - pattern: |
+              source 'http://...'
+    message: |
+      Insecure HTTP URL for dependency repository (OWASP M2: Inadequate Supply Chain Security).
+      Using HTTP for package repositories allows man-in-the-middle attacks to inject
+      malicious code. Always use HTTPS for dependency sources.
+    severity: ERROR
+    languages:
+      - gradle
+      - json
+      - ruby
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: owasp-m2-insecure-gradle-plugin
+    patterns:
+      - pattern-either:
+          - pattern: |
+              buildscript {
+                ...
+                repositories {
+                  ...
+                  maven { url 'http://...' }
+                  ...
+                }
+                ...
+              }
+          - pattern: |
+              pluginManagement {
+                repositories {
+                  ...
+                  maven { url "http://..." }
+                  ...
+                }
+              }
+    message: |
+      Insecure HTTP repository in Gradle configuration (OWASP M2: Inadequate Supply Chain Security).
+      Build plugins loaded over HTTP can be tampered with during download.
+      Use HTTPS for all plugin repositories.
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: owasp-m2-deprecated-library-okhttp2
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.squareup.okhttp:okhttp:2.$VERSION'
+          - pattern: |
+              compile 'com.squareup.okhttp:okhttp:2.$VERSION'
+    message: |
+      Deprecated OkHttp 2.x library detected (OWASP M2: Inadequate Supply Chain Security).
+      OkHttp 2.x is deprecated and no longer receives security updates.
+      Migrate to OkHttp 4.x or newer.
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: owasp-m2-vulnerable-apache-commons
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'commons-collections:commons-collections:3.$VERSION'
+          - pattern: |
+              compile 'commons-collections:commons-collections:3.$VERSION'
+    message: |
+      Apache Commons Collections 3.x with known vulnerabilities (OWASP M2: Inadequate Supply Chain Security).
+      Commons Collections 3.x has deserialization vulnerabilities (CVE-2015-6420).
+      Upgrade to version 4.x or use safer alternatives.
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ CODE SIGNING & INTEGRITY ============
+
+  - id: owasp-m2-disabled-signature-verification
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $MANAGER.setInstallerPackageName($PKG, null)
+          - pattern: |
+              PackageManager.INSTALL_ALLOW_TEST
+          - pattern: |
+              pm.setInstallerPackageName($PKG, null)
+    message: |
+      Package signature verification disabled (OWASP M2: Inadequate Supply Chain Security).
+      Disabling signature verification allows installation of tampered packages.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: owasp-m2-allow-arbitrary-loads-ios
+    patterns:
+      - pattern: |
+          <key>NSAllowsArbitraryLoadsInWebContent</key>
+          <true/>
+    message: |
+      Arbitrary loads allowed in web content (OWASP M2: Inadequate Supply Chain Security).
+      Allowing arbitrary loads can enable loading of malicious content.
+      Restrict to specific domains with NSExceptionDomains.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ DYNAMIC CODE LOADING ============
+
+  - id: owasp-m2-dexclassloader-usage
+    patterns:
+      - pattern-either:
+          - pattern: new DexClassLoader(...)
+          - pattern: new PathClassLoader(...)
+          - pattern: DexClassLoader $VAR = new DexClassLoader(...)
+    message: |
+      Dynamic code loading via DexClassLoader (OWASP M2: Inadequate Supply Chain Security).
+      Loading DEX files at runtime can introduce malicious code.
+      Ensure loaded code is from trusted sources and verify integrity.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: owasp-m2-runtime-exec
+    patterns:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec($CMD)
+          - pattern: ProcessBuilder($CMD).start()
+    message: |
+      Runtime command execution detected (OWASP M2: Inadequate Supply Chain Security).
+      Executing system commands can be exploited if input is not validated.
+      Avoid Runtime.exec() and validate all inputs thoroughly.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: owasp-m2-load-library-unsafe
+    patterns:
+      - pattern-either:
+          - pattern: System.load($PATH)
+          - pattern: System.loadLibrary($NAME)
+      - pattern-not: System.loadLibrary("...")
+    message: |
+      Native library loading with variable path (OWASP M2: Inadequate Supply Chain Security).
+      Loading native libraries from user-controlled paths can load malicious code.
+      Use hardcoded library names with System.loadLibrary().
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ NPM/YARN SUPPLY CHAIN ============
+
+  - id: owasp-m2-npm-install-unsafe
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "scripts": {
+                ...,
+                "postinstall": "$CMD",
+                ...
+              }
+    message: |
+      Postinstall script in package.json (OWASP M2: Inadequate Supply Chain Security).
+      Postinstall scripts execute arbitrary code during npm install.
+      Review script for malicious commands or use --ignore-scripts flag.
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: owasp-m2-yarn-integrity-disabled
+    patterns:
+      - pattern: |
+          --ignore-scripts
+    message: |
+      Yarn/NPM scripts ignored during installation (OWASP M2: Inadequate Supply Chain Security).
+      While --ignore-scripts prevents malicious scripts, it may break legitimate
+      dependencies. Use with caution and review package scripts.
+    severity: INFO
+    languages:
+      - bash
+      - sh
+    metadata:
+      category: security
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  # ============ COCOAPODS SUPPLY CHAIN ============
+
+  - id: owasp-m2-cocoapods-insecure-source
+    patterns:
+      - pattern: |
+          source 'http://...'
+    message: |
+      Insecure HTTP source in Podfile (OWASP M2: Inadequate Supply Chain Security).
+      CocoaPods sources over HTTP can be tampered with during download.
+      Use HTTPS sources only.
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: owasp-m2-cocoapods-no-integrity-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod '$NAME', :git => 'http://...'
+          - pattern: |
+              pod '$NAME', :git => '$URL'
+      - pattern-not: |
+          pod '$NAME', :git => '$URL', :tag => '$TAG'
+      - pattern-not: |
+          pod '$NAME', :git => '$URL', :commit => '$COMMIT'
+    message: |
+      CocoaPod installed without integrity check (OWASP M2: Inadequate Supply Chain Security).
+      Pods from Git without tag/commit pins can change unexpectedly.
+      Pin to specific tags or commits for reproducible builds.
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ THIRD-PARTY SDK RISKS ============
+
+  - id: owasp-m2-webview-remote-js
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $WEBVIEW.loadUrl("javascript:$CODE")
+          - pattern: |
+              $WEBVIEW.evaluateJavascript($CODE, ...)
+      - metavariable-regex:
+          metavariable: $CODE
+          regex: .*https?://.*
+    message: |
+      WebView loading remote JavaScript (OWASP M2: Inadequate Supply Chain Security).
+      Loading JavaScript from remote URLs can execute untrusted code.
+      Bundle JavaScript locally or validate source integrity.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: owasp-m2-untrusted-plugin
+    patterns:
+      - pattern-either:
+          - pattern: |
+              apply plugin: '$PLUGIN'
+      - metavariable-regex:
+          metavariable: $PLUGIN
+          regex: ^(?!com\.android\.|kotlin\.|java\.).*
+    message: |
+      Third-party Gradle plugin applied (OWASP M2: Inadequate Supply Chain Security).
+      Third-party plugins execute during build and can access sensitive data.
+      Audit plugin source code and use from trusted sources only.
+    severity: INFO
+    languages:
+      - gradle
+    metadata:
+      category: security
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW

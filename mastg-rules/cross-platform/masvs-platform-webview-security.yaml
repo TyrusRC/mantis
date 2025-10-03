@@ -1,0 +1,270 @@
+rules:
+  # MASVS-PLATFORM: WebView Security Issues
+  # Based on MASTG Platform Interaction tests
+  # Detects insecure WebView configurations across platforms
+
+  # ============ ANDROID WEBVIEW RULES ============
+
+  - id: mastg-android-webview-javascript-enabled
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.getSettings().setJavaScriptEnabled(true)
+          - pattern: $SETTINGS.setJavaScriptEnabled(true)
+    message: |
+      JavaScript enabled in WebView (MASVS-PLATFORM).
+      Enabling JavaScript in WebView can expose the app to XSS and code injection
+      if displaying untrusted content. Only enable for trusted content and use
+      Content Security Policy (CSP).
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: MEDIUM
+
+  - id: mastg-android-webview-javascript-interface
+    patterns:
+      - pattern: $WEBVIEW.addJavascriptInterface($OBJ, $NAME)
+    message: |
+      JavaScript interface added to WebView (MASVS-PLATFORM).
+      addJavascriptInterface() exposes Java objects to JavaScript, creating
+      potential for remote code execution. Ensure proper input validation
+      and use @JavascriptInterface annotation (API 17+).
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-749: Exposed Dangerous Method or Function"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
+
+  - id: mastg-android-webview-file-access
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.getSettings().setAllowFileAccess(true)
+          - pattern: $SETTINGS.setAllowFileAccess(true)
+    message: |
+      File access enabled in WebView (MASVS-PLATFORM).
+      Allowing file access can expose local files to web content.
+      Disable unless absolutely necessary and validate all file URLs.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-552: Files or Directories Accessible to External Parties"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
+
+  - id: mastg-android-webview-universal-access
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.getSettings().setAllowUniversalAccessFromFileURLs(true)
+          - pattern: $SETTINGS.setAllowUniversalAccessFromFileURLs(true)
+    message: |
+      Universal access from file URLs enabled (MASVS-PLATFORM).
+      This allows file:// URLs to access content from any origin, enabling
+      cross-site scripting attacks. Keep this disabled.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-942: Permissive Cross-domain Policy with Untrusted Domains"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
+
+  - id: mastg-android-webview-content-access
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.getSettings().setAllowContentAccess(true)
+          - pattern: $SETTINGS.setAllowContentAccess(true)
+    message: |
+      Content provider access enabled in WebView (MASVS-PLATFORM).
+      Allowing content:// URL access can expose app data to web content.
+      Disable unless required and validate all content URLs.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: MEDIUM
+
+  - id: mastg-android-webview-safe-browsing-disabled
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.getSettings().setSafeBrowsingEnabled(false)
+          - pattern: $SETTINGS.setSafeBrowsingEnabled(false)
+    message: |
+      Safe Browsing disabled in WebView (MASVS-PLATFORM).
+      Safe Browsing protects users from malicious websites.
+      Keep it enabled unless there's a strong reason to disable.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: MEDIUM
+
+  # ============ iOS WEBVIEW RULES ============
+
+  - id: mastg-ios-wkwebview-javascript-disabled
+    patterns:
+      - pattern: |
+          let $CONFIG = WKWebViewConfiguration()
+          ...
+          $CONFIG.preferences.javaScriptEnabled = false
+    message: |
+      JavaScript disabled in WKWebView (MASVS-PLATFORM).
+      While disabling JavaScript can improve security, it may break functionality.
+      Consider using Content Security Policy (CSP) instead for better control.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      masvs: "MASVS-PLATFORM-2"
+      confidence: LOW
+
+  - id: mastg-ios-wkwebview-user-script
+    patterns:
+      - pattern: |
+          $CONTROLLER.addUserScript($SCRIPT)
+    message: |
+      User script injected into WKWebView (MASVS-PLATFORM).
+      Injecting user scripts can introduce security risks if not properly validated.
+      Ensure scripts are trusted and properly sanitized.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: MEDIUM
+
+  - id: mastg-ios-wkwebview-message-handler
+    patterns:
+      - pattern: |
+          $CONTROLLER.add($HANDLER, name: $NAME)
+    message: |
+      JavaScript message handler added to WKWebView (MASVS-PLATFORM).
+      Message handlers create bridges between JavaScript and native code.
+      Implement strict input validation to prevent injection attacks.
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-749: Exposed Dangerous Method or Function"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: MEDIUM
+
+  - id: mastg-ios-uiwebview-deprecated
+    patterns:
+      - pattern-either:
+          - pattern: UIWebView()
+          - pattern: let $VAR = UIWebView(...)
+          - pattern: var $VAR = UIWebView(...)
+    message: |
+      Deprecated UIWebView usage detected (MASVS-PLATFORM).
+      UIWebView is deprecated and has known security issues.
+      Migrate to WKWebView which provides better security and performance.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-477: Use of Obsolete Function"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
+
+  - id: mastg-ios-webview-allows-inline-media
+    patterns:
+      - pattern: |
+          $CONFIG.allowsInlineMediaPlayback = true
+    message: |
+      Inline media playback allowed in WebView (MASVS-PLATFORM).
+      While not directly a security issue, inline media can be used
+      for phishing or social engineering attacks.
+    severity: INFO
+    languages:
+      - swift
+    metadata:
+      category: security
+      masvs: "MASVS-PLATFORM-2"
+      confidence: LOW
+
+  # ============ REACT NATIVE WEBVIEW RULES ============
+
+  - id: mastg-react-native-webview-inject-javascript
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <WebView
+                ...
+                injectedJavaScript={$SCRIPT}
+                ...
+              />
+          - pattern: |
+              webViewRef.injectJavaScript($SCRIPT)
+    message: |
+      JavaScript injection in React Native WebView (MASVS-PLATFORM).
+      Injecting JavaScript can introduce XSS vulnerabilities if the script
+      contains user input. Ensure all injected code is properly sanitized.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp-mobile: "M1: Improper Platform Usage"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: MEDIUM
+
+  - id: mastg-react-native-webview-allow-file-access
+    patterns:
+      - pattern: |
+          <WebView
+            ...
+            allowFileAccess={true}
+            ...
+          />
+    message: |
+      File access enabled in React Native WebView (MASVS-PLATFORM).
+      Allowing file access can expose local files to web content.
+      Disable unless absolutely necessary.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-552: Files or Directories Accessible to External Parties"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
