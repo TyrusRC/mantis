@@ -1,0 +1,324 @@
+rules:
+  # MASVS-STORAGE: Insecure NSUserDefaults Usage (iOS) - IMPROVED with FP reduction
+  # Based on MASTG-TEST-0052: Testing Local Data Storage
+  # Detects sensitive data stored in NSUserDefaults without encryption
+  #
+  # IMPROVEMENTS:
+  # - Excludes UI state flags (hasSeenTutorial, shouldShow, etc.)
+  # - Excludes boolean values (typically flags, not credentials)
+  # - Excludes test code (XCTest, Quick/Nimble)
+  # - Excludes SwiftUI previews
+  # - Excludes mock/stub implementations
+  # - Excludes configuration key names (not actual values)
+
+  - id: mastg-ios-nsuserdefaults-sensitive-data-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSUserDefaults.standard.set($VALUE, forKey: $KEY)
+          - pattern: |
+              UserDefaults.standard.set($VALUE, forKey: $KEY)
+          - pattern: |
+              $DEFAULTS.set($VALUE, forKey: $KEY)
+          - pattern: |
+              [$DEFAULTS setObject:$VALUE forKey:$KEY]
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|api[_-]?key|auth|credential|session|pin|private[_-]?key).*
+      # EXCLUDE UI state flags (not actual sensitive data)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: ^(?i)(?!.*(has_seen|has_completed|should_show|should_hide|enable|disable|is_enabled|is_disabled|did_complete|did_show|show_|hide_|seen_)).*
+      # EXCLUDE boolean values (usually just flags, not credentials)
+      - pattern-not: |
+          UserDefaults.standard.set(true, forKey: $KEY)
+      - pattern-not: |
+          UserDefaults.standard.set(false, forKey: $KEY)
+      - pattern-not: |
+          NSUserDefaults.standard.set(true, forKey: $KEY)
+      - pattern-not: |
+          NSUserDefaults.standard.set(false, forKey: $KEY)
+      # EXCLUDE test code
+      - pattern-not-inside: |
+          func test$ANYTHING(...) { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: XCTestCase { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: QuickSpec { ... }
+      # EXCLUDE SwiftUI previews
+      - pattern-not-inside: |
+          struct $NAME_Previews: PreviewProvider {
+            static var previews: some View {
+              ...
+            }
+          }
+      - pattern-not-inside: |
+          static var previews: some View { ... }
+      # EXCLUDE mock/stub implementations
+      - pattern-not-inside: |
+          class Mock$CLASS { ... }
+      - pattern-not-inside: |
+          class Stub$CLASS { ... }
+      - pattern-not-inside: |
+          class Fake$CLASS { ... }
+      # EXCLUDE configuration key name enums (not values)
+      - pattern-not-inside: |
+          enum $NAME {
+            static let $KEY = "..."
+            ...
+          }
+      - pattern-not-inside: |
+          struct $NAME {
+            static let $KEY = "..."
+            ...
+          }
+    message: |
+      Sensitive data stored in NSUserDefaults/UserDefaults (MASVS-STORAGE).
+
+      NSUserDefaults stores data in plaintext plist files that are:
+      - Readable by anyone with device access
+      - Included in iTunes/iCloud backups
+      - Not encrypted at rest
+
+      FALSE POSITIVE NOTES:
+      - UI state flags (hasSeenPasswordTutorial, enableAuthFeature) are excluded
+      - Boolean values are excluded (typically feature flags, not credentials)
+      - Test code, previews, and mock implementations are excluded
+
+      SECURE STORAGE:
+      Use iOS Keychain for sensitive data:
+
+      Swift:
+        let query: [String: Any] = [
+          kSecClass as String: kSecClassGenericPassword,
+          kSecAttrAccount as String: "userToken",
+          kSecValueData as String: tokenData,
+          kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        SecItemAdd(query as CFDictionary, nil)
+
+      Only use UserDefaults for non-sensitive settings and preferences.
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile: "M2: Inadequate Supply Chain Security"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+      false_positive_reduction: "Excludes UI flags, booleans, test code, previews"
+
+  - id: mastg-ios-nsuserdefaults-sensitive-data-objc-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              [[NSUserDefaults standardUserDefaults] setObject:$VALUE forKey:$KEY]
+          - pattern: |
+              [$DEFAULTS setObject:$VALUE forKey:$KEY]
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|api[_-]?key|auth|credential|session|pin|private[_-]?key).*
+      # EXCLUDE UI state flags
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: ^(?i)(?!.*(has_seen|has_completed|should_show|enable|is_enabled|did_complete)).*
+      # EXCLUDE test code
+      - pattern-not-inside: |
+          - (void)test$ANYTHING { ... }
+      - pattern-not-inside: |
+          @interface $CLASSTests : XCTestCase
+          ...
+          @end
+      # EXCLUDE boolean values
+      - pattern-not: |
+          [[NSUserDefaults standardUserDefaults] setObject:@YES forKey:$KEY]
+      - pattern-not: |
+          [[NSUserDefaults standardUserDefaults] setObject:@NO forKey:$KEY]
+    message: |
+      Sensitive data stored in NSUserDefaults (MASVS-STORAGE).
+
+      NSUserDefaults stores data in plaintext plist files. Use iOS Keychain
+      for sensitive data like passwords, tokens, or API keys.
+
+      FALSE POSITIVE NOTES:
+      - UI state flags and boolean values are excluded
+      - Test code is excluded
+
+      SECURE STORAGE (Objective-C):
+        NSDictionary *query = @{
+          (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+          (__bridge id)kSecAttrAccount: @"userToken",
+          (__bridge id)kSecValueData: tokenData,
+          (__bridge id)kSecAttrAccessible: (__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        };
+        SecItemAdd((__bridge CFDictionaryRef)query, NULL);
+    severity: ERROR
+    languages:
+      - c  # Objective-C uses C language parser
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+      false_positive_reduction: "Excludes UI flags, booleans, test code"
+
+  - id: mastg-ios-keychain-missing-access-control
+    patterns:
+      - pattern-either:
+          - pattern: |
+              var $QUERY: [String: Any] = [
+                kSecClass as String: ...,
+                ...
+              ]
+          - pattern: |
+              let $QUERY: [String: Any] = [
+                kSecClass as String: ...,
+                ...
+              ]
+      - pattern-not-inside: |
+          var $QUERY: [String: Any] = [
+            ...,
+            kSecAttrAccessible as String: ...,
+            ...
+          ]
+      - pattern-not-inside: |
+          let $QUERY: [String: Any] = [
+            ...,
+            kSecAttrAccessible as String: ...,
+            ...
+          ]
+      # EXCLUDE test code
+      - pattern-not-inside: |
+          func test$ANYTHING(...) { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: XCTestCase { ... }
+    message: |
+      Keychain item without access control attribute (MASVS-STORAGE).
+      Always specify kSecAttrAccessible to control when keychain items can be accessed.
+      Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly for sensitive data.
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-2"
+      confidence: MEDIUM
+
+  - id: mastg-ios-coredata-unencrypted-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              NSPersistentStoreCoordinator(managedObjectModel: $MODEL)
+          - pattern: |
+              let $STORE = NSPersistentStoreCoordinator(...)
+      - pattern-not-inside: |
+          $OPTIONS[NSPersistentStoreFileProtectionKey] = ...
+      # EXCLUDE in-memory stores (no disk persistence)
+      - pattern-not-inside: |
+          $DESC.type = NSInMemoryStoreType
+      - pattern-not-inside: |
+          $DESCRIPTION.type = NSInMemoryStoreType
+      # EXCLUDE test code
+      - pattern-not-inside: |
+          class Test$CLASS { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: XCTestCase { ... }
+      - pattern-not-inside: |
+          func test$ANYTHING(...) { ... }
+    message: |
+      Core Data persistent store without encryption (MASVS-STORAGE).
+
+      Core Data does not encrypt data by default. Enable file protection
+      using NSPersistentStoreFileProtectionKey or use encrypted attributes.
+
+      IMPORTANT: Only required for sensitive data:
+      - User credentials
+      - Personal identifiable information (PII)
+      - Financial data
+      - Health records
+
+      NOT required for:
+      - App cache/temporary data
+      - UI state
+      - Public data
+      - In-memory stores
+
+      SECURE IMPLEMENTATION:
+        let storeDescription = NSPersistentStoreDescription()
+        storeDescription.setOption(
+          FileProtectionType.complete as NSObject,
+          forKey: NSPersistentStoreFileProtectionKey
+        )
+        container.persistentStoreDescriptions = [storeDescription]
+    severity: WARNING
+    languages:
+      - swift
+      - c  # Objective-C uses C language parser
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: MEDIUM
+      false_positive_reduction: "Excludes in-memory stores and test code"
+
+  - id: mastg-ios-file-write-without-protection-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DATA.write(to: $URL)
+          - pattern: |
+              try $DATA.write(to: $URL)
+          - pattern: |
+              FileManager.default.createFile(atPath: $PATH, contents: $DATA)
+      - pattern-not: |
+          $DATA.write(to: $URL, options: .completeFileProtection)
+      - pattern-not: |
+          $DATA.write(to: $URL, options: .completeFileProtectionUnlessOpen)
+      # EXCLUDE cache directory writes (less sensitive)
+      - pattern-not-inside: |
+          FileManager.default.urls(for: .cachesDirectory, ...)
+          ...
+      # EXCLUDE temporary files
+      - pattern-not-inside: |
+          FileManager.default.temporaryDirectory
+          ...
+      # EXCLUDE test code
+      - pattern-not-inside: |
+          func test$ANYTHING(...) { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: XCTestCase { ... }
+      # EXCLUDE SwiftUI previews
+      - pattern-not-inside: |
+          struct $NAME_Previews: PreviewProvider { ... }
+    message: |
+      File written without data protection (MASVS-STORAGE).
+
+      Files written without protection class can be accessed when device is locked.
+
+      Severity depends on data sensitivity:
+      - Sensitive data (credentials, PII): ERROR - use .completeFileProtection
+      - User documents: WARNING - use .completeFileProtectionUnlessOpen
+      - Cache data: INFO - protection optional
+      - Temporary data: INFO - protection optional
+
+      SECURE IMPLEMENTATION:
+        try data.write(to: url, options: .completeFileProtection)
+
+      For documents that need to be accessed while locked:
+        try data.write(to: url, options: .completeFileProtectionUnlessOpen)
+    severity: WARNING
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      mastg-test: "MASTG-TEST-0052"
+      masvs: "MASVS-STORAGE-1"
+      confidence: MEDIUM
+      false_positive_reduction: "Excludes cache/temp directories and test code"

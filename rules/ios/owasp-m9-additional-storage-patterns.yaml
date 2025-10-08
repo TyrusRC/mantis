@@ -1,0 +1,548 @@
+rules:
+  # Additional iOS Storage and Configuration Security Patterns
+  # Patterns discovered from real-world vulnerable applications
+  # Covers hardcoded secrets in plist files and additional storage vulnerabilities
+
+  # ============ HARDCODED SECRETS IN PLIST FILES ============
+
+  - id: owasp-m9-ios-plist-hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>Secret</key>
+          - pattern: |
+              <key>secret</key>
+          - pattern: |
+              <key>SECRET</key>
+          - pattern: |
+              <key>Secret_key</key>
+          - pattern: |
+              <key>secret_key</key>
+          - pattern: |
+              <key>API_SECRET</key>
+          - pattern: |
+              <key>api_secret</key>
+    message: |
+      Hardcoded secret in plist file (OWASP M9: Insecure Data Storage).
+      Storing secrets in Info.plist or other plist files exposes them to attackers.
+
+      Example vulnerable configuration found in sample:
+      ```xml
+      <key>Secret_key</key>
+      <string>We_GoT_FlAg_FrOm_PaYaTu</string>
+      ```
+
+      Risks:
+      - Secrets visible in IPA bundle
+      - Extractable with simple zip/unzip
+      - Visible in source control
+      - Cannot be rotated without app update
+
+      Secure alternatives:
+      1. Store secrets on backend server, fetch at runtime with authentication
+      2. Use iOS Keychain for sensitive data (protected by device encryption)
+      3. Use environment-specific configuration with secure delivery
+      4. For API keys, use certificate pinning + OAuth tokens (not hardcoded keys)
+
+      Never store actual secrets in:
+      - Info.plist
+      - Any .plist file in app bundle
+      - Hardcoded strings in source
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      found_in_sample: "sample/ios-app/Info.plist"
+
+  - id: owasp-m9-ios-plist-credentials
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>Password</key>
+              <string>$PASSWORD</string>
+          - pattern: |
+              <key>password</key>
+              <string>$PASSWORD</string>
+          - pattern: |
+              <key>Username</key>
+              ...
+              <key>Password</key>
+    message: |
+      Credentials stored in plist file (OWASP M9: Insecure Data Storage).
+      Plist files are not encrypted and credentials are visible in plain text.
+
+      Example vulnerable configuration found in sample (Bandit.plist):
+      ```xml
+      <key>Username</key>
+      <string>Bandit</string>
+      <key>Password</key>
+      <string>payatu</string>
+      ```
+
+      These credentials can be extracted by:
+      1. Unzipping the IPA file
+      2. Reading plist files with any text editor or plistutil
+      3. No jailbreak required
+
+      Secure Fix:
+      ```swift
+      // Store credentials in Keychain
+      let query: [String: Any] = [
+          kSecClass as String: kSecClassGenericPassword,
+          kSecAttrAccount as String: username,
+          kSecValueData as String: password.data(using: .utf8)!,
+          kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+      ]
+      SecItemAdd(query as CFDictionary, nil)
+      ```
+
+      Never store credentials in:
+      - Info.plist
+      - Custom .plist files
+      - UserDefaults
+      - NSUserDefaults
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      found_in_sample: "sample/ios-app/Bandit.plist"
+
+  - id: owasp-m9-ios-plist-api-key
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>API_KEY</key>
+          - pattern: |
+              <key>api_key</key>
+          - pattern: |
+              <key>ApiKey</key>
+          - pattern: |
+              <key>APIKey</key>
+    message: |
+      API key stored in plist file (OWASP M9: Insecure Data Storage).
+      API keys in plist files are exposed and can be extracted from the IPA.
+
+      Risks:
+      - API key extraction and abuse
+      - Unauthorized API access
+      - Service billing fraud
+      - Data exfiltration
+
+      Secure approaches:
+      1. Use backend-for-frontend (BFF) pattern:
+         - App authenticates with your backend
+         - Backend calls third-party APIs with stored keys
+      2. Use short-lived tokens fetched from your server
+      3. Implement certificate pinning to prevent MITM
+      4. Use API key obfuscation (not security, just obscurity) + server validation
+
+      For production apps with API keys:
+      ```swift
+      // Fetch API key from secure backend
+      func fetchAPIKey(completion: @escaping (String?) -> Void) {
+          // Use authenticated request with certificate pinning
+          let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+          // Implement SSL pinning in URLSessionDelegate
+      }
+      ```
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+
+  # ============ USERDEFAULTS PIN/PASSWORD STORAGE ============
+
+  - id: owasp-m9-ios-userdefaults-pin-storage
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func $FUNC(...$PIN...) {
+                ...
+                UserDefaults.standard.set($PIN, forKey: ...)
+                ...
+              }
+          - pattern: |
+              func store$TYPE(...$PASSWORD...) {
+                ...
+                UserDefaults.standard.set($PASSWORD, ...)
+                ...
+              }
+          - pattern: |
+              func save$TYPE(...$CREDENTIAL...) {
+                ...
+                $DEFAULTS.set($CREDENTIAL, ...)
+                ...
+              }
+      - metavariable-regex:
+          metavariable: $FUNC
+          regex: .*(PIN|Password|Credential|Secret|Token).*
+    message: |
+      PIN/Password stored in UserDefaults (OWASP M9: Insecure Data Storage).
+      UserDefaults stores data in plaintext plist files (~Library/Preferences/*.plist).
+
+      Example vulnerable code found in sample:
+      ```swift
+      func storePINInUserDefaults(pin: String) {
+          UserDefaults.standard.set(pin, forKey: "userPIN")
+      }
+      ```
+
+      Why this is dangerous:
+      - Stored in plaintext at: ~/Library/Preferences/[bundle-id].plist
+      - Accessible with iTunes backup (even encrypted backups on old iOS)
+      - Accessible on jailbroken devices
+      - No protection when device is locked
+      - Synced to iCloud by default
+
+      Secure Fix using Keychain:
+      ```swift
+      func storePINInKeychain(pin: String) {
+          let pinData = pin.data(using: .utf8)!
+          let query: [String: Any] = [
+              kSecClass as String: kSecClassGenericPassword,
+              kSecAttrAccount as String: "userPIN",
+              kSecValueData as String: pinData,
+              kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+          ]
+
+          // Delete old value if exists
+          SecItemDelete(query as CFDictionary)
+          // Add new value
+          let status = SecItemAdd(query as CFDictionary, nil)
+
+          if status == errSecSuccess {
+              print("PIN stored securely in Keychain")
+          }
+      }
+      ```
+
+      Key security improvements:
+      - Encrypted by iOS (hardware-backed on newer devices)
+      - Protected by device passcode/biometrics
+      - Not included in backups (with kSecAttrAccessibleWhenUnlockedThisDeviceOnly)
+      - Cannot be accessed when device is locked
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      found_in_sample: "sample/ios-app/storePINInUserDefaults function"
+
+  - id: owasp-m9-ios-userdefaults-password-objc
+    patterns:
+      - pattern-either:
+          - pattern: |
+              [[NSUserDefaults standardUserDefaults] setObject:$PASSWORD forKey:$KEY]
+          - pattern: |
+              [$DEFAULTS setObject:$PASSWORD forKey:$KEY]
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: .*(password|pin|credential|secret|token|auth).*
+    message: |
+      Password/PIN stored in NSUserDefaults (OWASP M9: Insecure Data Storage).
+      NSUserDefaults stores data unencrypted in plist files.
+      Use iOS Keychain API for sensitive data storage.
+    severity: ERROR
+    languages:
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+
+  # ============ SSRF AND FILE URL SCHEMES ============
+
+  - id: owasp-m4-ios-ssrf-file-scheme
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URL(string: "file://$PATH")
+          - pattern: |
+              URL(string: $URL)
+          - pattern: |
+              URLRequest(url: URL(string: "file://...")...)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: .*file://.*
+    message: |
+      SSRF vulnerability: file:// URL scheme (OWASP M4: Input Validation / M9: Data Storage).
+      Loading file:// URLs with user-controlled paths can lead to local file disclosure.
+
+      Example vulnerable code found in sample:
+      ```swift
+      // SSRFAttackView.swift
+      let fileURL = URL(string: "file://\(userInput)")
+      URLSession.shared.dataTask(with: fileURL!)
+      ```
+
+      Risks:
+      - Read arbitrary files from app sandbox
+      - Access application data, caches, preferences
+      - Read sensitive user data
+      - Information disclosure
+
+      Attack examples:
+      ```
+      file:///var/mobile/Containers/Data/Application/[UUID]/Library/Preferences/com.app.plist
+      file:///var/mobile/Containers/Data/Application/[UUID]/Documents/secrets.db
+      ```
+
+      Secure Fix:
+      ```swift
+      func loadLocalFile(filename: String) {
+          // Validate filename (no path traversal)
+          guard !filename.contains(".."),
+                !filename.contains("/"),
+                !filename.hasPrefix(".") else {
+              print("Invalid filename")
+              return
+          }
+
+          // Only allow specific extensions
+          let allowedExtensions = ["jpg", "png", "pdf"]
+          let ext = (filename as NSString).pathExtension
+          guard allowedExtensions.contains(ext) else {
+              print("File type not allowed")
+              return
+          }
+
+          // Build safe file path in documents directory
+          let documentsPath = FileManager.default.urls(
+              for: .documentDirectory,
+              in: .userDomainMask
+          )[0]
+          let fileURL = documentsPath.appendingPathComponent(filename)
+
+          // Verify file exists and is in app's directory
+          guard fileURL.path.hasPrefix(documentsPath.path),
+                FileManager.default.fileExists(atPath: fileURL.path) else {
+              print("File not found or access denied")
+              return
+          }
+
+          // Now safe to load
+          do {
+              let data = try Data(contentsOf: fileURL)
+              // Process data
+          } catch {
+              print("Error reading file: \(error)")
+          }
+      }
+      ```
+
+      Never allow user-controlled file:// URLs.
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+      found_in_sample: "sample/ios-app/SSRFAttackView.swift"
+
+  - id: owasp-m4-ios-url-loading-unvalidated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              webView.load(URLRequest(url: URL(string: $URL)!))
+          - pattern: |
+              URLSession.shared.dataTask(with: URL(string: $URL)!)
+      - pattern-not: |
+          webView.load(URLRequest(url: URL(string: "https://...")!))
+      - pattern-not-inside: |
+          guard $URL.hasPrefix("https://") else { ... }
+    message: |
+      Unvalidated URL loading (OWASP M4: Input Validation).
+      Loading user-controlled URLs without validation can lead to SSRF, XSS, or data leakage.
+
+      Validate URLs:
+      1. Check scheme (only https:// for remote, never file://)
+      2. Validate domain against whitelist
+      3. Use URLComponents for parsing
+
+      Example secure validation:
+      ```swift
+      func isValidURL(_ urlString: String) -> Bool {
+          guard let url = URL(string: urlString),
+                let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+              return false
+          }
+
+          // Only HTTPS
+          guard components.scheme == "https" else {
+              return false
+          }
+
+          // Whitelist domains
+          let allowedHosts = ["api.example.com", "cdn.example.com"]
+          guard let host = components.host,
+                allowedHosts.contains(host) else {
+              return false
+          }
+
+          return true
+      }
+      ```
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+
+  # ============ IMAGE/FILE UPLOAD TO THIRD-PARTY ============
+
+  - id: owasp-m5-ios-third-party-upload
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $REF.child($PATH).putData($DATA, ...)
+          - pattern: |
+              $REF.child($PATH).putFile($FILE, ...)
+          - pattern: |
+              URLRequest(url: URL(string: "$URL")!)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: https?://[^/]+/(upload|file|media|image).*
+    message: |
+      File upload to third-party endpoint (OWASP M5: Insecure Communication).
+      Uploading sensitive data to third-party services without proper controls risks data leakage.
+
+      Example found in sample:
+      ```swift
+      // Upload to hackersden.in
+      let url = URL(string: "https://hackersden.in/upload")
+      ```
+
+      Security considerations:
+      1. Validate upload destination (whitelist)
+      2. Implement certificate pinning for uploads
+      3. Encrypt sensitive data before upload
+      4. Sanitize file metadata (EXIF, location data)
+      5. Verify file type and size
+      6. Use secure authentication (OAuth, JWT)
+      7. Implement upload rate limiting
+
+      Example secure upload:
+      ```swift
+      class SecureUploadManager: NSObject, URLSessionDelegate {
+          let allowedHosts = ["uploads.myapp.com"]
+
+          func uploadFile(_ fileURL: URL) {
+              guard let url = URL(string: "https://uploads.myapp.com/api/upload") else { return }
+
+              // Strip EXIF data
+              let sanitizedData = stripMetadata(from: fileURL)
+
+              var request = URLRequest(url: url)
+              request.httpMethod = "POST"
+              request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+
+              // Use session with certificate pinning
+              let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+              let task = session.uploadTask(with: request, from: sanitizedData)
+              task.resume()
+          }
+
+          // Implement certificate pinning
+          func urlSession(_ session: URLSession,
+                         didReceive challenge: URLAuthenticationChallenge,
+                         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+              // Validate server certificate
+              if validateCertificate(challenge) {
+                  completionHandler(.useCredential, challenge.protectionSpace.serverTrust.map { URLCredential(trust: $0) })
+              } else {
+                  completionHandler(.cancelAuthenticationChallenge, nil)
+              }
+          }
+      }
+      ```
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: MEDIUM
+      found_in_sample: "sample/ios-app strings: hackersden.in/upload"
+
+  # ============ PREDICTABLE FIREBASE PATHS ============
+
+  - id: owasp-m5-ios-predictable-storage-path
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $STORAGE.reference().child($DEVICENAME)
+          - pattern: |
+              $REF.child(UIDevice.current.name)
+          - pattern: |
+              $REF.child("\($DEVICE)")
+    message: |
+      Predictable storage path using device name (OWASP M5/M9: Communication/Storage).
+      Using device names or identifiable info in storage paths enables enumeration attacks.
+
+      Example vulnerable code:
+      ```swift
+      storageReference.child(DeviceDetails.getDeviceName())
+                     .child("profile.jpg")
+                     .putData(imageData, ...)
+      ```
+
+      Risks:
+      - Predictable file locations (e.g., "John's iPhone", "Alice iPad")
+      - Enumeration of user data
+      - Targeted attacks on specific users
+      - Privacy violations
+
+      Secure Fix:
+      ```swift
+      // Use cryptographically random or hashed identifiers
+      let userID = UUID().uuidString  // or backend-assigned user ID
+      let hashedPath = SHA256.hash(data: userID.data(using: .utf8)!)
+                            .map { String(format: "%02hhx", $0) }
+                            .joined()
+
+      storageReference.child(hashedPath)
+                     .child("profile.jpg")
+                     .putData(imageData, ...)
+      ```
+
+      Use:
+      - Random UUIDs
+      - Backend-assigned user IDs
+      - Hashed identifiers
+      - Never device names, phone numbers, emails directly
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-330: Use of Insufficiently Random Values"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      found_in_sample: "sample/ios-app/MyProfile.swift"

@@ -333,9 +333,9 @@ rules:
   - id: owasp-m3-password-in-log
     patterns:
       - pattern-either:
-          - pattern: Log.d($TAG, "Password: " + $PASSWORD)
-          - pattern: Log.i($TAG, "User credentials: " + $CREDS)
-          - pattern: println("Password: $PASSWORD")
+          - pattern: 'Log.d($TAG, "Password: " + $PASSWORD)'
+          - pattern: 'Log.i($TAG, "User credentials: " + $CREDS)'
+          - pattern: 'println("Password: $PASSWORD")'
     message: |
       Password logged to console (OWASP M3: Insecure Authentication/Authorization).
       Logging credentials exposes them via logcat/console.

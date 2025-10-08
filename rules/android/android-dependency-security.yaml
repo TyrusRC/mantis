@@ -1,0 +1,1301 @@
+rules:
+  # OWASP Mobile Top 10 - M2: Inadequate Supply Chain Security
+  # Android Dependency & Library Vulnerability Detection
+  # Comprehensive detection of vulnerable libraries, outdated dependencies, and build configuration issues
+
+  # ============ VULNERABLE LIBRARY VERSIONS ============
+
+  - id: android-dep-okhttp-vulnerable-versions
+    patterns:
+      - pattern-either:
+          # OkHttp < 3.12.0 has TLS 1.3 issues
+          - pattern: |
+              implementation 'com.squareup.okhttp3:okhttp:3.$MINOR.$PATCH'
+          - pattern: |
+              implementation "com.squareup.okhttp3:okhttp:3.$MINOR.$PATCH"
+          - pattern: |
+              compile 'com.squareup.okhttp3:okhttp:3.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 12
+    message: |
+      Vulnerable OkHttp 3.x version detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: OkHttp versions < 3.12.0 have TLS 1.3 support issues and potential
+      certificate validation vulnerabilities.
+
+      Risk: CRITICAL
+      CVE: CVE-2018-20200 (Certificate pinning bypass)
+
+      Remediation:
+      - Upgrade to OkHttp 4.12.0 or newer
+      - implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+      References:
+      - https://github.com/square/okhttp/blob/master/CHANGELOG.md
+      - https://nvd.nist.gov/vuln/detail/CVE-2018-20200
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      masvs-v2: "MASVS-RESILIENCE-4"
+      confidence: HIGH
+      cvss: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+
+  - id: android-dep-retrofit-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.squareup.retrofit2:retrofit:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.squareup.retrofit2:retrofit:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 9
+    message: |
+      Vulnerable Retrofit 2.x version detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: Retrofit versions < 2.9.0 may have issues with SSL/TLS validation
+      when combined with vulnerable OkHttp versions.
+
+      Risk: HIGH
+
+      Remediation:
+      - Upgrade to Retrofit 2.9.0 or newer
+      - implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+      - Ensure compatible OkHttp version (4.x)
+
+      References:
+      - https://github.com/square/retrofit/blob/master/CHANGELOG.md
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-gson-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.google.code.gson:gson:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.google.code.gson:gson:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 10
+    message: |
+      Vulnerable Gson version detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: Gson versions < 2.10.0 have deserialization vulnerabilities
+      that can lead to denial of service or potential code execution.
+
+      Risk: CRITICAL
+      CVE: CVE-2022-25647
+
+      Remediation:
+      - Upgrade to Gson 2.10.1 or newer
+      - implementation 'com.google.code.gson:gson:2.10.1'
+
+      References:
+      - https://github.com/google/gson/security/advisories
+      - https://nvd.nist.gov/vuln/detail/CVE-2022-25647
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+      cvss: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+
+  - id: android-dep-glide-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.github.bumptech.glide:glide:4.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.github.bumptech.glide:glide:4.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 15
+    message: |
+      Vulnerable Glide image loading library (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: Glide versions < 4.15.0 may have image processing vulnerabilities
+      and memory safety issues.
+
+      Risk: HIGH
+
+      Remediation:
+      - Upgrade to Glide 4.16.0 or newer
+      - implementation 'com.github.bumptech.glide:glide:4.16.0'
+
+      References:
+      - https://github.com/bumptech/glide/releases
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-firebase-bom-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation platform('com.google.firebase:firebase-bom:$VERSION')
+          - pattern: |
+              implementation platform("com.google.firebase:firebase-bom:$VERSION")
+      - metavariable-comparison:
+          metavariable: $VERSION
+          comparison: $VERSION < 32.0.0
+    message: |
+      Outdated Firebase BOM version (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Firebase BOM versions < 32.0.0 may include outdated libraries with
+      known vulnerabilities and security patches.
+
+      Remediation:
+      - Update to latest Firebase BOM version
+      - implementation platform('com.google.firebase:firebase-bom:32.8.0')
+
+      References:
+      - https://firebase.google.com/support/release-notes/android
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-androidx-outdated-core
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'androidx.core:core:1.$MINOR.$PATCH'
+          - pattern: |
+              implementation 'androidx.core:core-ktx:1.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 12
+    message: |
+      Outdated AndroidX Core library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: AndroidX Core versions < 1.12.0 may lack important security patches
+      and compatibility fixes.
+
+      Remediation:
+      - Update to AndroidX Core 1.13.0 or newer
+      - implementation 'androidx.core:core-ktx:1.13.0'
+
+      References:
+      - https://developer.android.com/jetpack/androidx/releases/core
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-play-services-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.google.android.gms:play-services-$SERVICE:$MAJOR.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.google.android.gms:play-services-$SERVICE:$MAJOR.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 21
+    message: |
+      Outdated Google Play Services library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Play Services versions < 21.0.0 may have security vulnerabilities and
+      lack critical updates.
+
+      Remediation:
+      - Update to latest Play Services version
+      - Check: https://developers.google.com/android/guides/releases
+      - Example: implementation 'com.google.android.gms:play-services-auth:21.0.0'
+
+      References:
+      - https://developers.google.com/android/guides/releases
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ DEPRECATED & UNMAINTAINED LIBRARIES ============
+
+  - id: android-dep-jcenter-repository
+    patterns:
+      - pattern-either:
+          - pattern: |
+              repositories {
+                ...
+                jcenter()
+                ...
+              }
+          - pattern: jcenter()
+    message: |
+      Deprecated JCenter repository in use (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: JCenter has been sunset (February 2021) and no longer receives updates.
+      Packages hosted only on JCenter may be vulnerable and unmaintained.
+
+      Remediation:
+      1. Remove jcenter() from repositories block
+      2. Migrate to Maven Central or Google's Maven repository
+      3. For androidx libraries: use google()
+      4. For other libraries: use mavenCentral()
+
+      References:
+      - https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/
+      - https://developer.android.com/studio/build/dependencies
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-deprecated-support-library
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.android.support:$LIBRARY:$VERSION'
+          - pattern: |
+              compile 'com.android.support:$LIBRARY:$VERSION'
+    message: |
+      Deprecated Android Support Library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Android Support Libraries were deprecated in 2018 and no longer receive
+      security updates. They have been replaced by AndroidX.
+
+      Remediation:
+      - Migrate to AndroidX libraries
+      - Use Android Studio's "Migrate to AndroidX" refactoring tool
+      - Update dependencies to androidx.* equivalents
+
+      Migration examples:
+      - com.android.support:appcompat-v7 → androidx.appcompat:appcompat
+      - com.android.support:recyclerview-v7 → androidx.recyclerview:recyclerview
+
+      References:
+      - https://developer.android.com/jetpack/androidx/migrate
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-apache-httpclient
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'org.apache.httpcomponents:httpclient:$VERSION'
+          - pattern: |
+              compile 'org.apache.httpcomponents:httpclient:$VERSION'
+          - pattern: |
+              useLibrary 'org.apache.http.legacy'
+    message: |
+      Deprecated Apache HttpClient library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Apache HttpClient was deprecated in Android 6.0 and removed in Android 9.0.
+      It has known security vulnerabilities and is no longer maintained for Android.
+
+      Remediation:
+      - Migrate to HttpURLConnection or modern HTTP clients
+      - Recommended: OkHttp 4.x or Retrofit 2.x
+      - implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+      References:
+      - https://developer.android.com/about/versions/marshmallow/android-6.0-changes#behavior-apache-http-client
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ BUILD CONFIGURATION SECURITY ============
+
+  - id: android-dep-insecure-repository-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              maven {
+                url "http://$URL"
+              }
+          - pattern: |
+              maven { url "http://$URL" }
+          - pattern: |
+              maven {
+                url 'http://$URL'
+              }
+    message: |
+      Insecure HTTP repository URL (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: HTTP repositories allow man-in-the-middle attacks where malicious
+      dependencies can be injected during download.
+
+      Remediation:
+      - Replace HTTP with HTTPS URLs
+      - maven { url 'https://...' }
+
+      References:
+      - https://developer.android.com/studio/build/dependencies#remote-repositories
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-wildcard-version
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation '$GROUP:$ARTIFACT:+'
+          - pattern: |
+              implementation "$GROUP:$ARTIFACT:+"
+          - pattern: |
+              compile '$GROUP:$ARTIFACT:+'
+          - pattern: |
+              implementation '$GROUP:$ARTIFACT:*'
+    message: |
+      Wildcard version specifier in dependency (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Using '+' or '*' in version specifiers can pull unexpected versions
+      with potential vulnerabilities or breaking changes. This leads to non-reproducible
+      builds and potential supply chain attacks.
+
+      Remediation:
+      - Pin to specific versions: implementation 'group:artifact:1.2.3'
+      - Use version catalogs for centralized version management
+      - Consider version ranges with upper bounds if flexibility is needed
+
+      References:
+      - https://docs.gradle.org/current/userguide/dependency_management.html#sec:declaring-dependency-version
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-dynamic-version-range
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation '$GROUP:$ARTIFACT:$VERSION'
+          - pattern: |
+              compile '$GROUP:$ARTIFACT:$VERSION'
+      - metavariable-regex:
+          metavariable: $VERSION
+          regex: .*[\[\(].*,.*[\]\)].*
+    message: |
+      Dynamic version range in dependency (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Version ranges like [1.0,2.0) can pull different versions over time,
+      leading to non-reproducible builds and potential security regressions.
+
+      Remediation:
+      - Pin to specific versions for production builds
+      - Use exact versions: implementation 'group:artifact:1.2.3'
+      - Leverage dependency locking if ranges are necessary
+
+      References:
+      - https://docs.gradle.org/current/userguide/dependency_locking.html
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-no-checksum-verification
+    patterns:
+      - pattern-either:
+          - pattern: |
+              gradle.startParameter.verificationMode = org.gradle.api.DependencyVerificationMode.OFF
+          - pattern: |
+              verificationMode = DependencyVerificationMode.OFF
+    message: |
+      Dependency verification disabled (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Disabling dependency verification removes checksum validation,
+      allowing tampered or malicious dependencies to be used without detection.
+
+      Remediation:
+      - Remove this configuration
+      - Enable dependency verification: ./gradlew --write-verification-metadata
+      - Use gradle/verification-metadata.xml for checksum validation
+
+      References:
+      - https://docs.gradle.org/current/userguide/dependency_verification.html
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ GRADLE BUILD SCRIPT SECURITY ============
+
+  - id: android-dep-buildscript-arbitrary-code
+    patterns:
+      - pattern-either:
+          - pattern: |
+              buildscript {
+                ...
+                "$URL".toURL().getText()
+                ...
+              }
+          - pattern: |
+              apply from: "$URL"
+          - pattern: |
+              apply from: "$URL".toURL()
+      - metavariable-regex:
+          metavariable: $URL
+          regex: ^http://.*
+    message: |
+      Remote script execution over HTTP (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Loading build scripts from HTTP URLs allows code injection via
+      man-in-the-middle attacks. Build scripts execute with full permissions.
+
+      Remediation:
+      - Use HTTPS for remote scripts (if absolutely necessary)
+      - Better: Include build scripts locally in version control
+      - Review and audit all external build script dependencies
+
+      References:
+      - https://blog.gradle.org/gradle-script-kotlin-security
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-insecure-plugin-resolution
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pluginManagement {
+                repositories {
+                  ...
+                  maven { url "http://$URL" }
+                  ...
+                }
+              }
+          - pattern: |
+              buildscript {
+                repositories {
+                  ...
+                  maven { url "http://$URL" }
+                  ...
+                }
+              }
+    message: |
+      Insecure HTTP URL for plugin repository (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Gradle plugins loaded over HTTP can be replaced with malicious
+      versions via MITM attacks. Plugins execute during build with full permissions.
+
+      Remediation:
+      - Use HTTPS for all plugin repositories
+      - Prefer gradlePluginPortal() and google() repositories
+
+      Example:
+      pluginManagement {
+        repositories {
+          gradlePluginPortal()
+          google()
+          mavenCentral()
+        }
+      }
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ NATIVE LIBRARY SECURITY ============
+
+  - id: android-dep-aar-binary-dependency
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation files('libs/$FILE.aar')
+          - pattern: |
+              implementation fileTree(dir: 'libs', include: ['*.aar'])
+    message: |
+      Binary AAR dependency without source verification (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: AAR files from unknown sources may contain malicious code.
+      Binary dependencies bypass source code review and can't be audited.
+
+      Remediation:
+      - Prefer dependencies from trusted Maven repositories
+      - If using local AARs:
+        1. Verify the source and integrity
+        2. Document the origin and purpose
+        3. Regularly update and audit
+        4. Consider publishing to private Maven repository
+
+      Security checks:
+      - Extract AAR and review manifest
+      - Use jadx or similar to decompile and audit code
+      - Check for suspicious permissions or behavior
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-jar-binary-dependency
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation files('libs/$FILE.jar')
+          - pattern: |
+              implementation fileTree(dir: 'libs', include: ['*.jar'])
+    message: |
+      Binary JAR dependency without source verification (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: JAR files from unknown sources may contain malicious code.
+
+      Remediation:
+      - Prefer dependencies from Maven Central or trusted repositories
+      - If using local JARs, verify their integrity and source
+      - Consider migrating to Maven/Gradle dependencies for better version management
+
+      References:
+      - https://developer.android.com/studio/build/dependencies
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ SPECIFIC CVE-RELATED RULES ============
+
+  - id: android-dep-log4j-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'org.apache.logging.log4j:log4j-core:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'org.apache.logging.log4j:log4j-core:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 17
+    message: |
+      Critical Log4j vulnerability (Log4Shell) - OWASP M2: Inadequate Supply Chain Security
+
+      Vulnerability: Log4j2 versions < 2.17.0 are vulnerable to remote code execution
+      via JNDI lookup injection (Log4Shell).
+
+      Risk: CRITICAL
+      CVE: CVE-2021-44228, CVE-2021-45046, CVE-2021-45105
+      CVSS: 10.0 (Critical)
+
+      Remediation:
+      - URGENT: Upgrade to Log4j 2.17.1 or newer immediately
+      - implementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+
+      References:
+      - https://nvd.nist.gov/vuln/detail/CVE-2021-44228
+      - https://logging.apache.org/log4j/2.x/security.html
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+      cvss: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H"
+
+  - id: android-dep-jackson-databind-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.fasterxml.jackson.core:jackson-databind:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.fasterxml.jackson.core:jackson-databind:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 13
+    message: |
+      Vulnerable Jackson Databind library (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: Jackson Databind < 2.13.0 has multiple deserialization vulnerabilities
+      that can lead to remote code execution.
+
+      Risk: CRITICAL
+      CVE: CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
+
+      Remediation:
+      - Upgrade to Jackson Databind 2.15.0 or newer
+      - implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.0'
+
+      Additional mitigations:
+      - Disable default typing: mapper.disableDefaultTyping()
+      - Use @JsonTypeInfo with whitelist approach
+
+      References:
+      - https://github.com/FasterXML/jackson-databind/issues
+      - https://nvd.nist.gov/vuln/detail/CVE-2020-36518
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-kotlin-stdlib-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.$MINOR.$PATCH'
+          - pattern: |
+              implementation "org.jetbrains.kotlin:kotlin-stdlib:1.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 8
+    message: |
+      Outdated Kotlin standard library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Kotlin stdlib versions < 1.8.0 may have security and stability issues.
+      Newer versions include important bug fixes and security patches.
+
+      Remediation:
+      - Update to Kotlin 1.9.0 or newer
+      - implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
+      - Update Kotlin Gradle plugin to match
+
+      References:
+      - https://kotlinlang.org/docs/releases.html
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ SQL & DATABASE LIBRARIES ============
+
+  - id: android-dep-realm-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'io.realm:realm-android:$MAJOR.$MINOR.$PATCH'
+          - pattern: |
+              classpath 'io.realm:realm-gradle-plugin:$MAJOR.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 10
+    message: |
+      Outdated Realm database library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Realm versions < 10.0.0 may have security vulnerabilities and lack
+      important security features. Consider migration to Realm Kotlin.
+
+      Remediation:
+      - Migrate to Realm Kotlin (realm-kotlin) for better security
+      - Or update to Realm Java 10.x
+      - implementation 'io.realm.kotlin:library-base:1.13.0'
+
+      References:
+      - https://github.com/realm/realm-java/releases
+      - https://www.mongodb.com/docs/realm/sdk/kotlin/
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ THIRD-PARTY SDK RISKS ============
+
+  - id: android-dep-facebook-sdk-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.facebook.android:facebook-android-sdk:$MAJOR.$MINOR.$PATCH'
+          - pattern: |
+              implementation 'com.facebook.android:facebook-core:$MAJOR.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 15
+    message: |
+      Outdated Facebook SDK (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Facebook SDK versions < 15.0.0 may have security vulnerabilities
+      and privacy issues. Older versions may not comply with latest privacy regulations.
+
+      Remediation:
+      - Update to Facebook SDK 16.x or newer
+      - implementation 'com.facebook.android:facebook-android-sdk:16.3.0'
+      - Review and update privacy policy accordingly
+
+      References:
+      - https://github.com/facebook/facebook-android-sdk/releases
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-admob-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.google.android.gms:play-services-ads:$MAJOR.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 22
+    message: |
+      Outdated Google AdMob SDK (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: AdMob versions < 22.0.0 may have security issues and may not comply
+      with latest privacy requirements (GDPR, COPPA, etc.).
+
+      Remediation:
+      - Update to AdMob 22.x or newer
+      - implementation 'com.google.android.gms:play-services-ads:22.6.0'
+      - Ensure compliance with User Messaging Platform (UMP) SDK
+
+      References:
+      - https://developers.google.com/admob/android/rel-notes
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ ADDITIONAL CVE-SPECIFIC RULES (2024-2025) ============
+
+  - id: android-dep-okhttp2-deprecated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.squareup.okhttp:okhttp:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.squareup.okhttp:okhttp:2.$MINOR.$PATCH'
+    message: |
+      Deprecated OkHttp 2.x library (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: OkHttp 2.x is completely deprecated and has multiple CVEs
+      including CVE-2016-2402 (certificate pinning bypass).
+
+      Risk: CRITICAL
+      CVE: CVE-2016-2402, CVE-2021-0341
+
+      Remediation:
+      - Migrate to OkHttp 4.12.0 or newer
+      - implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+      References:
+      - https://github.com/square/okhttp
+      - https://nvd.nist.gov/vuln/detail/CVE-2016-2402
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+      cvss: "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N"
+
+  - id: android-dep-bouncycastle-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'org.bouncycastle:bcprov-jdk15on:1.$MINOR'
+          - pattern: |
+              compile 'org.bouncycastle:bcprov-jdk15on:1.$MINOR'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 60
+    message: |
+      Vulnerable BouncyCastle cryptography library (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: BouncyCastle < 1.60 has multiple cryptographic vulnerabilities
+      including CVE-2018-1000613, CVE-2018-1000180, and CVE-2017-13098.
+
+      Risk: CRITICAL
+      CVE: CVE-2018-1000613, CVE-2018-1000180, CVE-2017-13098
+
+      Remediation:
+      - Update to BouncyCastle 1.70 or newer
+      - implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+
+      References:
+      - https://www.bouncycastle.org/
+      - https://nvd.nist.gov/vuln/detail/CVE-2018-1000613
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-moshi-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.squareup.moshi:moshi:1.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.squareup.moshi:moshi:1.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 14
+    message: |
+      Outdated Moshi JSON library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Moshi versions < 1.14 may have JSON parsing vulnerabilities
+      and lack important security fixes.
+
+      Remediation:
+      - Update to Moshi 1.15.0 or newer
+      - implementation 'com.squareup.moshi:moshi:1.15.0'
+
+      References:
+      - https://github.com/square/moshi
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-picasso-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.squareup.picasso:picasso:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'com.squareup.picasso:picasso:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 8
+    message: |
+      Outdated Picasso image loading library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Picasso versions < 2.8 may have image processing vulnerabilities
+      and network security issues.
+
+      Remediation:
+      - Update to Picasso 2.8 or newer
+      - implementation 'com.squareup.picasso:picasso:2.8'
+      - Or consider migrating to Coil for Kotlin projects
+
+      References:
+      - https://github.com/square/picasso
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-conscrypt-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'org.conscrypt:conscrypt-android:2.$MINOR.$PATCH'
+          - pattern: |
+              compile 'org.conscrypt:conscrypt-android:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 2
+    message: |
+      Outdated Conscrypt security provider (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Conscrypt versions < 2.2 may reference vulnerable BouncyCastle versions
+      and have TLS/SSL security issues.
+
+      Remediation:
+      - Update to Conscrypt 2.5.0 or newer
+      - implementation 'org.conscrypt:conscrypt-android:2.5.2'
+
+      References:
+      - https://github.com/google/conscrypt
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-room-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'androidx.room:room-runtime:2.$MINOR.$PATCH'
+          - pattern: |
+              implementation "androidx.room:room-runtime:2.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 5
+    message: |
+      Outdated Room database library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Room versions < 2.5.0 may have SQL injection vulnerabilities
+      if not using proper query builders and may lack security patches.
+
+      Remediation:
+      - Update to Room 2.6.0 or newer
+      - implementation 'androidx.room:room-runtime:2.6.1'
+
+      Security best practices:
+      - Always use parameterized queries
+      - Never concatenate user input into SQL
+      - Use Room's type converters for complex types
+      - Enable WAL mode for better concurrency
+
+      References:
+      - https://developer.android.com/jetpack/androidx/releases/room
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-work-manager-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'androidx.work:work-runtime:2.$MINOR.$PATCH'
+          - pattern: |
+              implementation 'androidx.work:work-runtime-ktx:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 8
+    message: |
+      Outdated WorkManager library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: WorkManager versions < 2.8.0 may have background task security
+      issues and data persistence vulnerabilities.
+
+      Remediation:
+      - Update to WorkManager 2.9.0 or newer
+      - implementation 'androidx.work:work-runtime-ktx:2.9.0'
+
+      References:
+      - https://developer.android.com/jetpack/androidx/releases/work
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-exoplayer-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.google.android.exoplayer:exoplayer:2.$MINOR.$PATCH'
+          - pattern: |
+              implementation 'com.google.android.exoplayer:exoplayer-core:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 18
+    message: |
+      Outdated ExoPlayer media library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: ExoPlayer versions < 2.18 may have media processing vulnerabilities,
+      URL handling issues, and potential remote code execution risks.
+
+      Remediation:
+      - Update to ExoPlayer 2.19.0 or newer (or migrate to Media3)
+      - implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
+      - Or migrate to: implementation 'androidx.media3:media3-exoplayer:1.2.0'
+
+      References:
+      - https://github.com/google/ExoPlayer/releases
+      - https://developer.android.com/guide/topics/media/media3
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: android-dep-koin-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'io.insert-koin:koin-android:3.$MINOR.$PATCH'
+          - pattern: |
+              implementation 'org.koin:koin-android:2.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 4
+    message: |
+      Outdated Koin dependency injection (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: Older Koin versions may have dependency resolution issues
+      that could expose security vulnerabilities.
+
+      Remediation:
+      - Update to Koin 3.5.0 or newer
+      - implementation 'io.insert-koin:koin-android:3.5.3'
+
+      References:
+      - https://insert-koin.io
+    severity: INFO
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  - id: android-dep-dagger-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.google.dagger:dagger:2.$MINOR'
+          - pattern: |
+              kapt 'com.google.dagger:dagger-compiler:2.$MINOR'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 48
+    message: |
+      Outdated Dagger dependency injection (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: Dagger versions < 2.48 may have code generation issues
+      that could lead to security vulnerabilities.
+
+      Remediation:
+      - Update to Dagger 2.50 or newer
+      - implementation 'com.google.dagger:dagger:2.50'
+
+      References:
+      - https://github.com/google/dagger/releases
+    severity: INFO
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  - id: android-dep-rxjava-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'io.reactivex.rxjava2:rxjava:2.$MINOR.$PATCH'
+          - pattern: |
+              implementation 'io.reactivex.rxjava3:rxjava:3.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 1
+    message: |
+      Outdated RxJava reactive library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Older RxJava versions may have thread safety issues and
+      error handling vulnerabilities that could expose sensitive data.
+
+      Remediation:
+      - Update to RxJava 3.1.8 or newer
+      - implementation 'io.reactivex.rxjava3:rxjava:3.1.8'
+
+      Security considerations:
+      - Handle errors properly to prevent data leaks
+      - Use proper schedulers for background operations
+      - Avoid exposing sensitive data in error streams
+
+      References:
+      - https://github.com/ReactiveX/RxJava
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-209: Generation of Error Message Containing Sensitive Information"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: android-dep-lottie-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation 'com.airbnb.android:lottie:$MAJOR.$MINOR.$PATCH'
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 6
+    message: |
+      Outdated Lottie animation library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Lottie versions < 6.0 may have JSON parsing vulnerabilities
+      and animation rendering security issues.
+
+      Remediation:
+      - Update to Lottie 6.3.0 or newer
+      - implementation 'com.airbnb.android:lottie:6.3.0'
+
+      Security considerations:
+      - Validate Lottie JSON files before loading
+      - Avoid loading animations from untrusted sources
+      - Monitor memory usage for large animations
+
+      References:
+      - https://github.com/airbnb/lottie-android
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ TYPOSQUATTING DETECTION ============
+
+  - id: android-dep-suspicious-package-name
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation '$GROUP:$ARTIFACT:$VERSION'
+          - pattern: |
+              compile '$GROUP:$ARTIFACT:$VERSION'
+      - metavariable-regex:
+          metavariable: $GROUP
+          regex: .*(andriod|gogle|amazn|facbook|sqare|jetbrins).*
+    message: |
+      Suspicious package name - possible typosquatting (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Package name contains common typos that may indicate a malicious
+      typosquatting attack (e.g., 'andriod' instead of 'android').
+
+      Common typosquats:
+      - andriod → android
+      - gogle → google
+      - amazn → amazon
+      - facbook → facebook
+      - sqare → square
+      - jetbrins → jetbrains
+
+      Remediation:
+      - Verify package name spelling carefully
+      - Check official documentation for correct package coordinates
+      - Review package publisher and download statistics
+
+      References:
+      - https://owasp.org/www-community/attacks/Typosquatting
+    severity: ERROR
+    languages:
+      - gradle
+    metadata:
+      category: security
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers or Frames"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH

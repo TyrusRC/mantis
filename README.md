@@ -41,24 +41,28 @@ cd mastg-rules
 
 ### Basic Usage
 
+**Note**: Extract APK/IPA files using your preferred tools (apktool, jadx, unzip, etc.) before scanning.
+
 ```bash
-# Scan Android app
-opengrep scan -f android/ /path/to/android-app
-
-# Scan iOS app
-opengrep scan -f ios/ /path/to/ios-app
-
-# Scan all platforms
-opengrep scan -f . /path/to/mobile-app
+# Quick scan using helper scripts
+./scan-android.sh /path/to/extracted-app
+./scan-ios.sh /path/to/extracted-app
 
 # Production scan (optimized, lowest FP)
-opengrep scan \
-  -f android/*-improved.yaml \
-  -f ios/cve-realworld-patterns-2024-2025.yaml \
-  -f cross-platform/library-dependency-cve-detection.yaml \
-  --severity=ERROR \
-  --sarif-output=security-results.sarif \
-  /path/to/app
+./scan-android.sh -r "android/*-improved.yaml,android/cve-*.yaml" extracted-app/
+./scan-ios.sh -r "ios/*-improved.yaml,ios/cve-*.yaml" MyApp.app/
+
+# Manual opengrep usage
+opengrep scan -f mastg-rules/android/ /path/to/android-source
+opengrep scan -f mastg-rules/ios/ /path/to/ios-source
+
+# CVE detection only
+./scan-android.sh -r "android/cve-realworld-patterns-2024-2025.yaml,cross-platform/library-dependency-cve-detection.yaml" app/
+./scan-ios.sh -r "ios/cve-realworld-patterns-2024-2025.yaml" app/
+
+# Custom output
+./scan-android.sh -f json -o custom-results/ app/
+./scan-ios.sh -s WARNING -f sarif app/
 ```
 
 ---
@@ -214,55 +218,84 @@ opengrep scan \
 
 ---
 
-## 💡 Usage Examples
+## 💡 Scanning Workflow
 
-### Production Scan (Recommended)
+### Step 1: Extract Mobile App
+
+Use your preferred extraction tool to decompile/extract the app:
+
+**Android:**
+```bash
+# Using apktool
+apktool d app.apk -o app-extracted/
+
+# Using jadx
+jadx app.apk -d app-decompiled/
+```
+
+**iOS:**
+```bash
+# IPA files are ZIP archives
+unzip MyApp.ipa -d MyApp-extracted/
+# App bundle is at: MyApp-extracted/Payload/MyApp.app/
+```
+
+### Step 2: Run Security Scan
+
+**Option A: Using Helper Scripts (Recommended)**
 
 ```bash
-# Use optimized rules for production (lowest FP)
+# Android - Production scan
+./scan-android.sh -r "android/*-improved.yaml,android/cve-*.yaml" app-extracted/
+
+# iOS - Production scan
+./scan-ios.sh -r "ios/cve-realworld-patterns-2024-2025.yaml" MyApp.app/
+
+# CVE detection only
+./scan-android.sh -r "android/cve-*.yaml,cross-platform/library-*.yaml" app/
+
+# Custom severity & format
+./scan-ios.sh -s WARNING -f json -o results/ app/
+```
+
+**Option B: Direct Opengrep Usage**
+
+```bash
+# Android comprehensive
 opengrep scan \
-  -f android/owasp-m8-security-misconfiguration-improved.yaml \
-  -f android/mastg-storage-crypto-tests-improved.yaml \
-  -f android/hacktricks-android-patterns-improved.yaml \
-  -f android/cve-realworld-patterns-2024-2025.yaml \
-  -f cross-platform/library-dependency-cve-detection.yaml \
+  -f mastg-rules/android/*-improved.yaml \
+  -f mastg-rules/cross-platform/library-dependency-cve-detection.yaml \
   --severity=ERROR \
-  --sarif-output=production-scan.sarif \
-  /path/to/app
-```
+  --sarif-output=android-scan.sarif \
+  app-extracted/
 
-### CVE Detection Only
-
-```bash
-# Scan for known CVEs in code and dependencies
+# iOS comprehensive
 opengrep scan \
-  -f android/cve-realworld-patterns-2024-2025.yaml \
-  -f ios/cve-realworld-patterns-2024-2025.yaml \
-  -f cross-platform/library-dependency-cve-detection.yaml \
-  --sarif-output=cve-scan.sarif \
-  .
-```
+  -f mastg-rules/ios/ \
+  --severity=ERROR \
+  --sarif-output=ios-scan.sarif \
+  MyApp.app/
 
-### Comprehensive Security Audit
-
-```bash
-# Full scan (all rules, all platforms)
+# MASTG compliance check
 opengrep scan \
-  -f . \
-  --sarif-output=full-audit.sarif \
-  --severity=WARNING \
-  /path/to/mobile-app
-```
-
-### MASTG Compliance Check
-
-```bash
-# MASTG test case coverage only
-opengrep scan \
-  -f android/mastg-storage-crypto-tests.yaml \
-  -f ios/mastg-storage-crypto-tests.yaml \
+  -f mastg-rules/android/mastg-storage-crypto-tests-improved.yaml \
+  -f mastg-rules/ios/mastg-storage-crypto-tests.yaml \
   --sarif-output=mastg-compliance.sarif \
-  .
+  app/
+```
+
+### Step 3: Review Results
+
+```bash
+# SARIF files can be uploaded to GitHub Security tab
+# or viewed with SARIF viewers
+
+# Quick review
+cat scan-results/*.sarif | grep -A5 '"level": "error"'
+
+# Count issues by severity
+grep -c '"level": "error"' scan-results/*.sarif
+grep -c '"level": "warning"' scan-results/*.sarif
 ```
 ---
 

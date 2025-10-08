@@ -1,0 +1,1218 @@
+rules:
+  # OWASP Mobile Top 10 - M2: Inadequate Supply Chain Security
+  # iOS Dependency & Library Vulnerability Detection
+  # Comprehensive detection for CocoaPods, SPM, Carthage vulnerabilities
+
+  # ============ COCOAPODS VULNERABILITIES ============
+
+  - id: ios-dep-cocoapods-insecure-source
+    patterns:
+      - pattern-either:
+          - pattern: |
+              source 'http://$URL'
+          - pattern: |
+              source "http://$URL"
+    message: |
+      Insecure HTTP source in Podfile (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: CocoaPods downloaded over HTTP can be tampered with via man-in-the-middle
+      attacks, potentially injecting malicious code.
+
+      Remediation:
+      - Use HTTPS sources only
+      - source 'https://github.com/CocoaPods/Specs.git'
+
+      References:
+      - https://guides.cocoapods.org/syntax/podfile.html#source
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-cocoapods-no-version-pin
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod '$NAME'
+          - pattern: |
+              pod "$NAME"
+      - pattern-not: |
+          pod '$NAME', '$VERSION'
+      - pattern-not: |
+          pod '$NAME', '~> $VERSION'
+      - pattern-not: |
+          pod '$NAME', '>= $VERSION'
+    message: |
+      CocoaPod without version pinning (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Pods without version specifiers will use the latest version, which
+      can introduce breaking changes or vulnerabilities without warning.
+
+      Remediation:
+      - Pin to specific versions or use pessimistic version operator
+      - pod 'Alamofire', '~> 5.8.0'
+      - pod 'RealmSwift', '10.45.0'
+
+      References:
+      - https://guides.cocoapods.org/using/the-podfile.html#specifying-pod-versions
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-cocoapods-git-without-commit
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod '$NAME', :git => '$URL'
+          - pattern: |
+              pod "$NAME", :git => "$URL"
+      - pattern-not: |
+          pod '$NAME', :git => '$URL', :tag => '$TAG'
+      - pattern-not: |
+          pod '$NAME', :git => '$URL', :commit => '$COMMIT'
+      - pattern-not: |
+          pod '$NAME', :git => '$URL', :branch => '$BRANCH'
+    message: |
+      CocoaPod from Git without integrity check (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Git-based pods without tag/commit/branch specifiers can change
+      unexpectedly, introducing vulnerabilities or malicious code.
+
+      Remediation:
+      - Pin to specific tags or commits
+      - pod 'MyPod', :git => 'https://github.com/user/MyPod.git', :tag => '1.0.0'
+      - pod 'MyPod', :git => 'https://github.com/user/MyPod.git', :commit => 'abc123'
+
+      References:
+      - https://guides.cocoapods.org/using/the-podfile.html#using-the-files-from-a-folder-local-to-the-machine
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ VULNERABLE IOS LIBRARY VERSIONS ============
+
+  - id: ios-dep-alamofire-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Alamofire', '$VERSION'
+          - pattern: |
+              pod 'Alamofire', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-4]$
+    message: |
+      Vulnerable Alamofire version detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: Alamofire versions < 5.0 have known security issues including
+      certificate validation problems and TLS configuration weaknesses.
+
+      Risk: HIGH
+      CVE: Multiple CVEs related to certificate pinning bypass
+
+      Remediation:
+      - Upgrade to Alamofire 5.8.0 or newer
+      - pod 'Alamofire', '~> 5.8.0'
+
+      References:
+      - https://github.com/Alamofire/Alamofire/releases
+      - https://github.com/Alamofire/Alamofire/blob/master/CHANGELOG.md
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-sdwebimage-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'SDWebImage', '$VERSION'
+          - pattern: |
+              pod 'SDWebImage', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-4]$
+    message: |
+      Vulnerable SDWebImage version (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: SDWebImage versions < 5.0 have image processing vulnerabilities
+      that could lead to crashes or potential code execution.
+
+      Risk: HIGH
+      CVE: CVE-2020-24750 (GIF processing vulnerability)
+
+      Remediation:
+      - Upgrade to SDWebImage 5.17.0 or newer
+      - pod 'SDWebImage', '~> 5.17.0'
+
+      References:
+      - https://github.com/SDWebImage/SDWebImage/releases
+      - https://nvd.nist.gov/vuln/detail/CVE-2020-24750
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-787: Out-of-bounds Write"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-realm-objc-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Realm', '$VERSION'
+          - pattern: |
+              pod 'Realm', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[0-9]$
+    message: |
+      Outdated Realm Objective-C version (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Realm versions < 10.0 may have security vulnerabilities and lack
+      important security features. Consider migration to Realm Swift.
+
+      Remediation:
+      - Migrate to Realm Swift for better security and features
+      - pod 'RealmSwift', '~> 10.45.0'
+      - Or update Realm Objective-C to 10.x
+
+      References:
+      - https://github.com/realm/realm-swift/releases
+      - https://www.mongodb.com/docs/atlas/device-sdks/
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-afnetworking-deprecated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'AFNetworking', $ANY
+          - pattern: |
+              pod "AFNetworking", $ANY
+    message: |
+      Deprecated AFNetworking library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: AFNetworking is deprecated and no longer actively maintained.
+      It has known security vulnerabilities and should be replaced.
+
+      Remediation:
+      - Migrate to Alamofire (Swift) or NSURLSession
+      - pod 'Alamofire', '~> 5.8.0'
+      - Or use native URLSession for simple cases
+
+      References:
+      - https://github.com/AFNetworking/AFNetworking
+      - https://github.com/Alamofire/Alamofire
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ SWIFT PACKAGE MANAGER (SPM) SECURITY ============
+
+  - id: ios-dep-spm-http-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              .package(url: "http://$URL", $REST)
+          - pattern: |
+              .package(url: 'http://$URL', $REST)
+    message: |
+      Insecure HTTP URL in Swift Package Manager (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Swift packages loaded over HTTP can be intercepted and replaced
+      with malicious code via man-in-the-middle attacks.
+
+      Remediation:
+      - Use HTTPS URLs for all package dependencies
+      - .package(url: "https://github.com/...", ...)
+
+      References:
+      - https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app
+    severity: ERROR
+    languages:
+      - swift
+    paths:
+      include:
+        - "**/Package.swift"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-spm-branch-dependency
+    patterns:
+      - pattern-either:
+          - pattern: |
+              .package(url: $URL, branch: $BRANCH)
+          - pattern: |
+              .package(url: $URL, .branch($BRANCH))
+    message: |
+      Swift Package dependency on branch instead of version (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Branch-based dependencies can change unexpectedly, introducing
+      breaking changes or vulnerabilities. This leads to non-reproducible builds.
+
+      Remediation:
+      - Use semantic versioning for production dependencies
+      - .package(url: "...", from: "1.0.0")
+      - .package(url: "...", exact: "1.0.0")
+      - Use .upToNextMajor(), .upToNextMinor() for flexibility
+
+      References:
+      - https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app
+    severity: WARNING
+    languages:
+      - swift
+    paths:
+      include:
+        - "**/Package.swift"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ CARTHAGE SECURITY ============
+
+  - id: ios-dep-carthage-http-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              git "http://$URL"
+          - pattern: |
+              github "http://$URL"
+          - pattern: |
+              binary "http://$URL"
+    message: |
+      Insecure HTTP URL in Cartfile (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Carthage dependencies over HTTP can be tampered with during download.
+
+      Remediation:
+      - Use HTTPS URLs or SSH for git repositories
+      - git "https://github.com/user/repo.git"
+      - github "user/repo"
+
+      References:
+      - https://github.com/Carthage/Carthage
+    severity: ERROR
+    languages:
+      - text
+    paths:
+      include:
+        - "**/Cartfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-carthage-no-version
+    patterns:
+      - pattern-either:
+          - pattern: |
+              github "$REPO"
+          - pattern: |
+              git "$URL"
+      - pattern-not: |
+          github "$REPO" ~> $VERSION
+      - pattern-not: |
+          github "$REPO" == $VERSION
+      - pattern-not: |
+          github "$REPO" >= $VERSION
+      - pattern-not: |
+          git "$URL" ~> $VERSION
+    message: |
+      Carthage dependency without version constraint (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Dependencies without version constraints may pull unexpected versions
+      with vulnerabilities or breaking changes.
+
+      Remediation:
+      - Specify version constraints in Cartfile
+      - github "Alamofire/Alamofire" ~> 5.8.0
+      - github "realm/realm-swift" == 10.45.0
+
+      References:
+      - https://github.com/Carthage/Carthage/blob/master/Documentation/Artifacts.md
+    severity: WARNING
+    languages:
+      - text
+    paths:
+      include:
+        - "**/Cartfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ IOS FRAMEWORK SECURITY ============
+
+  - id: ios-dep-embedded-binary-framework
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FRAMEWORK_SEARCH_PATHS = (
+                ...
+                "$PATH/*.framework",
+                ...
+              )
+          - pattern: |
+              FRAMEWORK_SEARCH_PATHS = "$PATH/*.framework"
+    message: |
+      Embedded binary framework without source verification (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Binary frameworks (*.framework) from unknown sources may contain
+      malicious code and cannot be audited through source code review.
+
+      Remediation:
+      - Prefer source-based dependency managers (CocoaPods, SPM)
+      - If using binary frameworks:
+        1. Verify framework publisher and source
+        2. Check code signature: codesign -dv --verbose=4 Framework.framework
+        3. Inspect with: otool -L Framework.framework/Framework
+        4. Document framework origin and security review
+
+      Security checks:
+      - Verify code signature validity
+      - Check for suspicious entitlements
+      - Review linked libraries for vulnerabilities
+    severity: WARNING
+    languages:
+      - text
+    paths:
+      include:
+        - "**/*.pbxproj"
+        - "**/*.xcodeproj"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-xcframework-binary
+    patterns:
+      - pattern-either:
+          - pattern: |
+              .binaryTarget(name: "$NAME", url: "$URL", checksum: "$CHECKSUM")
+          - pattern: |
+              .binaryTarget(name: "$NAME", path: "$PATH")
+    message: |
+      Binary XCFramework dependency (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: XCFrameworks are binary distributions that cannot be audited via
+      source code review. Ensure the source is trusted and checksums are verified.
+
+      Security considerations:
+      - Verify checksum matches expected value
+      - Only use XCFrameworks from trusted publishers
+      - Review privacy manifest if present
+      - Check code signature: codesign -dv Framework.xcframework
+
+      Remediation (if possible):
+      - Prefer source-based SPM packages when available
+      - Request source code access for security auditing
+      - Document the security review process for binary dependencies
+
+      References:
+      - https://developer.apple.com/documentation/xcode/distributing-binary-frameworks-as-swift-packages
+    severity: INFO
+    languages:
+      - swift
+    paths:
+      include:
+        - "**/Package.swift"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ SPECIFIC IOS CVE RULES ============
+
+  - id: ios-dep-firebase-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Firebase', '$VERSION'
+          - pattern: |
+              pod 'Firebase/Core', '$VERSION'
+      - metavariable-regex:
+          metavariable: $VERSION
+          regex: ^[1-7]\..*
+    message: |
+      Outdated Firebase iOS SDK (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Firebase SDK versions < 8.0 are outdated and may contain security
+      vulnerabilities. They also lack modern privacy and security features.
+
+      Remediation:
+      - Update to Firebase iOS SDK 10.x or newer
+      - pod 'Firebase', '~> 10.20.0'
+      - Review and update Firebase product pods individually
+
+      Migration notes:
+      - Firebase 8.0+ requires minimum iOS 11.0
+      - Review breaking changes in migration guide
+
+      References:
+      - https://firebase.google.com/support/release-notes/ios
+      - https://firebase.google.com/docs/ios/installation-methods
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-facebook-sdk-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'FBSDKCoreKit', '$VERSION'
+          - pattern: |
+              pod 'FacebookCore', '$VERSION'
+      - metavariable-regex:
+          metavariable: $VERSION
+          regex: ^[1-9]\..*
+    message: |
+      Outdated Facebook iOS SDK (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Facebook SDK versions < 10.0 may have security and privacy issues.
+      Older versions may not comply with latest privacy regulations.
+
+      Remediation:
+      - Update to Facebook SDK 16.x or newer
+      - pod 'FacebookCore', '~> 16.3.0'
+      - Review privacy policy and data handling
+
+      References:
+      - https://github.com/facebook/facebook-ios-sdk/releases
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ PRIVACY & DATA TRACKING FRAMEWORKS ============
+
+  - id: ios-dep-tracking-framework-without-consent
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'AppsFlyerFramework', $ANY
+          - pattern: |
+              pod 'Adjust', $ANY
+          - pattern: |
+              pod 'Mixpanel', $ANY
+          - pattern: |
+              pod 'Amplitude', $ANY
+    message: |
+      Third-party tracking framework detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM (Privacy/Compliance)
+      Impact: Tracking SDKs collect user data and may require privacy disclosures.
+      Ensure compliance with App Tracking Transparency (ATT) framework.
+
+      Compliance requirements:
+      - Implement AppTrackingTransparency framework
+      - Add NSUserTrackingUsageDescription in Info.plist
+      - Request tracking permission before collecting IDFA
+      - Update privacy policy to disclose tracking
+
+      Code example:
+      ```swift
+      import AppTrackingTransparency
+
+      ATTrackingManager.requestTrackingAuthorization { status in
+          // Handle authorization
+      }
+      ```
+
+      References:
+      - https://developer.apple.com/documentation/apptrackingtransparency
+      - https://developer.apple.com/app-store/user-privacy-and-data-use/
+    severity: INFO
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ DEPRECATED IOS LIBRARIES ============
+
+  - id: ios-dep-deprecated-library-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'JSONKit', $ANY
+          - pattern: |
+              pod 'ASIHTTPRequest', $ANY
+          - pattern: |
+              pod 'MKNetworkKit', $ANY
+          - pattern: |
+              pod 'RestKit', $ANY
+    message: |
+      Deprecated/unmaintained iOS library detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: This library is deprecated and no longer maintained, potentially
+      containing unpatched security vulnerabilities.
+
+      Deprecated libraries and replacements:
+      - JSONKit → Use JSONSerialization or Codable (Swift)
+      - ASIHTTPRequest → Use URLSession or Alamofire
+      - MKNetworkKit → Use URLSession or Alamofire
+      - RestKit → Use Alamofire with Codable
+
+      Remediation:
+      - Remove deprecated library
+      - Migrate to modern, maintained alternatives
+      - Use native Apple frameworks when possible
+
+      References:
+      - https://developer.apple.com/documentation/foundation/urlsession
+      - https://developer.apple.com/documentation/swift/codable
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ KEYCHAIN & SECURITY LIBRARIES ============
+
+  - id: ios-dep-keychain-wrapper-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'KeychainAccess', '$VERSION'
+          - pattern: |
+              pod 'SAMKeychain', $ANY
+      - metavariable-regex:
+          metavariable: $VERSION
+          regex: ^[1-3]\..*
+    message: |
+      Outdated keychain wrapper library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Older keychain wrapper libraries may not properly handle keychain
+      security attributes or have known vulnerabilities.
+
+      Remediation:
+      - Update to KeychainAccess 4.x or newer
+      - pod 'KeychainAccess', '~> 4.2.0'
+      - Or consider native Keychain Services API
+
+      References:
+      - https://github.com/kishikawakatsumi/KeychainAccess
+      - https://developer.apple.com/documentation/security/keychain_services
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ COCOAPODS SUPPLY CHAIN VULNERABILITIES (2024) ============
+
+  - id: ios-dep-cocoapods-orphaned-pod-risk
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod '$NAME', $VERSION
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: ^(?!Firebase|Alamofire|SDWebImage|Realm|AFNetworking|GoogleMaps|Fabric|Crashlytics).*
+    message: |
+      Potential orphaned CocoaPods package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: CocoaPods vulnerabilities CVE-2024-38368, CVE-2024-38366, CVE-2024-38367
+      allowed attackers to claim orphaned pods and inject malicious code.
+
+      Critical CVEs:
+      - CVE-2024-38368 (CVSS 9.3): Pod ownership claim vulnerability
+      - CVE-2024-38366 (CVSS 10.0): Remote code execution on Trunk server
+      - CVE-2024-38367 (CVSS 8.2): Email verification session token theft
+
+      Remediation:
+      - Verify pod ownership and publisher
+      - Check pod last update date on CocoaPods.org
+      - Review pod's GitHub repository for activity
+      - Consider using Swift Package Manager for new dependencies
+      - Pin to specific versions with integrity checks
+
+      Security checks:
+      - Verify pod has active maintainer
+      - Check pod download statistics
+      - Review pod's source code repository
+      - Look for recent commits and releases
+
+      References:
+      - https://blog.eva.vc/eva-discovered-supply-chain-vulnerabities-in-cocoapods-d3a4b8aa8d9d
+      - https://nvd.nist.gov/vuln/detail/CVE-2024-38368
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ ADDITIONAL IOS LIBRARY CVE RULES ============
+
+  - id: ios-dep-snapkit-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'SnapKit', '$VERSION'
+          - pattern: |
+              pod 'SnapKit', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-4]$
+    message: |
+      Outdated SnapKit Auto Layout library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: SnapKit versions < 5.0 may have layout constraint vulnerabilities
+      and lack modern Swift features.
+
+      Remediation:
+      - Update to SnapKit 5.7.0 or newer
+      - pod 'SnapKit', '~> 5.7.0'
+
+      References:
+      - https://github.com/SnapKit/SnapKit
+    severity: INFO
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  - id: ios-dep-kingfisher-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Kingfisher', '$VERSION'
+          - pattern: |
+              pod 'Kingfisher', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-6]$
+    message: |
+      Outdated Kingfisher image loading library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Kingfisher versions < 7.0 may have image processing vulnerabilities,
+      cache security issues, and URL validation problems.
+
+      Remediation:
+      - Update to Kingfisher 7.10.0 or newer
+      - pod 'Kingfisher', '~> 7.10.0'
+
+      Security considerations:
+      - Validate image URLs before loading
+      - Implement proper cache policies
+      - Use HTTPS for image sources
+      - Consider using placeholder images
+
+      References:
+      - https://github.com/onevcat/Kingfisher
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-rxswift-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'RxSwift', '$VERSION'
+          - pattern: |
+              pod 'RxSwift', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-5]$
+    message: |
+      Outdated RxSwift reactive library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: RxSwift versions < 6.0 may have thread safety issues and
+      error handling vulnerabilities that could expose sensitive data.
+
+      Remediation:
+      - Update to RxSwift 6.6.0 or newer
+      - pod 'RxSwift', '~> 6.6.0'
+
+      Security considerations:
+      - Handle errors properly to prevent data leaks
+      - Use proper schedulers for background operations
+      - Avoid exposing sensitive data in error streams
+
+      References:
+      - https://github.com/ReactiveX/RxSwift
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-209: Generation of Error Message Containing Sensitive Information"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-moya-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Moya', '$VERSION'
+          - pattern: |
+              pod 'Moya', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^1[0-4]$
+    message: |
+      Outdated Moya networking library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Moya versions < 15.0 may have network security vulnerabilities
+      and rely on outdated Alamofire versions.
+
+      Remediation:
+      - Update to Moya 15.0.0 or newer
+      - pod 'Moya', '~> 15.0.0'
+      - Ensure Alamofire is also updated
+
+      References:
+      - https://github.com/Moya/Moya
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-swiftyjson-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'SwiftyJSON', '$VERSION'
+          - pattern: |
+              pod 'SwiftyJSON', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-4]$
+    message: |
+      Outdated SwiftyJSON library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: SwiftyJSON versions < 5.0 may have JSON parsing vulnerabilities
+      and lack Swift 5+ optimizations.
+
+      Remediation:
+      - Update to SwiftyJSON 5.0.0 or newer
+      - pod 'SwiftyJSON', '~> 5.0.0'
+      - Consider using native Codable for better type safety
+
+      References:
+      - https://github.com/SwiftyJSON/SwiftyJSON
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-lottie-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'lottie-ios', '$VERSION'
+          - pattern: |
+              pod 'lottie-ios', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-3]$
+    message: |
+      Outdated Lottie animation library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Lottie versions < 4.0 may have JSON parsing vulnerabilities
+      and animation rendering security issues.
+
+      Remediation:
+      - Update to lottie-ios 4.4.0 or newer
+      - pod 'lottie-ios', '~> 4.4.0'
+
+      Security considerations:
+      - Validate Lottie JSON files before loading
+      - Avoid loading animations from untrusted sources
+      - Monitor memory usage for complex animations
+
+      References:
+      - https://github.com/airbnb/lottie-ios
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: ios-dep-charts-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Charts', '$VERSION'
+          - pattern: |
+              pod 'Charts', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^[1-3]$
+    message: |
+      Outdated Charts visualization library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: Charts versions < 4.0 may have rendering vulnerabilities
+      and data validation issues.
+
+      Remediation:
+      - Update to Charts 5.0.0 or newer
+      - pod 'Charts', '~> 5.0.0'
+
+      References:
+      - https://github.com/danielgindi/Charts
+    severity: INFO
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  - id: ios-dep-heroicons-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Hero', '$VERSION'
+          - pattern: |
+              pod 'Hero', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^1$
+    message: |
+      Outdated Hero transition library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: Hero versions < 2.0 may have UI transition vulnerabilities
+      and memory management issues.
+
+      Remediation:
+      - Update to Hero 2.0.0 or newer (if available)
+      - pod 'Hero', '~> 1.6.0' (latest v1)
+
+      References:
+      - https://github.com/HeroTransitions/Hero
+    severity: INFO
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  - id: ios-dep-socket-io-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'Socket.IO-Client-Swift', '$VERSION'
+          - pattern: |
+              pod 'Socket.IO-Client-Swift', '~> $MAJOR.$MINOR'
+      - metavariable-regex:
+          metavariable: $MAJOR
+          regex: ^1[0-5]$
+    message: |
+      Outdated Socket.IO client library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Socket.IO versions < 16.0 may have WebSocket security vulnerabilities,
+      connection hijacking risks, and message validation issues.
+
+      Remediation:
+      - Update to Socket.IO-Client-Swift 16.1.0 or newer
+      - pod 'Socket.IO-Client-Swift', '~> 16.1.0'
+
+      Security considerations:
+      - Use WSS (secure WebSocket) protocol
+      - Validate all incoming messages
+      - Implement proper authentication
+      - Use message encryption for sensitive data
+
+      References:
+      - https://github.com/socketio/socket.io-client-swift
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: ios-dep-objectmapper-deprecated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod 'ObjectMapper', $ANY
+    message: |
+      Deprecated ObjectMapper library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: ObjectMapper is no longer actively maintained and should be
+      replaced with native Codable for better type safety and security.
+
+      Remediation:
+      - Migrate to native Swift Codable
+      - Remove ObjectMapper dependency
+      - Use JSONDecoder/JSONEncoder
+
+      Migration example:
+      ```swift
+      struct User: Codable {
+          let name: String
+          let email: String
+      }
+      let decoder = JSONDecoder()
+      let user = try decoder.decode(User.self, from: jsonData)
+      ```
+
+      References:
+      - https://developer.apple.com/documentation/swift/codable
+    severity: WARNING
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ TYPOSQUATTING DETECTION ============
+
+  - id: ios-dep-suspicious-pod-name
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pod '$NAME', $REST
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: .*(Alamofier|AlamoFire|SDWeblmage|Relam|Firebse|Gogle|Snapchat|lnstagram).*
+    message: |
+      Suspicious pod name - possible typosquatting (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Pod name contains common typos that may indicate a malicious
+      typosquatting attack.
+
+      Common typosquats:
+      - Alamofier/AlamoFire → Alamofire
+      - SDWeblmage → SDWebImage
+      - Relam → Realm
+      - Firebse → Firebase
+      - Gogle → Google
+      - lnstagram (lowercase L) → Instagram
+
+      Remediation:
+      - Verify pod name spelling carefully
+      - Check official documentation for correct pod name
+      - Review pod publisher and download statistics on CocoaPods.org
+
+      References:
+      - https://cocoapods.org
+      - https://owasp.org/www-community/attacks/Typosquatting
+    severity: ERROR
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers or Frames"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ PODFILE.LOCK INTEGRITY ============
+
+  - id: ios-dep-podfile-lock-missing
+    patterns:
+      - pattern: |
+          source '$SOURCE'
+          ...
+          pod '$NAME'
+    message: |
+      Podfile.lock should be committed to version control (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Without Podfile.lock, different developers may get different
+      dependency versions, leading to non-reproducible builds and potential
+      security inconsistencies.
+
+      Best practices:
+      - Commit Podfile.lock to version control
+      - Run 'pod install' (not 'pod update') for existing projects
+      - Only update pods intentionally with 'pod update <pod_name>'
+
+      References:
+      - https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
+    severity: INFO
+    languages:
+      - ruby
+    paths:
+      include:
+        - "**/Podfile"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW

@@ -1,0 +1,403 @@
+rules:
+  # Flutter Insecure Data Storage Rules
+  # SharedPreferences misuse, plain text storage, file permissions
+  # Sources: Flutter Security Research 2024-2025, OWASP Mobile
+  # Focus: Data storage vulnerabilities in Flutter applications
+
+  - id: flutter-shared-preferences-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PREFS.setString('$KEY', $VALUE)
+          - pattern: |
+              $PREFS.setBool('$KEY', $VALUE)
+          - pattern: |
+              $PREFS.setInt('$KEY', $VALUE)
+          - pattern: |
+              await SharedPreferences.getInstance()
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|key|api[_-]?key|auth|session|credential|pin|ssn|credit[_-]?card|cvv).*
+      - pattern-not-inside: |
+          void main() {
+            test('...', () { ... });
+          }
+    message: |
+      Sensitive data stored in SharedPreferences (OWASP M9).
+      SharedPreferences stores data in plain text XML files without encryption.
+      On rooted/jailbroken devices or with ADB backup, this data is easily extracted.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: Storing auth token in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', authToken);
+
+      // VULNERABLE: Storing password
+      await prefs.setString('user_password', password);
+
+      // VULNERABLE: Storing API key
+      await prefs.setString('api_key', 'sk-1234567890abcdef');
+      ```
+
+      ATTACK SCENARIOS:
+      1. **Android ADB Backup**:
+         ```bash
+         adb backup -f backup.ab com.example.app
+         # Extract and read shared_prefs/*.xml files
+         ```
+
+      2. **Rooted Android**:
+         ```bash
+         adb shell
+         su
+         cat /data/data/com.example.app/shared_prefs/*.xml
+         ```
+
+      3. **iOS Jailbroken**:
+         ```bash
+         # Access UserDefaults plist files
+         cat /var/mobile/Containers/Data/Application/<UUID>/Library/Preferences/*.plist
+         ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+      class SecureDataStorage {
+        static final _secureStorage = FlutterSecureStorage(
+          aOptions: AndroidOptions(
+            encryptedSharedPreferences: true,
+          ),
+          iOptions: IOSOptions(
+            accessibility: KeychainAccessibility.first_unlock_this_device,
+          ),
+        );
+
+        // Store sensitive data securely
+        static Future<void> saveAuthToken(String token) async {
+          await _secureStorage.write(key: 'auth_token', value: token);
+        }
+
+        static Future<String?> getAuthToken() async {
+          return await _secureStorage.read(key: 'auth_token');
+        }
+
+        static Future<void> deleteAuthToken() async {
+          await _secureStorage.delete(key: 'auth_token');
+        }
+
+        static Future<void> clearAllSecureData() async {
+          await _secureStorage.deleteAll();
+        }
+      }
+
+      // Usage
+      await SecureDataStorage.saveAuthToken(authToken);
+      final token = await SecureDataStorage.getAuthToken();
+      ```
+
+      STORAGE COMPARISON:
+      | Storage Type | Security | Use Case |
+      |--------------|----------|----------|
+      | SharedPreferences | ❌ Plain text | Non-sensitive UI settings |
+      | flutter_secure_storage | ✅ Encrypted | Tokens, passwords, keys |
+      | Hive (encrypted) | ✅ Encrypted | Large encrypted datasets |
+      | SQLite (SQLCipher) | ✅ Encrypted | Encrypted database |
+
+      PLATFORM SECURITY:
+      - **Android**: Uses EncryptedSharedPreferences + KeyStore
+      - **iOS**: Uses Keychain with hardware encryption
+
+      WHEN TO USE SHAREDPREFERENCES:
+      - Theme preference (dark/light mode)
+      - Language selection
+      - UI state (last selected tab)
+      - Non-sensitive user preferences
+
+      NEVER USE SHAREDPREFERENCES FOR:
+      - Authentication tokens
+      - Passwords
+      - API keys
+      - Session IDs
+      - Personal identifiable information (PII)
+      - Credit card data
+
+      Reference: OWASP Mobile Top 10 2024, Flutter Security Guide
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: flutter-file-write-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $FILE.writeAsString($DATA)
+          - pattern: |
+              $FILE.writeAsStringSync($DATA)
+          - pattern: |
+              File($PATH).writeAsString($DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|secret|key|credential).*
+      - pattern-not-inside: |
+          void main() {
+            test('...', () { ... });
+          }
+    message: |
+      Sensitive data written to file without encryption (OWASP M9).
+      Writing sensitive data to files exposes it to filesystem access attacks.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: Writing credentials to file
+      final file = File('${dir.path}/credentials.txt');
+      await file.writeAsString('username:password');
+
+      // VULNERABLE: Writing tokens to file
+      final tokenFile = File('${dir.path}/auth_token.txt');
+      await tokenFile.writeAsString(authToken);
+      ```
+
+      ATTACK VECTORS:
+      - ADB backup extraction
+      - Root/jailbreak access
+      - Malware with storage permissions
+      - Physical device access
+      - Forensic tools
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:encrypt/encrypt.dart' as encrypt;
+      import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+      class SecureFileStorage {
+        final _secureStorage = FlutterSecureStorage();
+
+        Future<void> writeEncryptedFile(String filename, String data) async {
+          // Get or create encryption key
+          String? keyString = await _secureStorage.read(key: 'file_encryption_key');
+          if (keyString == null) {
+            keyString = _generateKey();
+            await _secureStorage.write(key: 'file_encryption_key', value: keyString);
+          }
+
+          final key = encrypt.Key.fromUtf8(keyString.padRight(32, '0'));
+          final iv = encrypt.IV.fromSecureRandom(16);
+          final encrypter = encrypt.Encrypter(
+            encrypt.AES(key, mode: encrypt.AESMode.gcm)
+          );
+
+          // Encrypt data
+          final encrypted = encrypter.encrypt(data, iv: iv);
+
+          // Write IV + ciphertext
+          final file = File(filename);
+          await file.writeAsString('${iv.base64}:${encrypted.base64}');
+        }
+
+        Future<String> readEncryptedFile(String filename) async {
+          // Read encrypted file
+          final file = File(filename);
+          final content = await file.readAsString();
+          final parts = content.split(':');
+
+          if (parts.length != 2) {
+            throw Exception('Invalid encrypted file format');
+          }
+
+          // Get key
+          final keyString = await _secureStorage.read(key: 'file_encryption_key');
+          if (keyString == null) {
+            throw Exception('Encryption key not found');
+          }
+
+          final key = encrypt.Key.fromUtf8(keyString.padRight(32, '0'));
+          final iv = encrypt.IV.fromBase64(parts[0]);
+          final encrypted = encrypt.Encrypted.fromBase64(parts[1]);
+
+          final encrypter = encrypt.Encrypter(
+            encrypt.AES(key, mode: encrypt.AESMode.gcm)
+          );
+
+          return encrypter.decrypt(encrypted, iv: iv);
+        }
+
+        String _generateKey() {
+          final random = Random.secure();
+          final values = List<int>.generate(32, (_) => random.nextInt(256));
+          return base64Encode(values);
+        }
+      }
+
+      // Usage
+      final storage = SecureFileStorage();
+      await storage.writeEncryptedFile('sensitive.dat', sensitiveData);
+      final data = await storage.readEncryptedFile('sensitive.dat');
+      ```
+
+      ALTERNATIVE: Use Hive with encryption
+      ```dart
+      import 'package:hive/hive.dart';
+      import 'package:hive_flutter/hive_flutter.dart';
+
+      class SecureHiveStorage {
+        static Future<void> init() async {
+          await Hive.initFlutter();
+
+          // Generate encryption key
+          final secureStorage = FlutterSecureStorage();
+          String? encryptionKey = await secureStorage.read(key: 'hive_key');
+
+          if (encryptionKey == null) {
+            final key = Hive.generateSecureKey();
+            encryptionKey = base64Encode(key);
+            await secureStorage.write(key: 'hive_key', value: encryptionKey);
+          }
+
+          final key = base64Decode(encryptionKey);
+
+          // Open encrypted box
+          await Hive.openBox('secureBox',
+            encryptionCipher: HiveAesCipher(key)
+          );
+        }
+
+        static Future<void> saveData(String key, String value) async {
+          final box = Hive.box('secureBox');
+          await box.put(key, value);
+        }
+
+        static String? getData(String key) {
+          final box = Hive.box('secureBox');
+          return box.get(key);
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - Never write sensitive data to plain text files
+      - Use flutter_secure_storage for small sensitive data
+      - Use encrypted Hive or SQLCipher for larger datasets
+      - Set proper file permissions (avoid world-readable)
+      - Delete sensitive files after use
+
+      Reference: OWASP Mobile Top 10, Flutter Encryption Best Practices
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: flutter-world-readable-file-permissions
+    patterns:
+      - pattern-either:
+          - pattern: |
+              File($PATH).writeAsString($DATA, mode: FileMode.$MODE)
+          - pattern: |
+              File($PATH).openWrite(mode: FileMode.$MODE)
+      - metavariable-regex:
+          metavariable: $MODE
+          regex: (write|append)
+      - pattern-not-inside: |
+          void main() {
+            test('...', () { ... });
+          }
+    message: |
+      File created without explicit permission control (OWASP M9).
+      Files created in Flutter inherit default permissions which may be
+      world-readable on some platforms.
+
+      RISK:
+      On Android, files in external storage are readable by other apps.
+      On iOS with iCloud backup enabled, files may be backed up to cloud.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'dart:io';
+      import 'package:path_provider/path_provider.dart';
+
+      class SecureFileCreation {
+        Future<void> createSecureFile(String filename, String content) async {
+          // Use app-private directory (not external storage)
+          final directory = await getApplicationSupportDirectory();
+          final file = File('${directory.path}/$filename');
+
+          // Write file
+          await file.writeAsString(content);
+
+          // On Android, explicitly set permissions (600 = owner read/write only)
+          if (Platform.isAndroid) {
+            await Process.run('chmod', ['600', file.path]);
+          }
+
+          // On iOS, exclude from backup if contains sensitive data
+          if (Platform.isIOS) {
+            await file.setLastModified(DateTime.now());
+            // Set exclude from backup attribute
+            await Process.run('xattr', [
+              '-w',
+              'com.apple.MobileBackup',
+              '1',
+              file.path
+            ]);
+          }
+        }
+
+        // Verify no files in external storage
+        Future<void> verifyNoExternalStorage() async {
+          if (Platform.isAndroid) {
+            final externalDir = await getExternalStorageDirectory();
+            final files = externalDir?.listSync() ?? [];
+
+            for (var file in files) {
+              if (file is File && await _containsSensitiveData(file)) {
+                print('WARNING: Sensitive file in external storage: ${file.path}');
+                // Move to internal storage or delete
+              }
+            }
+          }
+        }
+
+        Future<bool> _containsSensitiveData(File file) async {
+          // Implement sensitive data detection logic
+          return false;
+        }
+      }
+      ```
+
+      STORAGE LOCATIONS SECURITY:
+      | Location | Android | iOS | Security |
+      |----------|---------|-----|----------|
+      | Application Support | Private | Private | ✅ Secure |
+      | Documents | Private | iCloud backup | ⚠️ Backed up |
+      | Cache | Private, cleared | Private | ✅ Temporary |
+      | External Storage | Public | N/A | ❌ Insecure |
+
+      BEST PRACTICES:
+      - Use getApplicationSupportDirectory() for sensitive files
+      - Never use getExternalStorageDirectory() for sensitive data
+      - Set restrictive permissions (600) on Android
+      - Exclude sensitive files from iOS backup
+      - Verify file locations in security audits
+
+      Reference: OWASP Mobile Storage Cheat Sheet
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: MEDIUM
+      false_positive_likelihood: MEDIUM

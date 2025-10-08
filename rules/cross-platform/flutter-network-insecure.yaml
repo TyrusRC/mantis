@@ -1,0 +1,502 @@
+rules:
+  # Flutter Insecure Network Communication Rules
+  # HTTP usage, certificate validation bypass, insecure TLS
+  # Sources: Flutter Security Research 2024-2025, OWASP Mobile
+  # Focus: Network security vulnerabilities in Flutter applications
+
+  - id: flutter-http-url-usage
+    patterns:
+      - pattern-either:
+          - pattern: |
+              http.get(Uri.parse('http://$URL'))
+          - pattern: |
+              http.post(Uri.parse('http://$URL'))
+          - pattern: |
+              http.Client().get(Uri.parse('http://$URL'))
+          - pattern: |
+              Dio().get('http://$URL')
+          - pattern: |
+              Uri.parse('http://$URL')
+      - pattern-not-inside: |
+          // Localhost/development
+          'http://localhost'
+      - pattern-not-inside: |
+          'http://127.0.0.1'
+      - pattern-not-inside: |
+          void main() {
+            test('...', () { ... });
+          }
+    message: |
+      Insecure HTTP URL used for network communication (OWASP M5).
+      HTTP traffic is transmitted in cleartext and vulnerable to interception,
+      modification, and man-in-the-middle attacks.
+
+      VULNERABLE PATTERNS:
+      ```dart
+      // VULNERABLE: HTTP for API calls
+      final response = await http.get(
+        Uri.parse('http://api.example.com/users')
+      );
+
+      // VULNERABLE: HTTP for authentication
+      final loginResponse = await http.post(
+        Uri.parse('http://api.example.com/login'),
+        body: {'username': username, 'password': password}
+      );
+
+      // VULNERABLE: HTTP with Dio
+      final dio = Dio();
+      final response = await dio.get('http://api.example.com/data');
+      ```
+
+      ATTACK SCENARIOS:
+      1. **Public WiFi MITM**: Attacker intercepts HTTP on coffee shop WiFi
+      2. **Credential Theft**: Login credentials sent over HTTP captured
+      3. **Session Hijacking**: Auth tokens stolen from HTTP requests
+      4. **Data Modification**: Response modified to inject malicious content
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:http/http.dart' as http;
+      import 'package:dio/dio.dart';
+
+      class SecureApiClient {
+        static const String _baseUrl = 'https://api.example.com';  // HTTPS only
+
+        // HTTP client
+        static Future<http.Response> get(String endpoint) async {
+          final uri = Uri.parse('$_baseUrl$endpoint');
+
+          // Verify HTTPS
+          if (uri.scheme != 'https') {
+            throw Exception('Only HTTPS connections allowed');
+          }
+
+          return await http.get(uri);
+        }
+
+        static Future<http.Response> post(
+          String endpoint,
+          Map<String, dynamic> data
+        ) async {
+          final uri = Uri.parse('$_baseUrl$endpoint');
+
+          if (uri.scheme != 'https') {
+            throw Exception('Only HTTPS connections allowed');
+          }
+
+          return await http.post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(data),
+          );
+        }
+      }
+
+      // Dio with HTTPS enforcement
+      class SecureDioClient {
+        late final Dio _dio;
+
+        SecureDioClient() {
+          _dio = Dio(BaseOptions(
+            baseUrl: 'https://api.example.com',
+            connectTimeout: Duration(seconds: 10),
+            receiveTimeout: Duration(seconds: 10),
+          ));
+
+          // Add interceptor to block HTTP
+          _dio.interceptors.add(InterceptorsWrapper(
+            onRequest: (options, handler) {
+              if (!options.uri.scheme.startsWith('https')) {
+                handler.reject(
+                  DioError(
+                    requestOptions: options,
+                    error: 'HTTP connections are not allowed',
+                    type: DioErrorType.cancel,
+                  ),
+                );
+              } else {
+                handler.next(options);
+              }
+            },
+          ));
+        }
+
+        Dio get client => _dio;
+      }
+
+      // Usage
+      final client = SecureDioClient();
+      final response = await client.client.get('/users');
+      ```
+
+      NETWORK SECURITY CONFIG (Android):
+      ```xml
+      <!-- res/xml/network_security_config.xml -->
+      <?xml version="1.0" encoding="utf-8"?>
+      <network-security-config>
+          <base-config cleartextTrafficPermitted="false">
+              <trust-anchors>
+                  <certificates src="system" />
+              </trust-anchors>
+          </base-config>
+
+          <!-- Only allow HTTP for localhost (development) -->
+          <domain-config cleartextTrafficPermitted="true">
+              <domain includeSubdomains="true">localhost</domain>
+              <domain includeSubdomains="true">127.0.0.1</domain>
+          </domain-config>
+      </network-security-config>
+      ```
+
+      ```xml
+      <!-- AndroidManifest.xml -->
+      <application
+          android:networkSecurityConfig="@xml/network_security_config">
+      </application>
+      ```
+
+      APP TRANSPORT SECURITY (iOS):
+      ```xml
+      <!-- Info.plist - Block all HTTP -->
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSAllowsArbitraryLoads</key>
+          <false/>
+      </dict>
+      ```
+
+      WHEN HTTP IS ACCEPTABLE:
+      - ✅ localhost/127.0.0.1 (development only)
+      - ✅ Content delivery (non-sensitive images/videos)
+      - ❌ Authentication/Authorization
+      - ❌ Personal data transmission
+      - ❌ API calls with sensitive data
+
+      Reference: OWASP Mobile Top 10, RFC 7258 (Pervasive Monitoring)
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: flutter-certificate-validation-bypass
+    patterns:
+      - pattern-either:
+          - pattern: |
+              HttpClient().badCertificateCallback = (cert, host, port) => true
+          - pattern: |
+              $CLIENT.badCertificateCallback = ($CERT, $HOST, $PORT) => true
+          - pattern: |
+              (Dio()..httpClientAdapter).onHttpClientCreate = (client) {
+                client.badCertificateCallback = (cert, host, port) => true;
+                return client;
+              }
+      - pattern-not-inside: |
+          void main() {
+            test('...', () { ... });
+          }
+      - pattern-not-inside: |
+          #if DEBUG
+          ...
+          #endif
+    message: |
+      Certificate validation disabled (OWASP M5 - Critical).
+      Disabling certificate validation completely defeats TLS security and
+      enables trivial man-in-the-middle attacks.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: Accept all certificates (NEVER DO THIS)
+      final client = HttpClient();
+      client.badCertificateCallback = (cert, host, port) => true;
+
+      // VULNERABLE: Dio with disabled cert validation
+      final dio = Dio();
+      (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (client) {
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
+      ```
+
+      WHY THIS IS CRITICAL:
+      - Allows attacker to present ANY certificate
+      - Enables MITM on any network (even encrypted WiFi)
+      - Completely bypasses HTTPS protection
+      - Trivial to exploit with tools like mitmproxy, Burp Suite
+
+      ATTACK SCENARIO:
+      1. Attacker sets up WiFi hotspot or ARP spoofs network
+      2. Intercepts HTTPS traffic with self-signed certificate
+      3. App accepts fake certificate due to disabled validation
+      4. Attacker reads/modifies all "encrypted" traffic
+
+      SECURE IMPLEMENTATION:
+
+      **Option 1: Use Default Validation (Recommended)**
+      ```dart
+      // Default behavior - validates certificates against system trust store
+      final response = await http.get(Uri.parse('https://api.example.com'));
+
+      // Dio with default validation
+      final dio = Dio();
+      final response = await dio.get('https://api.example.com');
+      ```
+
+      **Option 2: Certificate Pinning (High Security)**
+      ```dart
+      import 'dart:io';
+      import 'package:dio/dio.dart';
+      import 'package:dio/adapter.dart';
+
+      class CertificatePinningClient {
+        late final Dio _dio;
+
+        // SHA-256 fingerprints of trusted certificates
+        static const List<String> _pinnedCertificates = [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          'sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=',
+        ];
+
+        CertificatePinningClient() {
+          _dio = Dio();
+
+          (_dio.httpClientAdapter as DefaultHttpClientAdapter)
+            .onHttpClientCreate = (client) {
+              client.badCertificateCallback = (cert, host, port) {
+                // Verify certificate fingerprint
+                final certFingerprint = _getCertificateFingerprint(cert);
+                return _pinnedCertificates.contains(certFingerprint);
+              };
+              return client;
+            };
+        }
+
+        String _getCertificateFingerprint(X509Certificate cert) {
+          // Calculate SHA-256 fingerprint
+          final der = cert.der;
+          final digest = sha256.convert(der);
+          return 'sha256/${base64.encode(digest.bytes)}';
+        }
+
+        Dio get client => _dio;
+      }
+
+      // Usage
+      final client = CertificatePinningClient();
+      final response = await client.client.get('https://api.example.com');
+      ```
+
+      **Option 3: Custom Trust Store (Advanced)**
+      ```dart
+      import 'package:flutter/services.dart' show rootBundle;
+
+      class CustomTrustStoreClient {
+        late final Dio _dio;
+
+        CustomTrustStoreClient() {
+          _dio = Dio();
+
+          (_dio.httpClientAdapter as DefaultHttpClientAdapter)
+            .onHttpClientCreate = (client) {
+              final context = SecurityContext(withTrustedRoots: false);
+
+              // Load custom CA certificates
+              context.setTrustedCertificatesBytes(
+                File('assets/certificates/ca.pem').readAsBytesSync()
+              );
+
+              return HttpClient(context: context);
+            };
+        }
+      }
+      ```
+
+      NEVER ACCEPTABLE IN PRODUCTION:
+      - Setting badCertificateCallback to always return true
+      - Accepting self-signed certificates without pinning
+      - Disabling hostname verification
+      - Trusting user-installed certificates in production
+
+      ACCEPTABLE FOR DEVELOPMENT ONLY:
+      ```dart
+      #if DEBUG
+      // Development only - clearly marked
+      client.badCertificateCallback = (cert, host, port) {
+        print('WARNING: Certificate validation disabled (DEV ONLY)');
+        return true;
+      };
+      #endif
+      ```
+
+      GOOGLE PLAY STORE REJECTION:
+      Apps with disabled certificate validation may be rejected or removed
+      from Google Play Store for security policy violations.
+
+      Reference: OWASP Mobile Top 10, RFC 5280 (X.509 Certificates)
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: VERY_HIGH
+      false_positive_likelihood: VERY_LOW
+      playstore_rejection_risk: HIGH
+
+  - id: flutter-webview-javascript-enabled-untrusted
+    patterns:
+      - pattern-either:
+          - pattern: |
+              WebView(
+                javascriptMode: JavascriptMode.unrestricted,
+                ...
+              )
+          - pattern: |
+              WebViewController()..setJavaScriptMode(JavaScriptMode.unrestricted)
+      - pattern-not-inside: |
+          // Trusted domain
+          initialUrl: 'https://trusted.example.com'
+      - pattern-not-inside: |
+          void main() {
+            test('...', () { ... });
+          }
+    message: |
+      WebView with JavaScript enabled for untrusted content (OWASP M7).
+      Enabling JavaScript in WebView for untrusted URLs exposes app to
+      XSS attacks and malicious script execution.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: JavaScript enabled for user-provided URL
+      WebView(
+        initialUrl: userProvidedUrl,
+        javascriptMode: JavascriptMode.unrestricted,
+      )
+
+      // VULNERABLE: Dynamic URL with JavaScript
+      WebView(
+        initialUrl: 'https://\${userInput}.example.com',
+        javascriptMode: JavascriptMode.unrestricted,
+      )
+      ```
+
+      ATTACK SCENARIO:
+      1. Attacker provides malicious URL
+      2. WebView loads URL with JavaScript enabled
+      3. Malicious script executes in WebView context
+      4. Script accesses JavaScriptChannels, cookies, local storage
+      5. Potential data exfiltration or phishing
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:webview_flutter/webview_flutter.dart';
+
+      class SecureWebViewScreen extends StatefulWidget {
+        final String url;
+
+        SecureWebViewScreen({required this.url});
+
+        @override
+        State<SecureWebViewScreen> createState() => _SecureWebViewScreenState();
+      }
+
+      class _SecureWebViewScreenState extends State<SecureWebViewScreen> {
+        late final WebViewController _controller;
+
+        // Whitelist of trusted domains
+        static const List<String> _trustedDomains = [
+          'example.com',
+          'www.example.com',
+          'api.example.com',
+        ];
+
+        @override
+        void initState() {
+          super.initState();
+
+          // Validate URL before loading
+          final uri = Uri.parse(widget.url);
+
+          // Only enable JavaScript for trusted domains
+          final isTrusted = _trustedDomains.contains(uri.host);
+
+          _controller = WebViewController()
+            ..setJavaScriptMode(
+              isTrusted
+                ? JavaScriptMode.unrestricted
+                : JavaScriptMode.disabled
+            )
+            ..setNavigationDelegate(
+              NavigationDelegate(
+                onNavigationRequest: (NavigationRequest request) {
+                  final requestUri = Uri.parse(request.url);
+
+                  // Block navigation to untrusted domains
+                  if (!_trustedDomains.contains(requestUri.host)) {
+                    print('Blocked navigation to: ${request.url}');
+                    return NavigationDecision.prevent;
+                  }
+
+                  return NavigationDecision.navigate;
+                },
+                onPageFinished: (String url) {
+                  // Inject CSP if needed
+                  _controller.runJavaScript('''
+                    var meta = document.createElement('meta');
+                    meta.httpEquiv = 'Content-Security-Policy';
+                    meta.content = "default-src 'self'; script-src 'self' 'unsafe-inline';";
+                    document.head.appendChild(meta);
+                  ''');
+                },
+              ),
+            )
+            ..loadRequest(Uri.parse(widget.url));
+        }
+
+        @override
+        Widget build(BuildContext context) {
+          return WebViewWidget(controller: _controller);
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - Whitelist trusted domains
+      - Disable JavaScript for untrusted content
+      - Implement strict navigation controls
+      - Add Content Security Policy (CSP)
+      - Validate all URLs before loading
+      - Monitor for XSS attempts
+
+      JAVASCRIPT CHANNELS SECURITY:
+      ```dart
+      // If using JavaScript channels, validate messages
+      _controller.addJavaScriptChannel(
+        'MessageHandler',
+        onMessageReceived: (JavaScriptMessage message) {
+          // Validate message before processing
+          if (_isValidMessage(message.message)) {
+            _handleMessage(message.message);
+          } else {
+            print('Invalid message blocked: ${message.message}');
+          }
+        },
+      );
+      ```
+
+      Reference: OWASP Mobile Top 10, WebView Security Guide
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: MEDIUM

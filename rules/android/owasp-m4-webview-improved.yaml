@@ -1,0 +1,251 @@
+rules:
+  # =============================================================================
+  # IMPROVED: Android WebView Security (Phase 2 False Positive Fixes)
+  # =============================================================================
+  #
+  # IMPROVEMENTS OVER ORIGINAL:
+  # 1. Excludes file:// URLs for app assets (android_asset, android_res)
+  # 2. Excludes BuildConfig URLs (configuration-based)
+  # 3. Excludes validated URLs (with whitelist checks)
+  # 4. Excludes test code
+  # 5. Adds context-aware severity (WARNING instead of ERROR)
+  #
+  # EXPECTED FALSE POSITIVE REDUCTION: 70% → <20%
+  # =============================================================================
+
+  - id: owasp-m4-webview-url-injection-improved
+    patterns:
+      - pattern-either:
+          - pattern: $WEBVIEW.loadUrl($URL)
+
+      # Don't flag hardcoded HTTPS URLs (safe)
+      - pattern-not: $WEBVIEW.loadUrl("https://...")
+
+      # Don't flag localhost (development)
+      - pattern-not: $WEBVIEW.loadUrl("http://localhost...")
+      - pattern-not: $WEBVIEW.loadUrl("http://127.0.0.1...")
+
+      # ========== EXCLUDE APP ASSETS (SAFE) ==========
+      # Loading from app's own bundle is secure
+      - pattern-not: $WEBVIEW.loadUrl("file:///android_asset/...")
+      - pattern-not: $WEBVIEW.loadUrl("file:///android_res/...")
+
+      # ========== EXCLUDE BUILDCONFIG URLs ==========
+      # Configuration-based URLs (checked at build time)
+      - pattern-not: $WEBVIEW.loadUrl(BuildConfig.$URL)
+      - pattern-not: $WEBVIEW.loadUrl($CLASS.BASE_URL + ...)
+
+      # ========== EXCLUDE VALIDATED URLs ==========
+      # URL validation present in same block
+      - pattern-not-inside: |
+          if (isValidUrl($URL)) {
+            ...
+            $WEBVIEW.loadUrl($URL)
+          }
+      - pattern-not-inside: |
+          if ($URL.startsWith("https://")) {
+            ...
+            $WEBVIEW.loadUrl($URL)
+          }
+      - pattern-not-inside: |
+          val uri = Uri.parse($URL)
+          if (uri.scheme == "https") {
+            ...
+            $WEBVIEW.loadUrl($URL)
+          }
+
+      # ========== EXCLUDE WHITELIST CHECKS ==========
+      - pattern-not-inside: |
+          val allowedHosts = listOf(...)
+          if (allowedHosts.contains(...)) {
+            ...
+            $WEBVIEW.loadUrl($URL)
+          }
+      - pattern-not-inside: |
+          if (ALLOWED_DOMAINS.contains($DOMAIN)) {
+            ...
+            $WEBVIEW.loadUrl($URL)
+          }
+
+      # ========== EXCLUDE TEST CODE ==========
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC(...) { ... }
+      - pattern-not-inside: |
+          @Test
+          public void $FUNC(...) { ... }
+      - pattern-not-inside: |
+          @RunWith(...)
+          class $CLASSTest { ... }
+      - pattern-not-inside: |
+          class $CLASSTests extends TestCase { ... }
+
+      # ========== EXCLUDE DEBUG BUILDS ==========
+      - pattern-not-inside: |
+          if (BuildConfig.DEBUG) {
+            ...
+          }
+
+    message: |
+      Potentially untrusted URL loaded in WebView (OWASP M4: Insufficient Input/Output Validation).
+
+      FALSE POSITIVE NOTE:
+      This warning may be safe to ignore if:
+      ✓ URL is validated against a whitelist before loading
+      ✓ URL comes from trusted configuration (BuildConfig)
+      ✓ Security is enforced elsewhere in the code path
+
+      VULNERABLE PATTERN:
+      ```java
+      // INSECURE - User input directly loaded
+      String url = getIntent().getStringExtra("url");
+      webView.loadUrl(url);  // ❌ Can navigate to evil.com
+      ```
+
+      SECURE PATTERNS:
+      ```java
+      // Option 1: Whitelist validation
+      Uri uri = Uri.parse(url);
+      List<String> allowedHosts = Arrays.asList("trusted.com", "api.trusted.com");
+
+      if ("https".equals(uri.getScheme()) &&
+          allowedHosts.contains(uri.getHost())) {
+          webView.loadUrl(url);  // ✅ Safe
+      }
+
+      // Option 2: Asset loading (always safe)
+      webView.loadUrl("file:///android_asset/index.html");  // ✅ Safe
+
+      // Option 3: Configuration-based (build-time checked)
+      webView.loadUrl(BuildConfig.HELP_URL);  // ✅ Safe
+      ```
+
+      VALIDATION CHECKLIST:
+      1. ✓ Validate scheme (https only for external)
+      2. ✓ Whitelist allowed domains
+      3. ✓ Check for javascript: or data: schemes
+      4. ✓ Use Uri.parse() to validate structure
+      5. ✓ Never use string.contains() for domain validation
+
+      ATTACK SCENARIOS:
+      - Phishing: Load fake login page
+      - XSS: javascript:alert(document.cookie)
+      - Data exfiltration: data:text/html,<script>sendData()</script>
+      - CSRF: Load malicious site that triggers actions
+
+      Reference: CWE-601 (URL Redirection to Untrusted Site)
+
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: MEDIUM
+      false_positive_reduction: "Phase 2 - Asset/config/validation exclusions"
+      estimated_fp_rate_before: "70%"
+      estimated_fp_rate_after: "<20%"
+
+  - id: owasp-m4-weak-url-validation-contains-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($URL.contains("$DOMAIN")) {
+                ...
+                $WEBVIEW.loadUrl($URL)
+                ...
+              }
+          - pattern: |
+              if ($URL.contains($DOMAIN)) {
+                ...
+                $WEBVIEW.loadUrl($URL)
+                ...
+              }
+
+      # ========== EXCLUDE TEST CODE ==========
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC(...) { ... }
+      - pattern-not-inside: |
+          class $CLASSTests extends TestCase { ... }
+
+    message: |
+      Weak URL validation using contains() method (OWASP M4: Insufficient Input/Output Validation).
+
+      CRITICAL SECURITY FLAW:
+      Using contains() for URL validation is insecure and trivially bypassable.
+
+      BYPASS EXAMPLES (all pass contains("trusted.com")):
+      ✗ "http://evil.com?trusted.com=x"
+      ✗ "http://evil.com/trusted.com/path"
+      ✗ "http://trusted.com.evil.com"
+      ✗ "http://evil.com#trusted.com"
+      ✗ "http://evil.com/untrusted.com"
+
+      VULNERABLE CODE:
+      ```java
+      // INSECURE - Easily bypassed
+      if (url.contains("trusted-domain.com")) {
+          webView.loadUrl(url);  // ❌ Can be bypassed
+      }
+      ```
+
+      SECURE FIX:
+      ```java
+      // SECURE - Parse and validate URL components separately
+      Uri uri = Uri.parse(url);
+
+      // Validate scheme (must be https)
+      if (!"https".equals(uri.getScheme())) {
+          throw new SecurityException("Only HTTPS allowed");
+      }
+
+      // Validate host (exact match, not substring)
+      if (!"trusted-domain.com".equals(uri.getHost())) {
+          throw new SecurityException("Untrusted domain");
+      }
+
+      // Now safe to load
+      webView.loadUrl(url);  // ✅ Secure
+      ```
+
+      SECURE VALIDATION CHECKLIST:
+      1. ✓ Use Uri.parse() or URL class (never string matching)
+      2. ✓ Validate scheme: uri.getScheme().equals("https")
+      3. ✓ Validate host: uri.getHost().equals("trusted.com") (exact match)
+      4. ✓ Optional: Validate path, query params
+      5. ✓ Reject javascript:, data:, file: schemes
+
+      WHY contains() IS DANGEROUS:
+      - It matches ANY substring occurrence
+      - Doesn't respect URL structure (scheme, host, path)
+      - Can't distinguish between domain and subdomains
+      - Can be exploited via query params, fragments, paths
+
+      BETTER ALTERNATIVES:
+      ```java
+      // Option 1: Exact host matching
+      Uri.parse(url).getHost().equals("trusted.com")
+
+      // Option 2: Whitelist with subdomain support
+      String host = Uri.parse(url).getHost();
+      host.equals("trusted.com") || host.endsWith(".trusted.com")
+
+      // Option 3: Regex with proper boundaries
+      url.matches("^https://trusted\\.com/.*")
+      ```
+
+      Reference: CWE-601 (URL Redirection to Untrusted Site)
+
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+      false_positive_reduction: "Phase 2 - Test exclusions"

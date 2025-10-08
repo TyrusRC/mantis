@@ -1,0 +1,188 @@
+rules:
+  # =============================================================================
+  # IMPROVED: Android Random Number Generation (Phase 2 False Positive Fixes)
+  # =============================================================================
+  #
+  # IMPROVEMENTS OVER ORIGINAL:
+  # 1. Excludes UI/animation contexts (color generation, particle effects)
+  # 2. Excludes game logic (dice rolls, shuffling, game mechanics)
+  # 3. Excludes test code (test data generation, mock values)
+  # 4. Excludes debug builds
+  # 5. Context-aware detection for cryptographic vs non-cryptographic usage
+  #
+  # EXPECTED FALSE POSITIVE REDUCTION: 50% → <15%
+  # =============================================================================
+
+  - id: mastg-test-0016-insecure-random-improved
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Random()
+          - pattern: |
+              java.util.Random()
+          - pattern: |
+              Math.random()
+          - pattern: |
+              kotlin.random.Random
+
+      # ========== EXCLUDE UI/ANIMATION CONTEXTS ==========
+      # Random usage for visual effects is acceptable
+      - pattern-not-inside: |
+          fun random$UI_ELEMENT(...): $TYPE { ... }
+      - pattern-not-inside: |
+          fun get$NAMEColor(...): Color { ... }
+      - pattern-not-inside: |
+          fun generate$NAMEColor(...): $TYPE { ... }
+      - pattern-not-inside: |
+          class $NAMEAnimation { ... }
+      - pattern-not-inside: |
+          class Particle$NAME { ... }
+      - pattern-not-inside: |
+          class $NAMEParticle { ... }
+      - pattern-not-inside: |
+          class $NAMEEffect { ... }
+      - pattern-not-inside: |
+          class Visual$NAME { ... }
+
+      # ========== EXCLUDE GAME LOGIC ==========
+      # Game mechanics don't need cryptographic randomness
+      - pattern-not-inside: |
+          class $GAMEScene { ... }
+      - pattern-not-inside: |
+          class $NAMEGame { ... }
+      - pattern-not-inside: |
+          class Game$NAME { ... }
+      - pattern-not-inside: |
+          fun shuffle$ANYTHING(...) { ... }
+      - pattern-not-inside: |
+          fun rollDice(...) { ... }
+      - pattern-not-inside: |
+          fun roll$NAME(...) { ... }
+      - pattern-not-inside: |
+          fun randomize$GAME(...) { ... }
+
+      # ========== EXCLUDE TEST CODE ==========
+      - pattern-not-inside: |
+          @Test
+          fun $FUNC(...) { ... }
+      - pattern-not-inside: |
+          @Test
+          public void $FUNC(...) { ... }
+      - pattern-not-inside: |
+          @RunWith(...)
+          class $CLASSTest { ... }
+      - pattern-not-inside: |
+          class $CLASSTests extends TestCase { ... }
+      - pattern-not-inside: |
+          class $CLASSTests { ... }
+
+      # ========== EXCLUDE DEBUG BUILDS ==========
+      - pattern-not-inside: |
+          if (BuildConfig.DEBUG) {
+            ...
+          }
+      - pattern-not-inside: |
+          if (DEBUG) {
+            ...
+          }
+
+      # ========== EXCLUDE FACTORY/MOCK PATTERNS ==========
+      # Test data factories use non-crypto random
+      - pattern-not-inside: |
+          class $NAMEFactory { ... }
+      - pattern-not-inside: |
+          class Mock$NAME { ... }
+      - pattern-not-inside: |
+          class Fake$NAME { ... }
+      - pattern-not-inside: |
+          fun create$NAMERandom(...) { ... }
+      - pattern-not-inside: |
+          fun generate$NAMEData(...) { ... }
+
+    message: |
+      Insecure random number generation detected (MASTG-TEST-0016).
+
+      CONTEXT-AWARE ANALYSIS:
+      This rule only triggers outside UI/animation/game contexts.
+
+      ACCEPTABLE USES (excluded from this warning):
+      ✓ UI color generation: getRandomColor()
+      ✓ Animation/particle effects: ParticleSystem
+      ✓ Game mechanics: rollDice(), shuffle()
+      ✓ Test data: RandomUserFactory
+
+      SECURITY-CRITICAL USES (flagged by this rule):
+      ✗ Session token generation
+      ✗ Encryption keys/IVs/nonces
+      ✗ CSRF tokens
+      ✗ Password reset tokens
+      ✗ API keys
+
+      ISSUE:
+      java.util.Random and Math.random() use predictable PRNG algorithms.
+      Attackers can predict future values if they observe previous outputs.
+
+      SECURE FIX:
+      ```java
+      // INSECURE (for cryptographic use)
+      Random random = new Random();
+      byte[] sessionToken = new byte[16];
+      random.nextBytes(sessionToken);  // Predictable!
+
+      // SECURE
+      SecureRandom secureRandom = new SecureRandom();
+      byte[] sessionToken = new byte[16];
+      secureRandom.nextBytes(sessionToken);  // Cryptographically secure
+      ```
+
+      ```kotlin
+      // INSECURE (for cryptographic use)
+      val token = Random.nextBytes(16)  // Predictable!
+
+      // SECURE
+      val secureRandom = java.security.SecureRandom()
+      val token = ByteArray(16)
+      secureRandom.nextBytes(token)  // Cryptographically secure
+      ```
+
+      WHEN TO USE EACH:
+      - UI/animations/games: Random() is fine
+      - Security operations: MUST use SecureRandom()
+
+      Reference: https://mas.owasp.org/MASTG/tests/android/MASVS-CRYPTO/MASTG-TEST-0016/
+
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0016"
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH
+      false_positive_reduction: "Phase 2 - UI/animation/game exclusions"
+      estimated_fp_rate_before: "50%"
+      estimated_fp_rate_after: "<15%"
+
+  - id: mastg-test-0016-securerandom-default-seed
+    patterns:
+      - pattern: |
+          val random = SecureRandom()
+          random.setSeed($SEED)
+    message: |
+      SecureRandom with manual seed (MASTG-TEST-0016).
+      Setting a seed on SecureRandom makes it deterministic and predictable.
+      Allow SecureRandom to self-seed using system entropy sources.
+    severity: WARNING
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      mastg-test: "MASTG-TEST-0016"
+      cwe: "CWE-337: Predictable Seed in Pseudo-Random Number Generator"
+      masvs: "MASVS-CRYPTO-2"
+      owasp-mobile-2024: "M10: Insufficient Cryptography"
+      confidence: HIGH

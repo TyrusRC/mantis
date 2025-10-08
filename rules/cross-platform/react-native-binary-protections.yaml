@@ -1,0 +1,1097 @@
+rules:
+  # =============================================================================
+  # OWASP Mobile Top 10 - M7: Insufficient Binary Protections (React Native)
+  # COMPREHENSIVE COVERAGE - 2024/2025
+  # =============================================================================
+  #
+  # Coverage Areas:
+  # 1. JavaScript Bundle Obfuscation & Minification
+  # 2. Hermes Bytecode Protection
+  # 3. ProGuard/R8 Configuration (Android)
+  # 4. Source Map Security
+  # 5. Debug Mode Detection
+  # 6. Root & Jailbreak Detection
+  # 7. Console Logging Protection
+  # 8. Metro Bundler Configuration
+  # 9. Native Code Protection
+  # 10. Runtime Integrity Checks
+  #
+  # Target: 85%+ M7 Coverage for React Native
+  # Sources: OWASP MASTG, React Native Security Guide 2024, Hermes Documentation
+  # =============================================================================
+
+  # ============================================================================
+  # SECTION 1: JAVASCRIPT BUNDLE OBFUSCATION
+  # ============================================================================
+
+  - id: react-native-m7-bundle-not-minified
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "scripts": {
+                ...
+                "$SCRIPT": "react-native bundle ...",
+                ...
+              }
+      - pattern-not: |
+          "... --minify ..."
+      - pattern-not: |
+          "... --minify=true ..."
+    message: |
+      React Native bundle built without minification (OWASP M7: Insufficient Binary Protections).
+
+      CRITICAL SECURITY ISSUE:
+      Unminified JavaScript bundles expose complete application source code, including:
+      - Business logic and algorithms
+      - API endpoints and keys
+      - Authentication flows
+      - Sensitive data handling
+      - Client-side validations
+
+      VULNERABLE PATTERN:
+      ```json
+      // package.json - INSECURE
+      {
+        "scripts": {
+          "bundle:android": "react-native bundle --platform android --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle",
+          "bundle:ios": "react-native bundle --platform ios --entry-file index.js --bundle-output ios/main.jsbundle"
+        }
+      }
+      ```
+
+      ATTACK SCENARIO:
+      1. Attacker extracts APK/IPA from device or app store
+      2. Locates index.android.bundle or main.jsbundle
+      3. Reads plaintext JavaScript source code
+      4. Extracts hardcoded secrets, API keys, endpoints
+      5. Reverse engineers business logic
+      6. Bypasses client-side security controls
+      7. Identifies vulnerabilities in code
+
+      SECURE IMPLEMENTATION:
+      ```json
+      // package.json - SECURE
+      {
+        "scripts": {
+          "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --minify true --sourcemap-output /dev/null",
+
+          "bundle:ios": "react-native bundle --platform ios --dev false --entry-file index.js --bundle-output ios/main.jsbundle --minify true --sourcemap-output /dev/null",
+
+          "bundle:android:hermes": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --minify true && npx hermesc -O -emit-binary -out android/app/src/main/assets/index.android.bundle android/app/src/main/assets/index.android.bundle"
+        }
+      }
+      ```
+
+      HERMES BYTECODE PROTECTION (Recommended):
+      ```gradle
+      // android/app/build.gradle - CRITICAL FOR SECURITY
+      project.ext.react = [
+          enableHermes: true,  // Compile JavaScript to bytecode
+      ]
+
+      android {
+          buildTypes {
+              release {
+                  minifyEnabled true
+                  shrinkResources true
+                  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                                'proguard-rules.pro'
+              }
+          }
+      }
+      ```
+
+      ```ruby
+      # ios/Podfile - Enable Hermes on iOS
+      require_relative '../node_modules/react-native/scripts/react_native_pods'
+      require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+      platform :ios, '13.0'
+
+      target 'MyApp' do
+        config = use_native_modules!
+
+        use_react_native!(
+          :path => config[:reactNativePath],
+          :hermes_enabled => true  # ✅ Enable Hermes bytecode
+        )
+      end
+      ```
+
+      METRO BUNDLER CONFIGURATION:
+      ```javascript
+      // metro.config.js - AGGRESSIVE MINIFICATION
+      const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+
+      const config = {
+        transformer: {
+          minifierPath: 'metro-minify-terser',
+          minifierConfig: {
+            // Aggressive JavaScript minification
+            ecma: 2020,
+            keep_classnames: false,
+            keep_fnames: false,
+            module: true,
+            mangle: {
+              toplevel: true,
+              keep_classnames: false,
+              keep_fnames: false,
+              module: true,
+            },
+            compress: {
+              drop_console: true,      // Remove all console.* calls
+              drop_debugger: true,     // Remove debugger statements
+              pure_funcs: [
+                'console.log',
+                'console.info',
+                'console.debug',
+                'console.warn',
+              ],
+              passes: 3,               // Multiple optimization passes
+            },
+            output: {
+              ascii_only: true,
+              comments: false,         // Remove all comments
+              beautify: false,
+            },
+          },
+        },
+      };
+
+      module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+      ```
+
+      ADVANCED OBFUSCATION (High-Value Apps):
+      ```javascript
+      // scripts/obfuscate-bundle.js
+      const JavaScriptObfuscator = require('javascript-obfuscator');
+      const fs = require('fs');
+      const path = require('path');
+
+      const bundlePath = process.argv[2];
+      const code = fs.readFileSync(bundlePath, 'utf8');
+
+      const obfuscated = JavaScriptObfuscator.obfuscate(code, {
+        compact: true,
+        controlFlowFlattening: true,
+        controlFlowFlatteningThreshold: 0.75,
+        deadCodeInjection: true,
+        deadCodeInjectionThreshold: 0.4,
+        debugProtection: true,
+        debugProtectionInterval: 4000,
+        disableConsoleOutput: true,
+        identifierNamesGenerator: 'hexadecimal',
+        log: false,
+        numbersToExpressions: true,
+        renameGlobals: false,
+        selfDefending: true,
+        simplify: true,
+        splitStrings: true,
+        splitStringsChunkLength: 10,
+        stringArray: true,
+        stringArrayCallsTransform: true,
+        stringArrayEncoding: ['base64'],
+        stringArrayIndexShift: true,
+        stringArrayRotate: true,
+        stringArrayShuffle: true,
+        stringArrayWrappersCount: 2,
+        stringArrayWrappersChainedCalls: true,
+        stringArrayThreshold: 0.75,
+        transformObjectKeys: true,
+        unicodeEscapeSequence: false,
+      });
+
+      fs.writeFileSync(bundlePath, obfuscated.getObfuscatedCode());
+      console.log('✓ Bundle obfuscated successfully');
+
+      // Usage in package.json:
+      // "bundle:android:obfuscated": "npm run bundle:android && node scripts/obfuscate-bundle.js android/app/src/main/assets/index.android.bundle"
+      ```
+
+      PROGUARD RULES FOR REACT NATIVE:
+      ```
+      # android/app/proguard-rules.pro
+
+      # Keep React Native core
+      -keep class com.facebook.react.** { *; }
+      -keep class com.facebook.hermes.** { *; }
+      -keep class com.facebook.jni.** { *; }
+
+      # Keep native modules
+      -keep class * extends com.facebook.react.bridge.ReactContextBaseJavaModule { *; }
+      -keep class * extends com.facebook.react.bridge.NativeModule { *; }
+
+      # Obfuscate application code
+      -repackageclasses ''
+      -allowaccessmodification
+
+      # Remove all logging
+      -assumenosideeffects class android.util.Log {
+          public static *** d(...);
+          public static *** v(...);
+          public static *** i(...);
+          public static *** w(...);
+          public static *** e(...);
+      }
+
+      # Remove console logs
+      -assumenosideeffects class * {
+          public void println(...);
+      }
+      ```
+
+      CI/CD INTEGRATION:
+      ```yaml
+      # .github/workflows/build-release.yml
+      name: Build React Native Release
+
+      on:
+        push:
+          tags:
+            - 'v*'
+
+      jobs:
+        build-android:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v3
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v3
+              with:
+                node-version: '18'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Bundle JavaScript with minification
+              run: |
+                npx react-native bundle \
+                  --platform android \
+                  --dev false \
+                  --entry-file index.js \
+                  --bundle-output android/app/src/main/assets/index.android.bundle \
+                  --minify true \
+                  --sourcemap-output android/app/build/bundle.map
+
+            - name: Build APK
+              run: |
+                cd android
+                ./gradlew assembleRelease
+
+            - name: Verify Bundle Protection
+              run: |
+                # Check if bundle is minified
+                if grep -q "function " android/app/src/main/assets/index.android.bundle; then
+                  echo "ERROR: Bundle appears unminified"
+                  exit 1
+                fi
+
+                # Check for debug artifacts
+                if grep -qi "debugger\|console.log\|__DEV__.*true" android/app/src/main/assets/index.android.bundle; then
+                  echo "ERROR: Debug artifacts found"
+                  exit 1
+                fi
+
+                # Check if Hermes bytecode
+                if ! file android/app/src/main/assets/index.android.bundle | grep -q "Hermes"; then
+                  echo "WARNING: Not compiled to Hermes bytecode"
+                fi
+
+                echo "✓ Bundle protection verified"
+
+            - name: Store source maps securely
+              run: |
+                # DO NOT include source maps in release
+                # Store separately for crash analysis
+                aws s3 cp android/app/build/bundle.map \
+                  s3://my-app-sourcemaps/android/$(git rev-parse HEAD)/
+      ```
+
+      BENEFITS OF HERMES BYTECODE:
+      ✓ JavaScript compiled to bytecode (not plaintext)
+      ✓ Significantly harder to reverse engineer
+      ✓ Smaller bundle size (20-30% reduction)
+      ✓ Faster app startup (2-4x improvement)
+      ✓ Lower memory usage
+      ✗ Can still be disassembled with effort
+
+      VERIFICATION:
+      ```bash
+      # Check if Hermes is enabled
+      file android/app/src/main/assets/index.android.bundle
+      # Output should be: "Hermes Bytecode"
+
+      # NOT "ASCII text" or "JavaScript source"
+      ```
+
+      LIMITATIONS & ADDITIONAL MEASURES:
+      - Minification/obfuscation != encryption
+      - Determined attackers can still reverse engineer
+      - String literals may remain visible
+      - Move sensitive logic to backend
+      - Use code splitting to reduce attack surface
+      - Implement runtime integrity checks
+
+      BEST PRACTICES:
+      - ✅ Always use --minify for production
+      - ✅ Enable Hermes bytecode compilation
+      - ✅ Configure aggressive Metro minification
+      - ✅ Remove all console.* statements
+      - ✅ Store source maps separately
+      - ✅ Enable ProGuard/R8 for native code
+      - ✅ Consider additional obfuscation for high-value apps
+      - ✅ Verify bundle protection in CI/CD
+
+      Reference:
+      - React Native Performance: https://reactnative.dev/docs/hermes
+      - OWASP MASTG-TEST-0226: Testing for Code Obfuscation
+      - Hermes Bytecode Reverse Engineering (awareness)
+
+    severity: ERROR
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      mastg-test: "MASTG-TEST-0226: Testing for Code Obfuscation"
+      confidence: VERY_HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: react-native-m7-hermes-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              enableHermes: false
+          - pattern: |
+              :hermes_enabled => false
+    message: |
+      Hermes engine disabled (OWASP M7: Insufficient Binary Protections).
+
+      CRITICAL: Hermes compiles JavaScript to bytecode, significantly increasing
+      reverse engineering difficulty compared to plaintext JavaScript bundles.
+
+      VULNERABLE CONFIGURATION:
+      ```gradle
+      // android/app/build.gradle - INSECURE
+      project.ext.react = [
+          enableHermes: false,  // Plaintext JavaScript bundle!
+      ]
+      ```
+
+      ```ruby
+      # ios/Podfile - INSECURE
+      use_react_native!(
+        :hermes_enabled => false  # Plaintext JavaScript bundle!
+      )
+      ```
+
+      SECURE CONFIGURATION:
+      ```gradle
+      // android/app/build.gradle - SECURE
+      project.ext.react = [
+          enableHermes: true,  // ✅ Compile to bytecode
+      ]
+      ```
+
+      ```ruby
+      # ios/Podfile - SECURE
+      use_react_native!(
+        :path => config[:reactNativePath],
+        :hermes_enabled => true  # ✅ Compile to bytecode
+      )
+      ```
+
+      BENEFITS:
+      - JavaScript → Bytecode compilation
+      - 70-80% harder to reverse engineer
+      - Smaller bundle size
+      - Faster startup time
+      - Lower memory usage
+
+      VERIFICATION:
+      ```bash
+      # Android
+      file android/app/src/main/assets/index.android.bundle
+      # Should output: "Hermes Bytecode"
+
+      # iOS
+      file ios/main.jsbundle
+      # Should output: "Hermes Bytecode"
+      ```
+
+      Reference: React Native Hermes Documentation
+    severity: ERROR
+    languages:
+      - gradle
+      - ruby
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/Podfile"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: VERY_HIGH
+      false_positive_likelihood: VERY_LOW
+
+  # ============================================================================
+  # SECTION 2: SOURCE MAP PROTECTION
+  # ============================================================================
+
+  - id: react-native-m7-sourcemaps-in-production
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "... --sourcemap-output=$PATH ..."
+      - pattern-not: |
+          "... --sourcemap-output=/dev/null ..."
+      - metavariable-pattern:
+          metavariable: $PATH
+          patterns:
+            - pattern-not: /dev/null
+    message: |
+      Source maps generated in production bundle (OWASP M7).
+
+      RISK: Source maps allow complete reconstruction of original source code,
+      defeating all obfuscation and minification efforts.
+
+      VULNERABLE:
+      ```json
+      {
+        "scripts": {
+          "bundle:android": "react-native bundle --sourcemap-output android/app/src/main/assets/bundle.map"
+        }
+      }
+      ```
+
+      SECURE:
+      ```json
+      {
+        "scripts": {
+          "bundle:android": "react-native bundle --sourcemap-output /dev/null",
+
+          "bundle:android:with-symbols": "react-native bundle --sourcemap-output build/symbols/bundle.map && aws s3 cp build/symbols/bundle.map s3://secure-symbols/"
+        }
+      }
+      ```
+
+      BEST PRACTICE:
+      - Generate source maps for crash analysis
+      - Store source maps in secure location (S3, private server)
+      - DO NOT include in APK/IPA
+      - Use in CI/CD for Sentry/Bugsnag symbol upload
+
+      Reference: React Native Bundle Configuration
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  # ============================================================================
+  # SECTION 3: DEBUG MODE DETECTION
+  # ============================================================================
+
+  - id: react-native-m7-dev-mode-security-bypass
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if (__DEV__) {
+                return $BYPASS;
+              }
+          - pattern: |
+              if (__DEV__) {
+                $AUTH_BYPASS
+              }
+      - metavariable-pattern:
+          metavariable: $BYPASS
+          patterns:
+            - pattern-either:
+                - pattern: true
+                - pattern: |
+                    { token: $TOKEN }
+      - pattern-not-inside: |
+          if (__DEV__) {
+            require('$DEV_TOOL')
+          }
+    message: |
+      __DEV__ flag used for security bypass (OWASP M7: Insufficient Binary Protections).
+
+      CRITICAL: Debug mode should NEVER bypass authentication or security controls.
+
+      VULNERABLE PATTERNS:
+      ```javascript
+      // ❌ CRITICAL: Authentication bypass
+      async function authenticate(credentials) {
+        if (__DEV__) {
+          return { token: 'debug-token', user: 'admin' }; // Bypasses auth!
+        }
+        return await api.authenticate(credentials);
+      }
+
+      // ❌ CRITICAL: Security control disabled
+      const enableSSLPinning = __DEV__ ? false : true;
+
+      // ❌ VULNERABLE: Mock data in production code
+      const getUserData = () => {
+        if (__DEV__) {
+          return mockUserData; // May leak to production
+        }
+        return fetchUserData();
+      };
+      ```
+
+      SECURE PATTERNS:
+      ```javascript
+      // ✅ SAFE: Configuration management
+      const Config = {
+        apiUrl: __DEV__
+          ? 'http://localhost:3000'
+          : 'https://api.production.com',
+        enableLogging: __DEV__,
+      };
+
+      // ✅ SAFE: Development tools only
+      if (__DEV__) {
+        require('react-devtools');
+      }
+
+      // ✅ SAFE: Non-sensitive logging
+      if (__DEV__) {
+        console.log('App initialized');
+      }
+
+      // ✅ BETTER: Environment-based configuration
+      import Config from 'react-native-config';
+
+      const apiUrl = Config.API_URL; // From .env files
+      const isProduction = Config.ENVIRONMENT === 'production';
+      ```
+
+      METRO CONFIG (Remove __DEV__ branches):
+      ```javascript
+      // metro.config.js
+      module.exports = {
+        transformer: {
+          minifierConfig: {
+            compress: {
+              dead_code: true,
+              global_defs: {
+                __DEV__: false, // Force false in production
+              },
+            },
+          },
+        },
+      };
+      ```
+
+      Reference: React Native Development Best Practices
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: VERY_HIGH
+      false_positive_likelihood: LOW
+
+  - id: react-native-m7-debugger-statement
+    patterns:
+      - pattern: debugger;
+    message: |
+      Debugger statement in production code (OWASP M7).
+
+      FIX: Remove all debugger statements before release.
+
+      AUTOMATED REMOVAL:
+      ```javascript
+      // .eslintrc.js
+      module.exports = {
+        rules: {
+          'no-debugger': 'error',
+        },
+      };
+
+      // babel.config.js
+      module.exports = {
+        plugins: [
+          'transform-remove-debugger',
+        ],
+      };
+
+      // metro.config.js
+      transformer: {
+        minifierConfig: {
+          compress: {
+            drop_debugger: true,
+          },
+        },
+      },
+      ```
+
+      Reference: ESLint no-debugger rule
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: VERY_HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: react-native-m7-console-log-sensitive
+    patterns:
+      - pattern-either:
+          - pattern: console.log($DATA)
+          - pattern: console.info($DATA)
+          - pattern: console.debug($DATA)
+          - pattern: console.warn($DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|key|secret|credential|auth|pin|ssn|card|bearer).*
+    message: |
+      Sensitive data in console statements (OWASP M7).
+
+      RISK: Console logs are accessible via debugging tools and crash reports.
+
+      VULNERABLE:
+      ```javascript
+      const login = async (username, password) => {
+        console.log('Login attempt:', username, password); // ❌ Leaked!
+        console.log('Auth token:', authToken); // ❌ Exposed!
+      };
+      ```
+
+      SECURE:
+      ```javascript
+      // utils/logger.js
+      class Logger {
+        static log(message, data = {}) {
+          if (__DEV__) {
+            console.log(message, data);
+          }
+        }
+
+        static secure(operation) {
+          // Only log operation name, NEVER sensitive data
+          if (__DEV__) {
+            console.log(`[SECURE] ${operation}`);
+          }
+        }
+      }
+
+      // Usage
+      const login = async (username, password) => {
+        Logger.secure('login_attempt');
+        // Do NOT log credentials
+      };
+
+      // Remove console.* in production
+      // metro.config.js
+      compress: {
+        drop_console: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+      }
+      ```
+
+      Reference: OWASP Mobile Logging Best Practices
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  # ============================================================================
+  # SECTION 4: ROOT & JAILBREAK DETECTION
+  # ============================================================================
+
+  - id: react-native-m7-missing-root-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              export default function App() {
+                return (
+                  <$PROVIDER>
+                    ...
+                  </$PROVIDER>
+                );
+              }
+          - pattern: |
+              const App = () => {
+                return (
+                  <$CONTAINER>
+                    ...
+                  </$CONTAINER>
+                );
+              };
+      - pattern-not-inside: |
+          JailMonkey.isJailBroken()
+      - pattern-not-inside: |
+          RNRootDetection.isRooted()
+    message: |
+      Missing root/jailbreak detection (OWASP M7).
+
+      SEVERITY ASSESSMENT:
+      CRITICAL: Banking, payment, healthcare apps
+      HIGH: Enterprise apps, financial services
+      MEDIUM: Social apps with sensitive data
+      LOW: General apps, productivity tools
+      NONE: Developer tools, open-source apps
+
+      IMPLEMENTATION:
+      ```javascript
+      // Install: npm install jail-monkey
+      import JailMonkey from 'jail-monkey';
+      import { useEffect, useState } from 'react';
+      import { Alert } from 'react-native';
+
+      const DeviceSecurityCheck = ({ children }) => {
+        const [isSecure, setIsSecure] = useState(null);
+
+        useEffect(() => {
+          checkDeviceSecurity();
+        }, []);
+
+        const checkDeviceSecurity = async () => {
+          const checks = {
+            isJailBroken: JailMonkey.isJailBroken(),
+            canMockLocation: await JailMonkey.canMockLocation(),
+            isOnExternalStorage: JailMonkey.isOnExternalStorage(),
+            isDebuggedMode: JailMonkey.isDebuggedMode(),
+            hookDetected: JailMonkey.hookDetected(),
+          };
+
+          const secure = !Object.values(checks).some(v => v === true);
+          setIsSecure(secure);
+
+          if (!secure) {
+            handleInsecureDevice(checks);
+          }
+        };
+
+        const handleInsecureDevice = (checks) => {
+          const reasons = [];
+          if (checks.isJailBroken) reasons.push('• Device is rooted/jailbroken');
+          if (checks.canMockLocation) reasons.push('• Mock location enabled');
+          if (checks.isDebuggedMode) reasons.push('• Debugger detected');
+          if (checks.hookDetected) reasons.push('• Hooking framework detected');
+
+          Alert.alert(
+            'Security Warning',
+            `This app cannot run on compromised devices:\n\n${reasons.join('\n')}`,
+            [{ text: 'Exit', onPress: () => RNExitApp.exitApp() }],
+            { cancelable: false }
+          );
+        };
+
+        if (isSecure === null) {
+          return <LoadingScreen />;
+        }
+
+        if (!isSecure) {
+          return <InsecureDeviceScreen />;
+        }
+
+        return children;
+      };
+
+      export default function App() {
+        return (
+          <DeviceSecurityCheck>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </DeviceSecurityCheck>
+        );
+      }
+      ```
+
+      NATIVE MODULE (Advanced):
+      ```java
+      // android/app/src/main/java/.../RootDetectionModule.java
+      public class RootDetectionModule extends ReactContextBaseJavaModule {
+          @ReactMethod
+          public void isRooted(Promise promise) {
+              boolean rooted = checkSuBinary() ||
+                               checkBuildTags() ||
+                               checkSuCommand();
+              promise.resolve(rooted);
+          }
+
+          private boolean checkSuBinary() {
+              String[] paths = {"/sbin/su", "/system/bin/su", ...};
+              for (String path : paths) {
+                  if (new File(path).exists()) return true;
+              }
+              return false;
+          }
+      }
+      ```
+
+      CONTINUOUS MONITORING:
+      ```javascript
+      import { AppState } from 'react-native';
+
+      class SecurityMonitor {
+        start() {
+          AppState.addEventListener('change', (state) => {
+            if (state === 'active') {
+              if (JailMonkey.isJailBroken()) {
+                this.handleCompromise();
+              }
+            }
+          });
+        }
+
+        handleCompromise() {
+          // Logout, clear data, exit app
+        }
+      }
+      ```
+
+      LIMITATIONS:
+      - Can be bypassed by skilled attackers
+      - May frustrate legitimate users
+      - Better combined with server-side attestation (SafetyNet/DeviceCheck)
+
+      Reference: MASTG-TEST-0228: Testing Root Detection
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      mastg-test: "MASTG-TEST-0228: Testing Root Detection"
+      confidence: LOW
+      false_positive_likelihood: HIGH
+
+  # ============================================================================
+  # SECTION 5: ANDROID PROGUARD/R8 CONFIGURATION
+  # ============================================================================
+
+  - id: react-native-m7-proguard-disabled
+    patterns:
+      - pattern: |
+          buildTypes {
+            release {
+              ...
+              minifyEnabled false
+              ...
+            }
+          }
+    message: |
+      ProGuard/R8 disabled for React Native Android (OWASP M7).
+
+      ISSUE: Native Android code is not obfuscated in release builds.
+
+      SECURE CONFIGURATION:
+      ```gradle
+      // android/app/build.gradle
+      android {
+          buildTypes {
+              release {
+                  minifyEnabled true
+                  shrinkResources true
+                  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                                'proguard-rules.pro'
+              }
+          }
+      }
+      ```
+
+      PROGUARD RULES:
+      ```
+      # android/app/proguard-rules.pro
+      -keep class com.facebook.react.** { *; }
+      -keep class com.facebook.hermes.** { *; }
+      -repackageclasses ''
+      -allowaccessmodification
+      -assumenosideeffects class android.util.Log {
+          public static *** d(...);
+          public static *** v(...);
+          public static *** i(...);
+      }
+      ```
+
+      Reference: Android Code Obfuscation
+    severity: WARNING
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/android/app/build.gradle"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: react-native-m7-android-debuggable
+    patterns:
+      - pattern: |
+          <application
+            ...
+            android:debuggable="true"
+            ...
+          />
+    message: |
+      Application debuggable in AndroidManifest.xml (OWASP M7).
+
+      CRITICAL: android:debuggable="true" allows runtime debugging and memory inspection.
+
+      FIX:
+      ```xml
+      <application
+          android:name=".MainApplication"
+          android:label="@string/app_name">
+          <!-- Remove android:debuggable (defaults to false) -->
+      </application>
+      ```
+
+      Reference: CWE-489 Active Debug Code
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: VERY_HIGH
+
+  # ============================================================================
+  # SECTION 6: RUNTIME INTEGRITY CHECKS
+  # ============================================================================
+
+  - id: react-native-m7-missing-integrity-check
+    patterns:
+      - pattern: |
+          export default function App() {
+            ...
+          }
+      - pattern-not-inside: |
+          verifyAppIntegrity()
+      - pattern-not-inside: |
+          IntegrityChecker.verify()
+    message: |
+      Missing app integrity verification (OWASP M7).
+
+      RECOMMENDATION: High-value apps should verify integrity.
+
+      IMPLEMENTATION:
+      ```javascript
+      import DeviceInfo from 'react-native-device-info';
+
+      class IntegrityChecker {
+        static async verify() {
+          const bundleId = DeviceInfo.getBundleId();
+
+          if (bundleId !== 'com.example.app') {
+            return false;
+          }
+
+          // Additional checks via native modules
+          return await this.verifyNativeSignature();
+        }
+      }
+
+      export default function App() {
+        useEffect(() => {
+          if (!__DEV__) {
+            IntegrityChecker.verify().then(valid => {
+              if (!valid) {
+                Alert.alert('Security Error', 'App integrity check failed');
+              }
+            });
+          }
+        }, []);
+
+        return <NavigationContainer>...</NavigationContainer>;
+      }
+      ```
+
+      Reference: OWASP Mobile Tampering Detection
+    severity: INFO
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      false_positive_likelihood: HIGH
+
+  # ============================================================================
+  # SECTION 7: SCREENSHOT PROTECTION
+  # ============================================================================
+
+  - id: react-native-m7-screenshot-allowed-sensitive
+    patterns:
+      - pattern-either:
+          - pattern: |
+              const $SCREEN = () => {
+                ...
+              };
+          - pattern: |
+              function $SCREEN() {
+                ...
+              }
+      - metavariable-regex:
+          metavariable: $SCREEN
+          regex: (Payment|Checkout|Card|Banking|Account|Transaction|Wallet).*Screen
+      - pattern-not-inside: |
+          ScreenCapture.preventScreenCapture()
+    message: |
+      Screenshot protection missing on sensitive screen (OWASP M7).
+
+      IMPLEMENTATION:
+      ```javascript
+      import ScreenCapture from 'react-native-screen-capture';
+      import { useEffect } from 'react';
+
+      const PaymentScreen = () => {
+        useEffect(() => {
+          ScreenCapture.preventScreenCapture();
+
+          return () => {
+            ScreenCapture.allowScreenCapture();
+          };
+        }, []);
+
+        return <View>...</View>;
+      };
+      ```
+
+      Reference: React Native Security Best Practices
+    severity: INFO
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      false_positive_likelihood: MEDIUM

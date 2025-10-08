@@ -1,0 +1,813 @@
+rules:
+  # OWASP Mobile Top 10 2024 - M8: Security Misconfiguration (iOS Comprehensive)
+  # Complete coverage of iOS/iPadOS configuration security issues
+  # Focus: Info.plist, entitlements, build settings, provisioning profiles
+  # Sources: OWASP MASVS, Apple Security Guidelines, iOS Security White Paper
+  # Coverage Target: 95%+ of M8 attack vectors for iOS
+
+  # ============ INFO.PLIST SECURITY CONFIGURATIONS ============
+
+  - id: m8-ios-ats-exception-production-domain
+    patterns:
+      - pattern: |
+          <key>NSExceptionDomains</key>
+          <dict>
+            ...
+            <key>$DOMAIN</key>
+            <dict>
+              ...
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+              ...
+            </dict>
+            ...
+          </dict>
+      - metavariable-regex:
+          metavariable: $DOMAIN
+          regex: ^(?!localhost|127\.0\.0\.1|10\.0\.2\.2|.*\.local).*\.(com|net|org|io)$
+    message: |
+      ATS exception for production domain (OWASP M8 - CRITICAL).
+      App Transport Security exceptions for production domains allow HTTP connections.
+
+      SECURITY IMPACT:
+      - HTTPS bypassed for specified domain
+      - Man-in-the-middle attacks possible
+      - Credentials interceptable
+      - Data tampering enabled
+      - App Store rejection risk
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- Info.plist - INSECURE -->
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSExceptionDomains</key>
+          <dict>
+              <key>api.example.com</key>
+              <dict>
+                  <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                  <true/>
+              </dict>
+          </dict>
+      </dict>
+      ```
+
+      ATTACK SCENARIO:
+      ```
+      1. User connects to public WiFi
+      2. Attacker runs MITM proxy
+      3. App connects to http://api.example.com (allowed by ATS exception)
+      4. Attacker intercepts credentials, tokens, PII
+      5. Data modified in transit
+      ```
+
+      SECURE FIX - Remove Exception:
+      ```xml
+      <!-- Info.plist - SECURE -->
+      <!-- No ATS configuration = HTTPS required for all domains -->
+      ```
+
+      SECURE FIX - Enforce HTTPS:
+      ```xml
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSExceptionDomains</key>
+          <dict>
+              <key>api.example.com</key>
+              <dict>
+                  <!-- Require HTTPS -->
+                  <key>NSExceptionRequiresForwardSecrecy</key>
+                  <false/>
+                  <key>NSExceptionMinimumTLSVersion</key>
+                  <string>TLSv1.2</string>
+                  <!-- No NSExceptionAllowsInsecureHTTPLoads -->
+              </dict>
+          </dict>
+      </dict>
+      ```
+
+      ACCEPTABLE LOCALHOST EXCEPTION:
+      ```xml
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSExceptionDomains</key>
+          <dict>
+              <!-- Development only -->
+              <key>localhost</key>
+              <dict>
+                  <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                  <true/>
+              </dict>
+              <key>127.0.0.1</key>
+              <dict>
+                  <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                  <true/>
+              </dict>
+          </dict>
+      </dict>
+      ```
+
+      SWIFT CODE ENFORCEMENT:
+      ```swift
+      import Foundation
+
+      class SecureNetworkManager {
+          static let shared = SecureNetworkManager()
+
+          func makeRequest(urlString: String) async throws -> Data {
+              guard let url = URL(string: urlString) else {
+                  throw NetworkError.invalidURL
+              }
+
+              // Enforce HTTPS in production
+              #if !DEBUG
+              guard url.scheme == "https" else {
+                  throw NetworkError.insecureConnection
+              }
+              #endif
+
+              let (data, response) = try await URLSession.shared.data(from: url)
+
+              guard let httpResponse = response as? HTTPURLResponse,
+                    (200...299).contains(httpResponse.statusCode) else {
+                  throw NetworkError.serverError
+              }
+
+              return data
+          }
+      }
+
+      enum NetworkError: Error {
+          case invalidURL
+          case insecureConnection
+          case serverError
+      }
+      ```
+
+      APP STORE REVIEW GUIDELINES:
+      Apple may reject apps with ATS exceptions unless:
+      - Clearly justified
+      - Limited to specific domains
+      - Privacy policy explains HTTP usage
+      - Secure alternative not available
+
+      Reference: OWASP M5, M8, MASVS-NETWORK-1, Apple ATS
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: VERY_HIGH
+      appstore_rejection_risk: HIGH
+
+  - id: m8-ios-ats-forward-secrecy-disabled
+    patterns:
+      - pattern: |
+          <key>$DOMAIN</key>
+          <dict>
+            ...
+            <key>NSExceptionRequiresForwardSecrecy</key>
+            <false/>
+            ...
+          </dict>
+    message: |
+      Forward Secrecy disabled in ATS exception (OWASP M8).
+      Disabling Perfect Forward Secrecy weakens TLS security.
+
+      SECURITY IMPACT:
+      - Past communications decryptable if private key compromised
+      - Long-term session key compromise possible
+      - Violates modern cryptography best practices
+      - Weakens post-compromise security
+
+      WHY FORWARD SECRECY MATTERS:
+      - Each session uses unique ephemeral keys
+      - Compromise of long-term key doesn't expose past sessions
+      - Protects historical communications
+      - Required by PCI DSS, NIST, NSA Suite B
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <key>NSExceptionDomains</key>
+      <dict>
+          <key>legacy-api.example.com</key>
+          <dict>
+              <key>NSExceptionRequiresForwardSecrecy</key>
+              <false/>  <!-- WEAK -->
+          </dict>
+      </dict>
+      ```
+
+      ATTACK SCENARIO:
+      ```
+      1. Attacker records encrypted TLS traffic (years of data)
+      2. Later, attacker compromises server's RSA private key
+      3. Without Forward Secrecy: Attacker decrypts all recorded traffic
+      4. With Forward Secrecy: Recorded traffic remains secure
+      ```
+
+      SECURE FIX:
+      ```xml
+      <!-- Remove NSExceptionRequiresForwardSecrecy or set to true -->
+      <key>NSExceptionDomains</key>
+      <dict>
+          <key>api.example.com</key>
+          <dict>
+              <!-- Forward Secrecy required (default) -->
+              <key>NSExceptionRequiresForwardSecrecy</key>
+              <true/>
+          </dict>
+      </dict>
+      ```
+
+      FORWARD SECRECY CIPHER SUITES:
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+
+      LEGACY SERVER MIGRATION:
+      If server doesn't support forward secrecy:
+      1. Upgrade server TLS configuration (recommended)
+      2. Use modern TLS library (OpenSSL 1.1+, BoringSSL)
+      3. Enable ECDHE cipher suites
+      4. Test with: openssl s_client -cipher ECDHE
+
+      Reference: OWASP M8, MASVS-NETWORK-1, RFC 7525
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-326: Inadequate Encryption Strength"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: m8-ios-background-modes-excessive
+    patterns:
+      - pattern: |
+          <key>UIBackgroundModes</key>
+          <array>
+            ...
+          </array>
+      - pattern-either:
+          - pattern: |
+              <string>fetch</string>
+          - pattern: |
+              <string>remote-notification</string>
+          - pattern: |
+              <string>processing</string>
+    message: |
+      Background modes enabled (OWASP M6/M8 - INFO).
+      Background modes extend app execution and require privacy disclosure.
+
+      PRIVACY & SECURITY CONSIDERATIONS:
+      - Battery drain concerns
+      - Background data collection possible
+      - User privacy implications
+      - App Store review scrutiny
+      - Must be disclosed in privacy policy
+
+      BACKGROUND MODES EXPLANATION:
+
+      fetch:
+      - App wakes periodically to fetch content
+      - Privacy: Can collect data when not in use
+      - Disclosure: "App refreshes content in background"
+
+      remote-notification:
+      - Silent push notifications wake app
+      - Privacy: Can process data without user interaction
+      - Disclosure: "App processes notifications in background"
+
+      processing:
+      - Long-running background tasks
+      - Privacy: Extensive background execution
+      - Disclosure: "App performs tasks in background"
+
+      LEGITIMATE USE CASES:
+      ```xml
+      <!-- Navigation app -->
+      <key>UIBackgroundModes</key>
+      <array>
+          <string>location</string>  <!-- Turn-by-turn directions -->
+      </array>
+
+      <!-- Music app -->
+      <array>
+          <string>audio</string>  <!-- Background playback -->
+      </array>
+
+      <!-- VoIP app -->
+      <array>
+          <string>voip</string>  <!-- Incoming call handling -->
+      </array>
+      ```
+
+      PRIVACY POLICY REQUIREMENTS:
+      ```markdown
+      ## Background Activity
+
+      Our app uses background modes for:
+
+      ### Background Fetch
+      - Purpose: Update content while app is not in use
+      - Frequency: Up to once per hour (system-determined)
+      - Data Collected: [List specific data]
+      - Can be Disabled: Settings > General > Background App Refresh
+
+      ### Remote Notifications
+      - Purpose: Deliver timely updates
+      - Data Collected: Notification payload only
+      - Can be Disabled: Settings > Notifications > [App Name]
+      ```
+
+      MINIMIZE BACKGROUND USAGE:
+      ```swift
+      import UIKit
+
+      class BackgroundTaskManager {
+          func minimizeBackgroundUsage() {
+              // Only fetch essential data
+              fetchOnlyWhenNecessary()
+
+              // Use smallest possible fetch interval
+              UIApplication.shared.setMinimumBackgroundFetchInterval(
+                  UIApplication.backgroundFetchIntervalMinimum
+              )
+
+              // Respect Low Power Mode
+              if ProcessInfo.processInfo.isLowPowerModeEnabled {
+                  disableBackgroundFetch()
+              }
+          }
+
+          func applicationDidEnterBackground(_ application: UIApplication) {
+              // Minimize work in background
+              let taskID = application.beginBackgroundTask {
+                  // Task exceeded time limit
+                  application.endBackgroundTask(taskID)
+              }
+
+              DispatchQueue.global().async {
+                  // Quick essential work only
+                  self.performEssentialSync()
+                  application.endBackgroundTask(taskID)
+              }
+          }
+      }
+      ```
+
+      REVIEW NECESSITY:
+      - Can feature work without background mode?
+      - Is user-initiated action acceptable?
+      - Can you use lower-impact alternative?
+
+      Reference: OWASP M6, M8, Apple Background Execution, MASVS-PRIVACY-1
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      masvs: "MASVS-PRIVACY-1"
+      confidence: LOW
+
+  # ============ ENTITLEMENTS SECURITY ============
+
+  - id: m8-ios-keychain-access-group-overly-permissive
+    patterns:
+      - pattern: |
+          <key>keychain-access-groups</key>
+          <array>
+            ...
+            <string>$GROUP</string>
+            ...
+          </array>
+      - metavariable-regex:
+          metavariable: $GROUP
+          regex: ^[A-Z0-9]+\.\*$
+    message: |
+      Overly permissive keychain access group (OWASP M8).
+      Wildcard keychain groups allow access to all app group keychains.
+
+      SECURITY RISKS:
+      - Access to other apps' keychain items
+      - Reduced isolation between apps
+      - Privilege escalation if one app compromised
+      - Violates principle of least privilege
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- *.entitlements - TOO PERMISSIVE -->
+      <key>keychain-access-groups</key>
+      <array>
+          <string>TEAMID.*</string>  <!-- Access to ALL team keychains -->
+      </array>
+      ```
+
+      ATTACK SCENARIO:
+      ```
+      App A (legitimate):
+        - Keychain group: TEAMID.com.example.app1
+        - Stores: User credentials
+
+      App B (compromised):
+        - Keychain group: TEAMID.*
+        - Can access: App A's credentials
+
+      If App B is compromised, attacker steals App A's keychain data
+      ```
+
+      SECURE FIX - Specific Groups:
+      ```xml
+      <!-- *.entitlements - SECURE -->
+      <key>keychain-access-groups</key>
+      <array>
+          <!-- Specific app group -->
+          <string>$(AppIdentifierPrefix)com.example.app</string>
+
+          <!-- Shared group for related apps only -->
+          <string>$(AppIdentifierPrefix)com.example.shared</string>
+      </array>
+      ```
+
+      KEYCHAIN USAGE WITH GROUPS:
+      ```swift
+      import Security
+
+      class SecureKeychainManager {
+          private let accessGroup = "TEAMID.com.example.shared"
+
+          func savePassword(_ password: String, for account: String) throws {
+              let data = password.data(using: .utf8)!
+
+              let query: [String: Any] = [
+                  kSecClass as String: kSecClassGenericPassword,
+                  kSecAttrAccount as String: account,
+                  kSecAttrAccessGroup as String: accessGroup,
+                  kSecValueData as String: data,
+                  kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+              ]
+
+              let status = SecItemAdd(query as CFDictionary, nil)
+              guard status == errSecSuccess else {
+                  throw KeychainError.saveFailed
+              }
+          }
+
+          func readPassword(for account: String) throws -> String {
+              let query: [String: Any] = [
+                  kSecClass as String: kSecClassGenericPassword,
+                  kSecAttrAccount as String: account,
+                  kSecAttrAccessGroup as String: accessGroup,
+                  kSecReturnData as String: true
+              ]
+
+              var result: AnyObject?
+              let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+              guard status == errSecSuccess,
+                    let data = result as? Data,
+                    let password = String(data: data, encoding: .utf8) else {
+                  throw KeychainError.readFailed
+              }
+
+              return password
+          }
+      }
+      ```
+
+      BEST PRACTICES:
+      - Use specific access groups
+      - One group per app (unless sharing needed)
+      - Document why groups are shared
+      - Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+
+      Reference: OWASP M8, MASVS-STORAGE-1, Apple Keychain Services
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/*.entitlements"
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+
+  - id: m8-ios-app-groups-security
+    patterns:
+      - pattern: |
+          <key>com.apple.security.application-groups</key>
+          <array>
+            <string>group.$GROUP</string>
+          </array>
+    message: |
+      App Groups configured (OWASP M8 - INFO).
+      App Groups enable data sharing between apps - ensure proper access controls.
+
+      SECURITY CONSIDERATIONS:
+      - Shared container accessible to all group members
+      - Data not encrypted by default
+      - Any app in group can read/write/delete
+      - Requires trust in all group members
+
+      APP GROUPS USE CASES:
+      - Share data between main app and extensions
+      - Share UserDefaults/files between related apps
+      - Same developer's app suite
+
+      SECURE USAGE:
+      ```swift
+      import Foundation
+
+      class SharedDataManager {
+          private let groupIdentifier = "group.com.example.shared"
+          private let encryptionKey = "encryption_key_from_keychain"
+
+          // Access shared container
+          var sharedContainerURL: URL? {
+              FileManager.default.containerURL(
+                  forSecurityApplicationGroupIdentifier: groupIdentifier
+              )
+          }
+
+          // Write encrypted data
+          func saveSharedData(_ data: Data, filename: String) throws {
+              guard let containerURL = sharedContainerURL else {
+                  throw SharedDataError.containerNotFound
+              }
+
+              let fileURL = containerURL.appendingPathComponent(filename)
+
+              // IMPORTANT: Encrypt data before writing
+              let encryptedData = try encrypt(data, with: encryptionKey)
+
+              try encryptedData.write(to: fileURL, options: .completeFileProtection)
+          }
+
+          // Read encrypted data
+          func loadSharedData(filename: String) throws -> Data {
+              guard let containerURL = sharedContainerURL else {
+                  throw SharedDataError.containerNotFound
+              }
+
+              let fileURL = containerURL.appendingPathComponent(filename)
+              let encryptedData = try Data(contentsOf: fileURL)
+
+              // Decrypt before returning
+              return try decrypt(encryptedData, with: encryptionKey)
+          }
+
+          // Encrypt sensitive data
+          private func encrypt(_ data: Data, with key: String) throws -> Data {
+              // Use CryptoKit or CommonCrypto
+              // Implementation depends on iOS version
+              guard #available(iOS 13.0, *) else {
+                  fatalError("Encryption requires iOS 13+")
+              }
+
+              let symmetricKey = SymmetricKey(data: key.data(using: .utf8)!)
+              let sealedBox = try AES.GCM.seal(data, using: symmetricKey)
+              return sealedBox.combined!
+          }
+
+          private func decrypt(_ data: Data, with key: String) throws -> Data {
+              guard #available(iOS 13.0, *) else {
+                  fatalError("Decryption requires iOS 13+")
+              }
+
+              let symmetricKey = SymmetricKey(data: key.data(using: .utf8)!)
+              let sealedBox = try AES.GCM.SealedBox(combined: data)
+              return try AES.GCM.open(sealedBox, using: symmetricKey)
+          }
+      }
+
+      import CryptoKit
+
+      enum SharedDataError: Error {
+          case containerNotFound
+          case encryptionFailed
+          case decryptionFailed
+      }
+      ```
+
+      SHARED USERDEFAULTS:
+      ```swift
+      class SharedSettings {
+          private let groupIdentifier = "group.com.example.shared"
+          private lazy var sharedDefaults = UserDefaults(suiteName: groupIdentifier)
+
+          func saveSetting(_ value: String, forKey key: String) {
+              // Don't store sensitive data in UserDefaults
+              // Use Keychain for passwords/tokens
+              guard !isSensitive(key) else {
+                  fatalError("Use Keychain for sensitive data")
+              }
+
+              sharedDefaults?.set(value, forKey: key)
+              sharedDefaults?.synchronize()
+          }
+
+          func getSetting(forKey key: String) -> String? {
+              return sharedDefaults?.string(forKey: key)
+          }
+
+          private func isSensitive(_ key: String) -> Bool {
+              let sensitiveKeys = ["password", "token", "secret", "key"]
+              return sensitiveKeys.contains { key.lowercased().contains($0) }
+          }
+      }
+      ```
+
+      FILE PROTECTION:
+      ```swift
+      // Set file protection for shared files
+      func setFileProtection(for fileURL: URL) throws {
+          try FileManager.default.setAttributes(
+              [.protectionKey: FileProtectionType.complete],
+              ofItemAtPath: fileURL.path
+          )
+      }
+      ```
+
+      SECURITY CHECKLIST:
+      - [ ] Encrypt sensitive data before writing to shared container
+      - [ ] Use Keychain (not shared container) for credentials
+      - [ ] Set file protection attributes
+      - [ ] Validate all data read from shared container
+      - [ ] Limit group membership to trusted apps only
+      - [ ] Document what data is shared and why
+
+      Reference: OWASP M8, MASVS-STORAGE-2, Apple App Groups
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/*.entitlements"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-STORAGE-2"
+      confidence: LOW
+
+  # ============ BUILD SETTINGS & SCHEMES ============
+
+  - id: m8-ios-bitcode-disabled
+    patterns:
+      - pattern: |
+          ENABLE_BITCODE = NO
+    message: |
+      Bitcode disabled in build settings (OWASP M7/M8 - INFO).
+      Bitcode allows Apple to reoptimize app binaries.
+
+      NOTE: Bitcode is DEPRECATED by Apple as of Xcode 14.
+      This is now informational only.
+
+      BITCODE BENEFITS (Historical):
+      - App size optimization
+      - Future compiler improvements
+      - Architecture-specific optimizations
+
+      MODERN ALTERNATIVE:
+      Since Xcode 14, bitcode is no longer required or supported.
+      Focus on other binary protections instead.
+
+      CURRENT BINARY PROTECTION RECOMMENDATIONS:
+      1. Enable Link-Time Optimization (LTO)
+      2. Use automatic code signing
+      3. Enable Address Sanitizer in debug
+      4. Configure optimization levels
+
+      Reference: Apple Xcode 14 Release Notes
+    severity: INFO
+    languages:
+      - xcconfig
+      - pbxproj
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      deprecated: true
+
+  - id: m8-ios-code-signing-development
+    patterns:
+      - pattern-either:
+          - pattern: |
+              CODE_SIGN_IDENTITY = "Apple Development"
+          - pattern: |
+              DEVELOPMENT_TEAM = ""
+    message: |
+      Development code signing in project (OWASP M8).
+      Verify this is not used for production/release builds.
+
+      SECURE CODE SIGNING SETUP:
+
+      Debug Configuration:
+      ```
+      CODE_SIGN_IDENTITY = "Apple Development"
+      CODE_SIGN_STYLE = Automatic
+      DEVELOPMENT_TEAM = YOUR_TEAM_ID
+      PROVISIONING_PROFILE_SPECIFIER = ""
+      ```
+
+      Release Configuration:
+      ```
+      CODE_SIGN_IDENTITY = "Apple Distribution"
+      CODE_SIGN_STYLE = Automatic
+      DEVELOPMENT_TEAM = YOUR_TEAM_ID
+      PROVISIONING_PROFILE_SPECIFIER = "AppStore"
+      ```
+
+      VERIFICATION:
+      ```bash
+      # Check code signature
+      codesign -dv --verbose=4 MyApp.app
+
+      # Verify distribution
+      codesign --verify --deep --strict --verbose=2 MyApp.app
+      ```
+
+      Reference: OWASP M8, Apple Code Signing
+    severity: INFO
+    languages:
+      - xcconfig
+      - pbxproj
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: LOW
+
+  # ============ SWIFT COMPILER SECURITY SETTINGS ============
+
+  - id: m8-ios-swift-optimization-none-release
+    patterns:
+      - pattern: |
+          SWIFT_OPTIMIZATION_LEVEL = "-Onone"
+    message: |
+      Swift optimization disabled (OWASP M7/M8).
+      Release builds should use -O or -Osize for optimization.
+
+      SECURITY & PERFORMANCE IMPACT:
+      - Unoptimized code easier to reverse engineer
+      - Slower app performance
+      - Larger binary size
+      - Debug symbols may be present
+
+      SWIFT OPTIMIZATION LEVELS:
+
+      -Onone:
+      - No optimization
+      - Fast compilation
+      - Debug builds only
+
+      -O:
+      - Full optimization
+      - Longer compilation
+      - Production builds
+
+      -Osize:
+      - Optimize for size
+      - Smaller binary
+      - Good for production
+
+      -Ounchecked:
+      - Unsafe optimizations
+      - Removes safety checks
+      - NOT recommended
+
+      RECOMMENDED BUILD SETTINGS:
+      ```
+      # Debug
+      SWIFT_OPTIMIZATION_LEVEL = -Onone
+
+      # Release
+      SWIFT_OPTIMIZATION_LEVEL = -O
+      SWIFT_COMPILATION_MODE = wholemodule
+      ```
+
+      Reference: OWASP M7, M8, Swift Compiler Optimization
+    severity: WARNING
+    languages:
+      - xcconfig
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM

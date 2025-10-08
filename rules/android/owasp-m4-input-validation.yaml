@@ -78,6 +78,59 @@ rules:
       owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
       confidence: HIGH
 
+  - id: owasp-m4-content-provider-sql-concat
+    patterns:
+      - pattern-either:
+          - pattern: |
+              public Cursor query(..., String $SELECTION, ...) {
+                ...
+                $WHERE = $SELECTION + " AND " + ...;
+                ...
+                $DB.query(..., $WHERE, ...)
+                ...
+              }
+          - pattern: |
+              override fun query(..., $SELECTION: String?, ...) {
+                ...
+                val $WHERE = $SELECTION + " AND " + ...
+                ...
+                db.query(..., $WHERE, ...)
+                ...
+              }
+          - pattern: |
+              $WHERE = $SELECTION + "...";
+              ...
+              $DB.query(..., $WHERE, ...)
+    message: |
+      ContentProvider SQL injection via string concatenation (OWASP M4: Insufficient Input/Output Validation).
+      Concatenating user-controlled selection parameter creates SQL injection vulnerability.
+
+      Example vulnerable code:
+      ```java
+      String where = selection + " AND nickname NOT LIKE '%secret%'";
+      Cursor cursor = db.query(TABLE, null, where, null, null);
+      ```
+
+      Attack: selection = "1=1 OR 1=1 --" bypasses filtering
+
+      Secure Fix:
+      ```java
+      // Use parameterized query
+      String where = "nickname NOT LIKE ? AND " + selection;
+      String[] args = {"%secret%", ...};
+      Cursor cursor = db.query(TABLE, null, where, args, null);
+      ```
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+      found_in_sample: "sample/android-app/AddressContentProvider.java"
+
   # ============ PATH TRAVERSAL ============
 
   - id: owasp-m4-path-traversal-file
@@ -202,6 +255,55 @@ rules:
       cwe: "CWE-601: URL Redirection to Untrusted Site"
       owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
       confidence: MEDIUM
+
+  - id: owasp-m4-weak-url-validation-contains
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($URL.contains("$DOMAIN")) {
+                ...
+                $WEBVIEW.loadUrl($URL)
+                ...
+              }
+          - pattern: |
+              if ($URL.contains($DOMAIN)) {
+                ...
+                $WEBVIEW.loadUrl($URL)
+                ...
+              }
+    message: |
+      Weak URL validation using contains() method (OWASP M4: Insufficient Input/Output Validation).
+      Using contains() for URL validation is insecure and can be bypassed.
+
+      Example bypass with ANY domain:
+      - "http://evil.com?trusted-domain.com=x" passes contains("trusted-domain.com")
+      - "http://evil.com/trusted-domain.com/path" passes contains("trusted-domain.com")
+      - "http://trusted-domain.com.evil.com" passes contains("trusted-domain.com")
+
+      Secure Fix:
+      ```java
+      // Parse and validate URL components separately
+      Uri uri = Uri.parse(url);
+      if ("https".equals(uri.getScheme()) &&
+          "your-trusted-domain.com".equals(uri.getHost())) {
+          webView.loadUrl(url);
+      }
+      ```
+
+      Always validate:
+      1. Scheme (https only)
+      2. Host (exact match, not substring)
+      3. Use Uri.parse() or URL class, never string contains()
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-20: Improper Input Validation"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+      found_in_sample: "sample/android-app/Deeplink.java"
 
   # ============ INTENT INJECTION ============
 

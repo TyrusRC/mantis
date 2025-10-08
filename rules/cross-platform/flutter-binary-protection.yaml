@@ -1,0 +1,1158 @@
+rules:
+  # OWASP Mobile Top 10 - M7: Insufficient Binary Protections (Flutter)
+  # Detects missing obfuscation, debug artifacts, lack of root/jailbreak detection
+  # Sources: Flutter Security Best Practices 2024, OWASP Mobile Top 10
+  # Coverage: Build configuration, obfuscation, integrity checks, runtime protections
+
+  # ============ CODE OBFUSCATION & BUILD CONFIGURATION ============
+
+  - id: flutter-m7-build-without-obfuscation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              flutter build apk
+          - pattern: |
+              flutter build ios
+          - pattern: |
+              flutter build ipa
+      - pattern-not: |
+          flutter build ... --obfuscate --split-debug-info=...
+    message: |
+      Flutter build without obfuscation (OWASP M7: Insufficient Binary Protections).
+      Building without --obfuscate flag leaves Dart code readable in release builds.
+      Attackers can extract kernel_blob.bin and reverse engineer application logic.
+
+      VULNERABLE PATTERN:
+      ```bash
+      # VULNERABLE: No obfuscation
+      flutter build apk --release
+      flutter build ios --release
+      ```
+
+      ATTACK SCENARIO:
+      1. Attacker extracts APK/IPA from device
+      2. Locates kernel_blob.bin (contains Dart VM snapshot)
+      3. Uses tools like reFlutter to decompile Dart code
+      4. Accesses business logic, API endpoints, crypto keys
+      5. Bypasses client-side validations
+
+      SECURE IMPLEMENTATION:
+      ```bash
+      # BUILD WITH OBFUSCATION (Android)
+      flutter build apk --release \\
+        --obfuscate \\
+        --split-debug-info=./debug-symbols
+
+      # BUILD WITH OBFUSCATION (iOS)
+      flutter build ipa --release \\
+        --obfuscate \\
+        --split-debug-info=./debug-symbols
+
+      # For web (limited obfuscation)
+      flutter build web --release \\
+        --dart-define=FLUTTER_WEB_CANVASKIT_URL=cdn.url
+      ```
+
+      BUILD.GRADLE CONFIGURATION (Android):
+      ```gradle
+      // android/app/build.gradle
+      android {
+          buildTypes {
+              release {
+                  // Enable ProGuard/R8 for native code
+                  minifyEnabled true
+                  shrinkResources true
+                  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                                'proguard-rules.pro'
+
+                  // Obfuscate Flutter code
+                  ndk {
+                      debugSymbolLevel 'SYMBOL_TABLE'
+                  }
+              }
+          }
+      }
+      ```
+
+      XCODE CONFIGURATION (iOS):
+      ```xml
+      <!-- ios/Runner.xcodeproj/project.pbxproj -->
+      <!-- Ensure these are set for Release configuration -->
+      STRIP_INSTALLED_PRODUCT = YES
+      DEPLOYMENT_POSTPROCESSING = YES
+      COPY_PHASE_STRIP = YES
+      ```
+
+      PUBSPEC.YAML ADDITIONS:
+      ```yaml
+      # pubspec.yaml - for code generation obfuscation
+      flutter:
+        assets:
+          - assets/
+
+        # Enable deferred loading for code splitting
+        deferred-components:
+          - component1
+          - component2
+      ```
+
+      CI/CD INTEGRATION:
+      ```yaml
+      # .github/workflows/build.yml
+      - name: Build Flutter APK with Obfuscation
+        run: |
+          flutter build apk --release \\
+            --obfuscate \\
+            --split-debug-info=build/debug-info \\
+            --target-platform android-arm64,android-arm
+
+          # Store debug symbols separately (DO NOT include in APK)
+          tar -czf debug-symbols.tar.gz build/debug-info
+      ```
+
+      OBFUSCATION VERIFICATION:
+      ```bash
+      # Extract and verify obfuscation
+      unzip app-release.apk -d extracted/
+
+      # Check if symbols are obfuscated
+      strings extracted/lib/*/libflutter.so | grep -i "main"
+      # Should see obfuscated names, not readable function names
+      ```
+
+      WHAT --obfuscate DOES:
+      - Renames Dart classes, functions, variables to meaningless names
+      - Removes unnecessary whitespace and comments
+      - Makes stack traces unreadable without symbol map
+      - Does NOT encrypt: Still need additional protections
+
+      LIMITATIONS:
+      - Asset files remain readable (encrypt sensitive assets)
+      - API endpoints in code still visible (use code generation)
+      - String literals remain (implement string obfuscation)
+      - Native code needs separate ProGuard/R8
+
+      ADDITIONAL PROTECTIONS:
+      ```dart
+      // Use const for compile-time obfuscation
+      class ApiConfig {
+        // Generate at build time, don't hardcode
+        static const String baseUrl = String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'https://api.example.com'
+        );
+      }
+
+      // Build with:
+      // flutter build apk --obfuscate --dart-define=API_BASE_URL=https://prod.api.com
+      ```
+
+      Reference: Flutter Security, OWASP Mobile Top 10 2024, reFlutter
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - "**/build.sh"
+        - "**/Makefile"
+        - "**/*.yml"
+        - "**/*.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      mastg-test: "MASTG-TEST-0226: Testing for Code Obfuscation"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: flutter-m7-debug-mode-in-production
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if (kDebugMode) {
+                ...
+              }
+          - pattern: |
+              assert($CONDITION)
+          - pattern: |
+              kDebugMode ? $TRUE : $FALSE
+      - pattern-not-inside: |
+          // Test environment
+          void main() {
+            testWidgets('...', (...) { ... });
+          }
+    message: |
+      Debug mode checks in production code (OWASP M7: Insufficient Binary Protections).
+      kDebugMode and assert() should be removed or properly guarded in production.
+      Debug code paths can leak sensitive information or enable attacks.
+
+      VULNERABLE PATTERNS:
+      ```dart
+      // VULNERABLE: Debug code in production
+      class ApiClient {
+        void makeRequest() {
+          if (kDebugMode) {
+            print('API Key: ${_apiKey}'); // Leaked in debug builds
+          }
+
+          // Debug bypass
+          if (kDebugMode) {
+            return mockResponse; // Bypasses real authentication
+          }
+        }
+      }
+
+      // VULNERABLE: Assert with sensitive data
+      class CryptoManager {
+        void encrypt(String data) {
+          assert(data.isNotEmpty, 'Data: $data'); // Leaks data in debug
+          // ...
+        }
+      }
+
+      // VULNERABLE: Debug flag affects behavior
+      final useProductionApi = kDebugMode ? false : true;
+      ```
+
+      WHY PROBLEMATIC:
+      - Debug builds may leak to production (CI/CD misconfiguration)
+      - Asserts can crash production apps
+      - Debug paths may bypass security
+      - kDebugMode visible in obfuscated code
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:flutter/foundation.dart';
+
+      class SecureLogger {
+        // Only log in debug, never sensitive data
+        static void debug(String message) {
+          if (kDebugMode) {
+            debugPrint('[DEBUG] $message');
+          }
+        }
+
+        // Production-safe logging (sanitized)
+        static void info(String message) {
+          // Send to analytics/crash reporting (sanitized)
+          if (kReleaseMode) {
+            // Log to Sentry/Firebase without sensitive data
+            logToAnalytics(message);
+          } else {
+            debugPrint('[INFO] $message');
+          }
+        }
+
+        // NEVER log sensitive data
+        static void secure(String operation, {String? userId}) {
+          if (kReleaseMode) {
+            logToAnalytics('Operation: $operation, User: ${userId ?? "anon"}');
+          }
+          // Do NOT log actual credentials, tokens, PII
+        }
+      }
+
+      class ApiClient {
+        void makeRequest() {
+          // Correct: No debug-specific behavior
+          SecureLogger.info('Making API request');
+
+          // Always use production logic
+          final response = await _makeRealRequest();
+          return response;
+        }
+      }
+
+      // CORRECT: Asserts that don't leak data
+      class CryptoManager {
+        void encrypt(String data) {
+          assert(data.isNotEmpty, 'Data cannot be empty'); // Safe message
+          // Or better: throw exception in both debug/release
+          if (data.isEmpty) {
+            throw ArgumentError('Data cannot be empty');
+          }
+        }
+      }
+
+      // CORRECT: Environment-based configuration
+      class AppConfig {
+        static const bool isProduction = bool.fromEnvironment(
+          'PRODUCTION',
+          defaultValue: false,
+        );
+
+        static const String apiUrl = String.fromEnvironment(
+          'API_URL',
+          defaultValue: 'https://staging.api.com',
+        );
+      }
+
+      // Build with: flutter build apk --dart-define=PRODUCTION=true
+      ```
+
+      BUILD-TIME CONFIGURATION:
+      ```dart
+      // lib/config/environment.dart
+      enum Environment { development, staging, production }
+
+      class EnvironmentConfig {
+        static const Environment current = Environment.values.firstWhere(
+          (e) => e.toString() == 'Environment.${String.fromEnvironment('ENV')}',
+          orElse: () => Environment.development,
+        );
+
+        static bool get isProduction => current == Environment.production;
+        static bool get isDevelopment => current == Environment.development;
+      }
+
+      // Build: flutter build apk --dart-define=ENV=production
+      ```
+
+      SAFE DEBUG PATTERNS:
+      ```dart
+      // Use for debugging UI/performance, not security
+      class PerformanceMonitor {
+        void measureBuildTime() {
+          if (kDebugMode) {
+            final stopwatch = Stopwatch()..start();
+            // Measure performance
+            stopwatch.stop();
+            debugPrint('Build time: ${stopwatch.elapsedMilliseconds}ms');
+          }
+        }
+      }
+
+      // Conditional imports (tree-shaken in release)
+      import 'debug_tools.dart' if (dart.library.html) 'debug_tools_web.dart';
+
+      void initDebugTools() {
+        if (kDebugMode) {
+          // Initialize debugging tools (removed in release by tree-shaking)
+          DebugTools.init();
+        }
+      }
+      ```
+
+      CI/CD VERIFICATION:
+      ```yaml
+      # Ensure release builds don't contain debug artifacts
+      - name: Verify Release Build
+        run: |
+          # Check for debug strings in binary
+          if strings app-release.apk | grep -i "debug\|kDebugMode"; then
+            echo "ERROR: Debug artifacts found in release build"
+            exit 1
+          fi
+      ```
+
+      RELEASE CHECKLIST:
+      - [ ] No kDebugMode in security-critical code
+      - [ ] Asserts don't leak sensitive data
+      - [ ] Debug logs removed or sanitized
+      - [ ] Mock data disabled in release
+      - [ ] Build with --release flag
+      - [ ] Verify no debug symbols in APK/IPA
+
+      Reference: Flutter Build Modes, Dart Compiler Optimization
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: MEDIUM
+
+  # ============ ROOT & JAILBREAK DETECTION ============
+
+  - id: flutter-m7-missing-root-jailbreak-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class MyApp extends StatelessWidget {
+                @override
+                Widget build(BuildContext context) {
+                  ...
+                }
+              }
+          - pattern: |
+              void main() {
+                runApp($APP);
+              }
+      - pattern-not-inside: |
+          FlutterJailbreakDetection.jailbroken
+      - pattern-not-inside: |
+          RootDetector.isRooted()
+      - pattern-not-inside: |
+          SafeDevice.isJailBroken
+    message: |
+      Missing root/jailbreak detection (OWASP M7: Insufficient Binary Protections).
+      Apps handling sensitive data should detect compromised devices.
+      Rooted/jailbroken devices bypass OS security and can manipulate app runtime.
+
+      RISK ASSESSMENT:
+      - Banking/Payment apps: CRITICAL
+      - Health/Medical apps: HIGH
+      - Enterprise apps: HIGH
+      - Social/Gaming apps: MEDIUM
+      - Utility apps: LOW
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: No device integrity checks
+      class MyApp extends StatelessWidget {
+        @override
+        Widget build(BuildContext context) {
+          return MaterialApp(
+            home: HomePage(), // Runs on any device, including rooted
+          );
+        }
+      }
+      ```
+
+      ATTACK SCENARIOS (Rooted/Jailbroken Devices):
+      1. Frida/Xposed Framework hooking
+      2. SSL pinning bypass
+      3. Runtime memory manipulation
+      4. File system access to app data
+      5. Screenshot/screen recording bypass
+      6. Biometric authentication bypass
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      // pubspec.yaml
+      dependencies:
+        flutter_jailbreak_detection: ^1.10.0
+        safe_device: ^1.1.5
+
+      // lib/security/device_checker.dart
+      import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
+      import 'package:safe_device/safe_device.dart';
+
+      class DeviceSecurityChecker {
+        static Future<DeviceSecurityStatus> checkDevice() async {
+          final results = await Future.wait([
+            FlutterJailbreakDetection.jailbroken,
+            FlutterJailbreakDetection.developerMode,
+            SafeDevice.isRealDevice,
+            SafeDevice.canMockLocation,
+          ]);
+
+          return DeviceSecurityStatus(
+            isJailbroken: results[0] as bool,
+            isDeveloperMode: results[1] as bool,
+            isRealDevice: results[2] as bool,
+            canMockLocation: results[3] as bool,
+          );
+        }
+
+        static Future<bool> isDeviceSecure() async {
+          final status = await checkDevice();
+
+          return !status.isJailbroken &&
+                 !status.isDeveloperMode &&
+                 status.isRealDevice;
+        }
+
+        static Future<void> enforceDeviceSecurity({
+          required VoidCallback onSecure,
+          required VoidCallback onInsecure,
+        }) async {
+          final isSecure = await isDeviceSecure();
+
+          if (isSecure) {
+            onSecure();
+          } else {
+            onInsecure();
+          }
+        }
+      }
+
+      class DeviceSecurityStatus {
+        final bool isJailbroken;
+        final bool isDeveloperMode;
+        final bool isRealDevice;
+        final bool canMockLocation;
+
+        DeviceSecurityStatus({
+          required this.isJailbroken,
+          required this.isDeveloperMode,
+          required this.isRealDevice,
+          required this.canMockLocation,
+        });
+
+        bool get isSecure => !isJailbroken && !isDeveloperMode && isRealDevice;
+      }
+
+      // lib/main.dart
+      void main() async {
+        WidgetsFlutterBinding.ensureInitialized();
+
+        final deviceStatus = await DeviceSecurityChecker.checkDevice();
+
+        runApp(MyApp(deviceStatus: deviceStatus));
+      }
+
+      class MyApp extends StatelessWidget {
+        final DeviceSecurityStatus deviceStatus;
+
+        const MyApp({required this.deviceStatus});
+
+        @override
+        Widget build(BuildContext context) {
+          return MaterialApp(
+            home: deviceStatus.isSecure
+                ? HomePage()
+                : InsecureDeviceWarningPage(status: deviceStatus),
+          );
+        }
+      }
+
+      // lib/screens/insecure_device_warning.dart
+      class InsecureDeviceWarningPage extends StatelessWidget {
+        final DeviceSecurityStatus status;
+
+        const InsecureDeviceWarningPage({required this.status});
+
+        @override
+        Widget build(BuildContext context) {
+          final reasons = <String>[];
+          if (status.isJailbroken) reasons.add('Device is rooted/jailbroken');
+          if (status.isDeveloperMode) reasons.add('Developer mode enabled');
+          if (!status.isRealDevice) reasons.add('Running on emulator');
+
+          return Scaffold(
+            appBar: AppBar(title: Text('Security Warning')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.warning, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    'Insecure Device Detected',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  ...reasons.map((r) => Text('• $r')),
+                  SizedBox(height: 24),
+                  Text(
+                    'This app cannot run on compromised devices for security reasons.',
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => SystemNavigator.pop(),
+                    child: Text('Exit App'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+      ```
+
+      ADVANCED DETECTION (Native):
+      ```dart
+      // android/app/src/main/kotlin/com/example/app/RootDetector.kt
+      class RootDetector {
+          fun isRooted(): Boolean {
+              return checkRootMethod1() || checkRootMethod2() || checkRootMethod3()
+          }
+
+          private fun checkRootMethod1(): Boolean {
+              // Check for su binary
+              val paths = arrayOf(
+                  "/system/app/Superuser.apk",
+                  "/sbin/su",
+                  "/system/bin/su",
+                  "/system/xbin/su",
+                  "/data/local/xbin/su",
+                  "/data/local/bin/su",
+                  "/system/sd/xbin/su",
+                  "/system/bin/failsafe/su",
+                  "/data/local/su",
+                  "/su/bin/su"
+              )
+              return paths.any { File(it).exists() }
+          }
+
+          private fun checkRootMethod2(): Boolean {
+              // Check for build tags
+              val buildTags = Build.TAGS
+              return buildTags != null && buildTags.contains("test-keys")
+          }
+
+          private fun checkRootMethod3(): Boolean {
+              // Try executing su command
+              return try {
+                  Runtime.getRuntime().exec("su")
+                  true
+              } catch (e: Exception) {
+                  false
+              }
+          }
+      }
+
+      // ios/Runner/JailbreakDetector.swift
+      class JailbreakDetector {
+          static func isJailbroken() -> Bool {
+              return checkCydia() || checkSuspiciousFiles() || checkFork()
+          }
+
+          private static func checkCydia() -> Bool {
+              return UIApplication.shared.canOpenURL(URL(string: "cydia://")!)
+          }
+
+          private static func checkSuspiciousFiles() -> Bool {
+              let paths = [
+                  "/Applications/Cydia.app",
+                  "/Library/MobileSubstrate/MobileSubstrate.dylib",
+                  "/bin/bash",
+                  "/usr/sbin/sshd",
+                  "/etc/apt",
+                  "/private/var/lib/apt/"
+              ]
+              return paths.contains { FileManager.default.fileExists(atPath: $0) }
+          }
+
+          private static func checkFork() -> Bool {
+              // Jailbroken devices allow fork()
+              let result = fork()
+              if result >= 0 {
+                  return true // Jailbroken
+              }
+              return false
+          }
+      }
+      ```
+
+      CONTINUOUS MONITORING:
+      ```dart
+      class RuntimeSecurityMonitor {
+        Timer? _timer;
+
+        void startMonitoring() {
+          _timer = Timer.periodic(Duration(minutes: 5), (_) async {
+            final isSecure = await DeviceSecurityChecker.isDeviceSecure();
+            if (!isSecure) {
+              _handleCompromisedDevice();
+            }
+          });
+        }
+
+        void stopMonitoring() {
+          _timer?.cancel();
+        }
+
+        void _handleCompromisedDevice() {
+          // Log security event
+          // Logout user
+          // Clear sensitive data
+          // Show warning
+        }
+      }
+      ```
+
+      BYPASS CONSIDERATIONS:
+      - Detection can be bypassed (hide root, patch checks)
+      - Use multiple detection methods
+      - Combine with server-side checks (SafetyNet/DeviceCheck)
+      - Don't rely solely on client-side detection
+      - Obfuscate detection code
+
+      ALTERNATIVE: Server-Side Attestation
+      ```dart
+      // Use Google Play Integrity API (Android) or DeviceCheck (iOS)
+      class DeviceAttestation {
+        Future<bool> verifyDeviceIntegrity() async {
+          // Android: Play Integrity API
+          // iOS: DeviceCheck API
+          // Returns server-verified attestation
+        }
+      }
+      ```
+
+      Reference: OWASP MSTG, Flutter Security Best Practices
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      mastg-test: "MASTG-TEST-0228: Testing Root Detection"
+      confidence: MEDIUM
+      false_positive_likelihood: HIGH
+
+  # ============ DEBUGGER DETECTION ============
+
+  - id: flutter-m7-missing-debugger-detection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              void main() {
+                runApp($APP);
+              }
+      - pattern-not-inside: |
+          WidgetsFlutterBinding.debugAllowBanner = false
+      - pattern-not-inside: |
+          if (kDebugMode) { ... }
+    message: |
+      Missing debugger/tampering detection (OWASP M7: Insufficient Binary Protections).
+      Sensitive apps should detect debugging and runtime manipulation attempts.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: No anti-debugging measures
+      void main() {
+        runApp(MyApp());
+      }
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:flutter/foundation.dart';
+
+      class DebuggerDetector {
+        static bool isDebuggerAttached() {
+          // In Flutter, kDebugMode indicates debug build
+          // For runtime debugger detection, use native checks
+          return kDebugMode;
+        }
+
+        static Future<void> enforceNoDebugger() async {
+          if (kDebugMode) {
+            debugPrint('Warning: Running in debug mode');
+          }
+
+          // For production, check native debugger attachment
+          // Requires platform channel to native code
+          final isDebugged = await _checkNativeDebugger();
+
+          if (isDebugged && kReleaseMode) {
+            // Exit app if debugger detected in release mode
+            throw Exception('Debugger detected');
+          }
+        }
+
+        static Future<bool> _checkNativeDebugger() async {
+          // Call native platform code for actual debugger detection
+          // Android: Debug.isDebuggerConnected()
+          // iOS: sysctl P_TRACED flag
+          return false; // Placeholder
+        }
+      }
+
+      void main() async {
+        WidgetsFlutterBinding.ensureInitialized();
+
+        // Disable debug banner in release
+        if (kReleaseMode) {
+          WidgetsFlutterBinding.debugAllowBanner = false;
+        }
+
+        // Check for debugger (high-security apps)
+        await DebuggerDetector.enforceNoDebugger();
+
+        runApp(MyApp());
+      }
+      ```
+
+      NATIVE DEBUGGER DETECTION (Android):
+      ```kotlin
+      // android/app/src/main/kotlin/DebuggerDetector.kt
+      class DebuggerDetector {
+          fun isDebuggerConnected(): Boolean {
+              return Debug.isDebuggerConnected() || Debug.waitingForDebugger()
+          }
+
+          fun checkTracerPid(): Boolean {
+              // Check if process is being traced
+              try {
+                  val status = File("/proc/self/status").readText()
+                  val tracerPid = status.lines()
+                      .find { it.startsWith("TracerPid:") }
+                      ?.split(":")?.get(1)?.trim()?.toInt()
+                  return tracerPid != null && tracerPid > 0
+              } catch (e: Exception) {
+                  return false
+              }
+          }
+      }
+      ```
+
+      NATIVE DEBUGGER DETECTION (iOS):
+      ```swift
+      // ios/Runner/DebuggerDetector.swift
+      import Foundation
+
+      class DebuggerDetector {
+          static func isDebuggerAttached() -> Bool {
+              var info = kinfo_proc()
+              var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+              var size = MemoryLayout<kinfo_proc>.stride
+
+              let result = sysctl(&mib, u_int(mib.count), &info, &size, nil, 0)
+
+              guard result == 0 else { return false }
+
+              return (info.kp_proc.p_flag & P_TRACED) != 0
+          }
+      }
+      ```
+
+      Reference: OWASP MSTG Anti-Debugging
+    severity: INFO
+    languages:
+      - dart
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      false_positive_likelihood: HIGH
+
+  # ============ LOGGING & INFORMATION DISCLOSURE ============
+
+  - id: flutter-m7-print-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: print($DATA)
+          - pattern: debugPrint($DATA)
+      - metavariable-regex:
+          metavariable: $DATA
+          regex: (?i).*(password|token|key|secret|credential|auth|pin|ssn|credit.*card).*
+      - pattern-not-inside: |
+          void main() {
+            testWidgets('...', (...) { ... });
+          }
+    message: |
+      Sensitive data in print statements (OWASP M7: Insufficient Binary Protections).
+      print() and debugPrint() output to device logs, exposing sensitive information.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: Logging sensitive data
+      void login(String username, String password) {
+        print('Login attempt: $username / $password'); // Exposed in logs!
+        debugPrint('API Token: $token'); // Visible via ADB/Xcode
+      }
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:flutter/foundation.dart';
+
+      class SecureLogger {
+        static void log(String message, {bool sensitive = false}) {
+          if (kDebugMode && !sensitive) {
+            debugPrint(message);
+          } else if (kReleaseMode && !sensitive) {
+            // Send to analytics (sanitized)
+            _sendToAnalytics(message);
+          }
+          // Never log sensitive data
+        }
+
+        static void logSecureOperation(String operation) {
+          if (kDebugMode) {
+            debugPrint('Secure operation: $operation');
+          }
+          // Do NOT log parameters, only operation name
+        }
+      }
+
+      // Usage
+      void login(String username, String password) {
+        SecureLogger.logSecureOperation('login_attempt');
+        // Never log credentials
+      }
+      ```
+
+      PROGUARD/R8 LOG STRIPPING (Android):
+      ```
+      # android/app/proguard-rules.pro
+      -assumenosideeffects class android.util.Log {
+          public static *** d(...);
+          public static *** v(...);
+          public static *** i(...);
+      }
+      ```
+
+      Reference: OWASP Mobile Logging
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  # ============ EMULATOR DETECTION ============
+
+  - id: flutter-m7-missing-emulator-detection
+    patterns:
+      - pattern: |
+          void main() {
+            runApp($APP);
+          }
+      - pattern-not-inside: |
+          SafeDevice.isRealDevice
+      - pattern-not-inside: |
+          Platform.isAndroid && $CHECK
+    message: |
+      Missing emulator detection (OWASP M7: Insufficient Binary Protections).
+      Banking/payment apps should detect emulators to prevent automated attacks.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:safe_device/safe_device.dart';
+
+      class EmulatorDetector {
+        static Future<bool> isEmulator() async {
+          final isRealDevice = await SafeDevice.isRealDevice;
+          return !isRealDevice;
+        }
+
+        static Future<void> enforceRealDevice() async {
+          if (await isEmulator()) {
+            throw Exception('Emulator detected');
+          }
+        }
+      }
+      ```
+
+      Reference: OWASP MSTG Testing Resiliency
+    severity: INFO
+    languages:
+      - dart
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      false_positive_likelihood: HIGH
+
+  # ============ SOURCE MAP EXPOSURE ============
+
+  - id: flutter-m7-source-maps-in-production
+    patterns:
+      - pattern-either:
+          - pattern: |
+              flutter build web --release
+      - pattern-not: |
+          flutter build web --release --source-maps
+    message: |
+      Source maps should not be deployed to production (OWASP M7).
+      Source maps enable easy reverse engineering of Flutter web applications.
+
+      VULNERABLE PATTERN:
+      ```bash
+      # VULNERABLE: Default build includes source maps
+      flutter build web --release
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```bash
+      # Build without source maps for production
+      flutter build web --release --no-source-maps
+
+      # Store source maps separately for crash analysis
+      flutter build web --release
+      mv build/web/*.map ./crash-analysis/
+      ```
+
+      Reference: Flutter Web Security
+    severity: WARNING
+    languages:
+      - generic
+    paths:
+      include:
+        - "**/build.sh"
+        - "**/*.yml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  # ============ INTEGRITY CHECKS ============
+
+  - id: flutter-m7-missing-integrity-check
+    patterns:
+      - pattern: |
+          void main() {
+            runApp($APP);
+          }
+      - pattern-not-inside: |
+          PackageInfo.fromPlatform()
+      - pattern-not-inside: |
+          IntegrityChecker.verify()
+    message: |
+      Missing app integrity check (OWASP M7: Insufficient Binary Protections).
+      Apps should verify their own integrity to detect tampering.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:package_info_plus/package_info_plus.dart';
+      import 'package:crypto/crypto.dart';
+
+      class IntegrityChecker {
+        static const String expectedSignature = 'YOUR_SIGNATURE_HASH';
+
+        static Future<bool> verifyAppIntegrity() async {
+          final packageInfo = await PackageInfo.fromPlatform();
+
+          // Check package name
+          if (packageInfo.packageName != 'com.example.app') {
+            return false;
+          }
+
+          // For native signature verification, use platform channels
+          return await _verifyNativeSignature();
+        }
+
+        static Future<bool> _verifyNativeSignature() async {
+          // Android: Check APK signature
+          // iOS: Check code signature
+          // Requires platform-specific implementation
+          return true;
+        }
+      }
+
+      void main() async {
+        WidgetsFlutterBinding.ensureInitialized();
+
+        if (kReleaseMode) {
+          final isValid = await IntegrityChecker.verifyAppIntegrity();
+          if (!isValid) {
+            throw Exception('App integrity check failed');
+          }
+        }
+
+        runApp(MyApp());
+      }
+      ```
+
+      Reference: OWASP Mobile Tampering Detection
+    severity: INFO
+    languages:
+      - dart
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      false_positive_likelihood: HIGH
+
+  # ============ NATIVE CODE PROTECTION ============
+
+  - id: flutter-m7-unprotected-native-code
+    patterns:
+      - pattern-either:
+          - pattern: |
+              externalNativeBuild {
+                cmake {
+                  ...
+                }
+              }
+      - pattern-not-inside: |
+          arguments "-DCMAKE_BUILD_TYPE=Release"
+      - pattern-not-inside: |
+          arguments "-s"
+    message: |
+      Native code not stripped (OWASP M7: Insufficient Binary Protections).
+      Flutter apps with native code should strip symbols in release builds.
+
+      SECURE CONFIGURATION:
+      ```gradle
+      // android/app/build.gradle
+      android {
+          externalNativeBuild {
+              cmake {
+                  arguments "-DCMAKE_BUILD_TYPE=Release", "-s"
+              }
+          }
+
+          buildTypes {
+              release {
+                  ndk {
+                      debugSymbolLevel 'SYMBOL_TABLE'
+                  }
+              }
+          }
+      }
+      ```
+
+      Reference: Android NDK Security
+    severity: WARNING
+    languages:
+      - gradle
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+      false_positive_likelihood: LOW
+
+  # ============ SCREENSHOT PROTECTION ============
+
+  - id: flutter-m7-screenshot-not-disabled
+    patterns:
+      - pattern: |
+          void main() {
+            runApp($APP);
+          }
+      - pattern-not-inside: |
+          FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE)
+    message: |
+      Screenshots not disabled for sensitive screens (OWASP M7).
+      Banking/payment apps should prevent screenshots of sensitive data.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+
+      class ScreenshotProtection {
+        static Future<void> enableScreenshotProtection() async {
+          if (Platform.isAndroid) {
+            await FlutterWindowManager.addFlags(
+              FlutterWindowManager.FLAG_SECURE
+            );
+          }
+          // iOS: No API for this, use app switcher blur instead
+        }
+
+        static Future<void> disableScreenshotProtection() async {
+          if (Platform.isAndroid) {
+            await FlutterWindowManager.clearFlags(
+              FlutterWindowManager.FLAG_SECURE
+            );
+          }
+        }
+      }
+
+      class SensitiveScreen extends StatefulWidget {
+        @override
+        void initState() {
+          super.initState();
+          ScreenshotProtection.enableScreenshotProtection();
+        }
+
+        @override
+        void dispose() {
+          ScreenshotProtection.disableScreenshotProtection();
+          super.dispose();
+        }
+      }
+      ```
+
+      Reference: OWASP Mobile Screen Capture
+    severity: INFO
+    languages:
+      - dart
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: LOW
+      false_positive_likelihood: HIGH

@@ -1,0 +1,321 @@
+rules:
+  # MASVS-NETWORK: HTTP URL Detection (iOS) - IMPROVED with FP reduction
+  # Based on MASTG-TEST-0065: Testing Data Encryption on the Network
+  # Detects cleartext HTTP URLs that should use HTTPS
+  #
+  # IMPROVEMENTS:
+  # - Excludes local network ranges (RFC 1918: 10.x, 192.168.x, 172.16-31.x)
+  # - Excludes test/mock domains (test.*, mock.*, example.com/org)
+  # - Excludes test code (XCTest, Quick/Nimble)
+  # - Excludes SwiftUI previews
+  # - Excludes DEBUG/DEVELOPMENT builds
+  # - Excludes mock/stub implementations
+
+  - id: mastg-ios-http-url-string-improved
+    patterns:
+      - pattern-either:
+          - pattern: URL(string: "http://...")
+          - pattern: NSURL(string: "http://...")
+          - pattern: URLRequest(url: URL(string: "http://...")!)
+      # EXCLUDE localhost
+      - pattern-not: URL(string: "http://localhost...")
+      - pattern-not: URL(string: "http://127.0.0.1...")
+      - pattern-not: NSURL(string: "http://localhost...")
+      - pattern-not: NSURL(string: "http://127.0.0.1...")
+      # EXCLUDE local network ranges (RFC 1918)
+      - pattern-not: URL(string: "http://10....")
+      - pattern-not: URL(string: "http://192.168....")
+      - pattern-not: URL(string: "http://172.16....")
+      - pattern-not: URL(string: "http://172.17....")
+      - pattern-not: URL(string: "http://172.18....")
+      - pattern-not: URL(string: "http://172.19....")
+      - pattern-not: URL(string: "http://172.20....")
+      - pattern-not: URL(string: "http://172.21....")
+      - pattern-not: URL(string: "http://172.22....")
+      - pattern-not: URL(string: "http://172.23....")
+      - pattern-not: URL(string: "http://172.24....")
+      - pattern-not: URL(string: "http://172.25....")
+      - pattern-not: URL(string: "http://172.26....")
+      - pattern-not: URL(string: "http://172.27....")
+      - pattern-not: URL(string: "http://172.28....")
+      - pattern-not: URL(string: "http://172.29....")
+      - pattern-not: URL(string: "http://172.30....")
+      - pattern-not: URL(string: "http://172.31....")
+      - pattern-not: NSURL(string: "http://10....")
+      - pattern-not: NSURL(string: "http://192.168....")
+      - pattern-not: NSURL(string: "http://172....")
+      # EXCLUDE test/mock domains
+      - pattern-not: URL(string: "http://test...")
+      - pattern-not: URL(string: "http://mock...")
+      - pattern-not: URL(string: "http://example.com...")
+      - pattern-not: URL(string: "http://example.org...")
+      - pattern-not: URL(string: "http://fake...")
+      - pattern-not: URL(string: "http://dummy...")
+      - pattern-not: NSURL(string: "http://test...")
+      - pattern-not: NSURL(string: "http://mock...")
+      - pattern-not: NSURL(string: "http://example.com...")
+      - pattern-not: NSURL(string: "http://example.org...")
+      # EXCLUDE test contexts
+      - pattern-not-inside: |
+          func test$ANYTHING(...) { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: XCTestCase { ... }
+      - pattern-not-inside: |
+          class $CLASSTests: QuickSpec { ... }
+      # EXCLUDE SwiftUI previews
+      - pattern-not-inside: |
+          struct $NAME_Previews: PreviewProvider {
+            static var previews: some View {
+              ...
+            }
+          }
+      - pattern-not-inside: |
+          static var previews: some View { ... }
+      # EXCLUDE debug/development builds
+      - pattern-not-inside: |
+          #if DEBUG
+          ...
+          #endif
+      - pattern-not-inside: |
+          #if DEVELOPMENT
+          ...
+          #endif
+      - pattern-not-inside: |
+          #if DEBUG || DEVELOPMENT
+          ...
+          #endif
+      - pattern-not-inside: |
+          #if STAGING
+          ...
+          #endif
+      # EXCLUDE mock/stub implementations
+      - pattern-not-inside: |
+          class Mock$CLASS { ... }
+      - pattern-not-inside: |
+          struct Stub$STRUCT { ... }
+      - pattern-not-inside: |
+          class Fake$CLASS { ... }
+    message: |
+      Cleartext HTTP URL detected (MASVS-NETWORK).
+
+      Transmitting data over HTTP exposes it to:
+      - Man-in-the-middle (MITM) attacks
+      - Eavesdropping and data interception
+      - Tampering and manipulation
+
+      FALSE POSITIVE NOTES:
+      This rule excludes:
+      - localhost and 127.0.0.1 (local development)
+      - Private network ranges (10.x, 192.168.x, 172.16-31.x)
+      - Test/mock domains (test.*, mock.*, example.com)
+      - Test code, previews, and DEBUG builds
+
+      SECURE IMPLEMENTATION:
+      Use HTTPS for all network communications:
+        let url = URL(string: "https://api.example.com")
+
+      App Transport Security (ATS) blocks HTTP by default on iOS 9+.
+      Do not disable ATS globally - use domain-specific exceptions only
+      for trusted internal services.
+
+      WHEN HTTP IS ACCEPTABLE:
+      - Local development (localhost, 127.0.0.1)
+      - Internal network services (192.168.x.x, 10.x.x.x)
+      - Test/mock servers in test code
+      - Legacy internal APIs (use ATS exceptions sparingly)
+    severity: ERROR
+    languages:
+      - swift
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+      false_positive_reduction: "Excludes local networks, test domains, test code, DEBUG builds"
+
+  - id: mastg-ios-http-url-objc-improved
+    patterns:
+      - pattern-either:
+          - pattern: '[NSURL URLWithString:@"http://..."]'
+          - pattern: '[[NSURL alloc] initWithString:@"http://..."]'
+      # EXCLUDE localhost
+      - pattern-not: '[NSURL URLWithString:@"http://localhost..."]'
+      - pattern-not: '[NSURL URLWithString:@"http://127.0.0.1..."]'
+      # EXCLUDE local network ranges
+      - pattern-not: '[NSURL URLWithString:@"http://10...."]'
+      - pattern-not: '[NSURL URLWithString:@"http://192.168...."]'
+      - pattern-not: '[NSURL URLWithString:@"http://172...."]'
+      # EXCLUDE test/mock domains
+      - pattern-not: '[NSURL URLWithString:@"http://test..."]'
+      - pattern-not: '[NSURL URLWithString:@"http://mock..."]'
+      - pattern-not: '[NSURL URLWithString:@"http://example.com..."]'
+      # EXCLUDE test code
+      - pattern-not-inside: |
+          - (void)test$ANYTHING { ... }
+      - pattern-not-inside: |
+          @interface $CLASSTests : XCTestCase
+          ...
+          @end
+      # EXCLUDE debug preprocessor
+      - pattern-not-inside: |
+          #if DEBUG
+          ...
+          #endif
+      # EXCLUDE mock implementations
+      - pattern-not-inside: |
+          @interface Mock$CLASS
+          ...
+          @end
+    message: |
+      Cleartext HTTP URL detected (MASVS-NETWORK).
+
+      Transmitting data over HTTP exposes it to interception and tampering.
+      Use HTTPS for all network communications.
+
+      FALSE POSITIVE NOTES:
+      - Local development servers (localhost, 127.0.0.1) are excluded
+      - Private networks (10.x, 192.168.x) are excluded
+      - Test/mock domains and test code are excluded
+
+      SECURE IMPLEMENTATION:
+        NSURL *url = [NSURL URLWithString:@"https://api.example.com"];
+    severity: ERROR
+    languages:
+      - c  # Objective-C uses C language parser
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+      false_positive_reduction: "Excludes local networks, test domains, test code"
+
+  - id: mastg-ios-ats-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSAppTransportSecurity</key>
+              <dict>
+                <key>NSAllowsArbitraryLoads</key>
+                <true/>
+              </dict>
+    message: |
+      App Transport Security (ATS) disabled globally (MASVS-NETWORK).
+
+      Disabling ATS allows insecure HTTP connections and weak TLS configurations.
+
+      RISKS:
+      - Allows cleartext HTTP connections to ANY domain
+      - Permits weak TLS versions (TLS 1.0, 1.1)
+      - Disables certificate validation requirements
+      - Exposes ALL network traffic to MITM attacks
+
+      SECURE IMPLEMENTATION:
+      Only disable ATS for specific domains if absolutely necessary:
+
+        <key>NSAppTransportSecurity</key>
+        <dict>
+          <key>NSExceptionDomains</key>
+          <dict>
+            <key>internal-api.company.local</key>
+            <dict>
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+              <key>NSIncludesSubdomains</key>
+              <true/>
+            </dict>
+          </dict>
+        </dict>
+
+      NEVER disable ATS globally unless:
+      - You are a web browser
+      - You have no control over backend infrastructure
+      - You understand and accept the security risks
+
+      App Store Review may reject apps with global ATS exemptions.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-ios-weak-tls-version
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSExceptionMinimumTLSVersion</key>
+              <string>TLSv1.0</string>
+          - pattern: |
+              <key>NSExceptionMinimumTLSVersion</key>
+              <string>TLSv1.1</string>
+    message: |
+      Weak TLS version allowed (MASVS-NETWORK).
+
+      TLSv1.0 and TLSv1.1 are deprecated and insecure:
+      - TLS 1.0: Deprecated in 2020, vulnerable to BEAST, POODLE
+      - TLS 1.1: Deprecated in 2020, lacks modern cipher suites
+
+      SECURE IMPLEMENTATION:
+      Use TLSv1.2 or TLSv1.3 as minimum version:
+
+        <key>NSExceptionMinimumTLSVersion</key>
+        <string>TLSv1.2</string>
+
+      Or remove this key entirely (defaults to TLS 1.2).
+
+      PCI DSS requires TLS 1.2+ for payment card data.
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-326: Inadequate Encryption Strength"
+      owasp-mobile: "M3: Insecure Communication"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  - id: mastg-ios-webview-ats-exception
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+    message: |
+      ATS exception allowing insecure HTTP loads (MASVS-NETWORK).
+
+      Allowing insecure HTTP for specific domains should be avoided.
+      Use HTTPS for all connections.
+
+      WHEN ACCEPTABLE:
+      - Legacy internal APIs (document and time-bound)
+      - Third-party services without HTTPS (migrate ASAP)
+      - Development/staging servers (use separate build configs)
+
+      SECURE APPROACH:
+      Upgrade backend to HTTPS instead of weakening client security.
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      mastg-test: "MASTG-TEST-0065"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH

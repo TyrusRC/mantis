@@ -1,0 +1,500 @@
+rules:
+  # Critical Priority 0 Android Security Patterns
+  # Based on HackTricks and Ivan Sincek penetration testing checklists
+  # These are the highest priority patterns missing from previous rules
+
+  # ============ NETWORK SECURITY CONFIG ANALYSIS ============
+
+  - id: hacktricks-android-network-config-cleartext-domain
+    patterns:
+      - pattern: |
+          <domain-config cleartextTrafficPermitted="true">
+            ...
+            <domain ... >$DOMAIN</domain>
+            ...
+          </domain-config>
+    message: |
+      Domain-specific cleartext traffic exception in network security config (HackTricks Critical).
+      Allowing HTTP for specific domains creates MITM vulnerability for those connections.
+
+      Example vulnerable configuration:
+      ```xml
+      <network-security-config>
+          <domain-config cleartextTrafficPermitted="true">
+              <domain includeSubdomains="true">api.example.com</domain>
+          </domain-config>
+      </network-security-config>
+      ```
+
+      Risks:
+      - Man-in-the-middle attacks on specified domains
+      - Credential interception
+      - Session hijacking
+      - Data manipulation
+
+      Secure Fix:
+      - Use HTTPS for ALL connections
+      - Remove cleartext exceptions
+      - If legacy server support needed, use time-limited migration plan
+      - Implement certificate pinning for critical domains
+
+      Never allow cleartext traffic in production apps.
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: HIGH
+      source: "HackTricks, Ivan Sincek"
+      priority: "P0"
+
+  - id: hacktricks-android-network-config-weak-tls
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <domain-config>
+                ...
+                <connection cleartextTrafficPermitted="true" />
+                ...
+              </domain-config>
+          - pattern: |
+              <base-config cleartextTrafficPermitted="true">
+                ...
+              </base-config>
+    message: |
+      Weak network security configuration - cleartext traffic permitted (HackTricks Critical).
+      This configuration allows unencrypted HTTP connections.
+
+      The network security config overrides default Android behavior:
+      - Android 9+ blocks cleartext traffic by default
+      - This config explicitly enables insecure HTTP
+
+      Remove this configuration and use HTTPS exclusively.
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: HIGH
+      source: "Ivan Sincek"
+      priority: "P0"
+
+  - id: hacktricks-android-network-config-custom-ca
+    patterns:
+      - pattern: |
+          <trust-anchors>
+            ...
+            <certificates src="user" />
+            ...
+          </trust-anchors>
+    message: |
+      Custom CA trust anchors allow user-installed certificates (HackTricks Warning).
+      Trusting user-installed certificates enables MITM attacks via proxy tools.
+
+      Example configuration:
+      ```xml
+      <network-security-config>
+          <base-config>
+              <trust-anchors>
+                  <certificates src="system" />
+                  <certificates src="user" />  <!-- DANGEROUS in production -->
+              </trust-anchors>
+          </base-config>
+      </network-security-config>
+      ```
+
+      When user certificates are trusted:
+      - Proxy tools (Burp, Charles, mitmproxy) can intercept traffic
+      - User-installed CA certificates are accepted
+      - SSL pinning can be bypassed
+
+      Use cases:
+      - ✅ OK for debug builds (testing/debugging)
+      - ❌ NEVER in production/release builds
+
+      Secure production config:
+      ```xml
+      <base-config>
+          <trust-anchors>
+              <certificates src="system" />
+              <!-- NO user certificates -->
+          </trust-anchors>
+      </base-config>
+      ```
+    severity: WARNING
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: MEDIUM
+      source: "HackTricks"
+      priority: "P0"
+
+  # ============ CUSTOM PERMISSION PROTECTION LEVELS ============
+
+  - id: hacktricks-android-permission-weak-protection
+    patterns:
+      - pattern: |
+          <permission android:name="$NAME"
+                     android:protectionLevel="normal"
+                     ... />
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(sensitive|admin|payment|transaction|auth|credential|access|control).*
+    message: |
+      Sensitive custom permission with weak protection level (HackTricks/Ivan Critical).
+      Custom permissions for sensitive operations must use "signature" or "signatureOrSystem" protection.
+
+      Example vulnerable configuration:
+      ```xml
+      <permission android:name="com.app.permission.ADMIN_ACCESS"
+                  android:protectionLevel="normal"  <!-- INSECURE! -->
+                  android:description="@string/admin_access_desc" />
+      ```
+
+      Protection levels:
+      - **normal**: ANY app can request (no user approval) ❌ INSECURE for sensitive ops
+      - **dangerous**: User must approve ⚠️ Still not secure enough
+      - **signature**: Only apps signed with same certificate ✅ SECURE
+      - **signatureOrSystem**: Signature + system apps ✅ SECURE
+
+      Attack scenario:
+      ```xml
+      <!-- Malicious app's AndroidManifest.xml -->
+      <uses-permission android:name="com.app.permission.ADMIN_ACCESS" />
+      <!-- Permission granted automatically because protectionLevel="normal" -->
+      ```
+
+      Secure Fix:
+      ```xml
+      <permission android:name="com.app.permission.ADMIN_ACCESS"
+                  android:protectionLevel="signature"
+                  android:description="@string/admin_access_desc" />
+      ```
+
+      This ensures only apps signed with your certificate can use this permission.
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      source: "Ivan Sincek"
+      priority: "P0"
+
+  - id: hacktricks-android-permission-dangerous-as-normal
+    patterns:
+      - pattern: |
+          <permission android:name="$NAME"
+                     android:protectionLevel="normal" />
+    message: |
+      Custom permission with "normal" protection level (HackTricks Warning).
+      Normal permissions are automatically granted to any requesting app without user consent.
+
+      Only use "normal" for truly non-sensitive permissions like:
+      - App UI preferences
+      - Non-sensitive feature flags
+      - Public data access
+
+      For ANY sensitive operation, use:
+      - "signature" - Only your apps (same signing key)
+      - "dangerous" - Requires user approval (for privacy-sensitive data)
+
+      Review this permission's purpose:
+      - If it protects sensitive functionality → change to "signature"
+      - If it accesses user data → change to "dangerous"
+      - If it's truly non-sensitive → OK to keep "normal"
+    severity: WARNING
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      source: "Ivan Sincek"
+      priority: "P0"
+
+  # ============ TARGET SDK VERSION ============
+
+  - id: hacktricks-android-outdated-target-sdk
+    patterns:
+      - pattern: |
+          <uses-sdk ... android:targetSdkVersion="$VERSION" />
+      - metavariable-comparison:
+          metavariable: $VERSION
+          comparison: $VERSION < 31
+    message: |
+      Outdated targetSdkVersion (HackTricks/Ivan Critical Priority).
+      Using old target SDK bypasses modern Android security features and requirements.
+
+      Current targetSdkVersion: $VERSION
+      Minimum required: 31 (Android 12) for new apps
+      Recommended: 33+ (Android 13+) for maximum security
+
+      Security features missed with old targetSdkVersion:
+
+      **Android 10 (API 29):**
+      - Scoped storage (limits broad file access)
+      - Background location restrictions
+      - MAC address randomization
+
+      **Android 11 (API 30):**
+      - Package visibility restrictions
+      - One-time permissions
+      - Auto-reset permissions
+
+      **Android 12 (API 31):**
+      - Bluetooth permissions split
+      - Approximate location option
+      - Safer component export defaults
+      - Pending intent mutability required
+
+      **Android 13 (API 33):**
+      - Notification permission required
+      - Photo picker privacy
+      - Nearby device permission
+
+      Google Play requirements:
+      - New apps: Must target API 33+ (as of Aug 2023)
+      - App updates: Must target API 31+ minimum
+
+      Risks of outdated targetSdk:
+      - Bypasses modern security controls
+      - Grants excessive permissions by default
+      - Allows deprecated insecure APIs
+      - Eventually rejected by Play Store
+
+      Secure Fix:
+      ```xml
+      <uses-sdk android:minSdkVersion="21"
+                android:targetSdkVersion="33" />  <!-- or higher -->
+      ```
+
+      Test thoroughly after updating target SDK!
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      source: "Ivan Sincek, HackTricks"
+      priority: "P0"
+
+  - id: hacktricks-android-very-outdated-target-sdk
+    patterns:
+      - pattern: |
+          <uses-sdk ... android:targetSdkVersion="$VERSION" />
+      - metavariable-comparison:
+          metavariable: $VERSION
+          comparison: $VERSION < 23
+    message: |
+      CRITICALLY outdated targetSdkVersion < 23 (Pre-Marshmallow).
+      This is EXTREMELY dangerous and will be rejected by Google Play.
+
+      Target SDK $VERSION misses 8+ years of security improvements!
+
+      Critical security features missing:
+      - Runtime permissions (API 23+)
+      - Network security config (API 24+)
+      - Scoped storage (API 29+)
+      - Package visibility (API 30+)
+      - Component export restrictions (API 31+)
+
+      This app will be rejected by Google Play immediately.
+      Update to targetSdkVersion 33+ URGENTLY.
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      source: "Ivan Sincek"
+      priority: "P0"
+
+  # ============ TASK AFFINITY / TASKJACKING ============
+
+  - id: hacktricks-android-taskjacking-risk
+    patterns:
+      - pattern: |
+          <activity android:name="$NAME"
+                   android:launchMode="singleTask"
+                   ... />
+      - pattern-not: |
+          <activity android:name="$NAME"
+                   android:launchMode="singleTask"
+                   android:taskAffinity=""
+                   ... />
+      - pattern-not: |
+          <activity android:name="$NAME"
+                   android:launchMode="singleTask"
+                   android:taskAffinity="$AFFINITY"
+                   ... />
+    message: |
+      Taskjacking vulnerability: singleTask without taskAffinity (Ivan Sincek).
+      Activities with singleTask launch mode without explicit taskAffinity are vulnerable.
+
+      Example vulnerable configuration:
+      ```xml
+      <activity android:name=".LoginActivity"
+               android:launchMode="singleTask">
+          <!-- Missing android:taskAffinity="" -->
+      </activity>
+      ```
+
+      Attack (StrandHogg/Task Hijacking):
+      1. Malicious app creates task with same affinity as victim app
+      2. User clicks victim app icon
+      3. Malicious app's UI is shown instead (phishing)
+      4. User enters credentials into fake UI
+      5. Credentials stolen by attacker
+
+      This vulnerability affects:
+      - Login screens
+      - Payment pages
+      - Sensitive forms
+      - Any activity in singleTask mode
+
+      Secure Fix:
+      ```xml
+      <activity android:name=".LoginActivity"
+               android:launchMode="singleTask"
+               android:taskAffinity="">  <!-- Empty string = unique task -->
+          <!-- OR -->
+          android:taskAffinity="com.myapp.unique.task.login">
+      </activity>
+      ```
+
+      Best practices:
+      - Always set explicit taskAffinity for singleTask activities
+      - Use empty string "" for unique task per activity
+      - Or use unique package-prefixed affinity names
+      - Test with StrandHogg detection tools
+
+      References:
+      - CVE-2019-9489 (StrandHogg)
+      - CVE-2020-0096 (StrandHogg 2.0)
+    severity: ERROR
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-346: Origin Validation Error"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH
+      source: "Ivan Sincek"
+      priority: "P1"
+
+  - id: hacktricks-android-singletop-taskaffinity
+    patterns:
+      - pattern: |
+          <activity android:name="$NAME"
+                   android:launchMode="singleTop"
+                   ... />
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(login|payment|transaction|credential|auth|sensitive).*
+      - pattern-not: |
+          <activity ... android:taskAffinity="..." />
+    message: |
+      Sensitive activity with singleTop launch mode missing taskAffinity.
+      While less severe than singleTask, sensitive activities should still set explicit taskAffinity.
+
+      Secure Fix: Add explicit taskAffinity attribute.
+    severity: WARNING
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-346: Origin Validation Error"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      source: "Ivan Sincek"
+      priority: "P1"
+
+  # ============ INTENT FILTER PRIORITY MANIPULATION ============
+
+  - id: hacktricks-android-intent-filter-high-priority
+    patterns:
+      - pattern: |
+          <intent-filter android:priority="$PRIORITY">
+            ...
+          </intent-filter>
+      - metavariable-comparison:
+          metavariable: $PRIORITY
+          comparison: $PRIORITY > 100
+    message: |
+      Suspiciously high intent filter priority (HackTricks Warning).
+      High priority values can hijack intents meant for other apps.
+
+      Priority values:
+      - 0: Normal (default)
+      - 1-999: Valid range
+      - >100: Suspicious, may indicate intent hijacking attempt
+
+      Legitimate use cases for high priority are rare.
+      Review why this component needs high priority.
+
+      Attack scenario:
+      - Malicious app sets very high priority for common intent (e.g., VIEW http://)
+      - System routes intents to malicious app instead of browser
+      - Phishing or data theft
+
+      Best practice: Use default priority (omit attribute) unless specific need.
+    severity: WARNING
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-927: Use of Implicit Intent for Sensitive Communication"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+      source: "HackTricks"
+      priority: "P3"
+
+  # ============ FOREGROUND SERVICE TYPES (Android 10+) ============
+
+  - id: hacktricks-android-foreground-service-location
+    patterns:
+      - pattern: |
+          <service android:name="$NAME"
+                  android:foregroundServiceType="location"
+                  ... />
+    message: |
+      Foreground service with location type (HackTricks Privacy Check).
+      Location foreground services have strict privacy requirements on Android 10+.
+
+      Requirements:
+      - Must request ACCESS_BACKGROUND_LOCATION permission
+      - User sees persistent notification showing location access
+      - Subject to additional Play Store review
+
+      Ensure:
+      1. Location access is genuinely needed for foreground service
+      2. Privacy policy clearly explains usage
+      3. User can disable location service
+      4. Consider alternatives (geofencing, significant location changes)
+
+      If location is not essential, remove this service type.
+    severity: INFO
+    languages:
+      - xml
+    metadata:
+      category: security
+      cwe: "CWE-359: Exposure of Private Personal Information"
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      confidence: LOW
+      source: "HackTricks"
+      priority: "P3"

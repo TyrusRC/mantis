@@ -1,0 +1,491 @@
+rules:
+  # React Native Insecure Network Communication Rules
+  # HTTP usage, certificate pinning bypass, insecure fetch
+  # Sources: React Native Security Research 2024-2025, OWASP Mobile
+  # Focus: Network security vulnerabilities in React Native applications
+
+  - id: react-native-http-url-fetch
+    patterns:
+      - pattern-either:
+          - pattern: |
+              fetch('http://$URL')
+          - pattern: |
+              fetch(`http://${$VAR}`)
+          - pattern: |
+              axios.get('http://$URL')
+          - pattern: |
+              axios.post('http://$URL')
+      - pattern-not-inside: |
+          'http://localhost'
+      - pattern-not-inside: |
+          'http://127.0.0.1'
+      - pattern-not-inside: |
+          test('...', () => { ... })
+    message: |
+      Insecure HTTP URL used in React Native (OWASP M5).
+      HTTP traffic is unencrypted and vulnerable to man-in-the-middle attacks.
+
+      VULNERABLE PATTERNS:
+      ```javascript
+      // VULNERABLE: HTTP fetch
+      const response = await fetch('http://api.example.com/users');
+
+      // VULNERABLE: Template literal
+      const url = `http://${domain}/api/login`;
+      const response = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify({username, password}),
+      });
+
+      // VULNERABLE: Axios HTTP
+      const response = await axios.get('http://api.example.com/data');
+      ```
+
+      ATTACK SCENARIOS:
+      1. Public WiFi interception
+      2. Credential theft during login
+      3. Session token hijacking
+      4. Response manipulation
+      5. Data exfiltration
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      // API client with HTTPS enforcement
+      class SecureApiClient {
+        static baseURL = 'https://api.example.com';
+
+        static async request(endpoint, options = {}) {
+          const url = `${this.baseURL}${endpoint}`;
+
+          // Verify HTTPS
+          if (!url.startsWith('https://')) {
+            throw new Error('Only HTTPS requests are allowed');
+          }
+
+          const response = await fetch(url, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              ...options.headers,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return response.json();
+        }
+
+        static async get(endpoint, headers = {}) {
+          return this.request(endpoint, {method: 'GET', headers});
+        }
+
+        static async post(endpoint, data, headers = {}) {
+          return this.request(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+          });
+        }
+      }
+
+      // Axios with interceptor
+      import axios from 'axios';
+
+      const secureAxios = axios.create({
+        baseURL: 'https://api.example.com',
+        timeout: 10000,
+      });
+
+      // Intercept requests to block HTTP
+      secureAxios.interceptors.request.use(
+        config => {
+          const url = config.baseURL + config.url;
+          if (!url.startsWith('https://')) {
+            throw new Error('HTTP requests are blocked');
+          }
+          return config;
+        },
+        error => Promise.reject(error)
+      );
+
+      // Usage
+      const users = await SecureApiClient.get('/users');
+      const result = await secureAxios.get('/data');
+      ```
+
+      NETWORK SECURITY CONFIG (Android):
+      ```xml
+      <!-- android/app/src/main/res/xml/network_security_config.xml -->
+      <?xml version="1.0" encoding="utf-8"?>
+      <network-security-config>
+          <base-config cleartextTrafficPermitted="false" />
+          <!-- Development only -->
+          <domain-config cleartextTrafficPermitted="true">
+              <domain includeSubdomains="true">localhost</domain>
+              <domain includeSubdomains="true">10.0.2.2</domain>
+          </domain-config>
+      </network-security-config>
+      ```
+
+      APP TRANSPORT SECURITY (iOS):
+      ```xml
+      <!-- ios/<YourApp>/Info.plist -->
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSAllowsArbitraryLoads</key>
+          <false/>
+      </dict>
+      ```
+
+      Reference: OWASP Mobile Top 10, React Native Security
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: react-native-ssl-pinning-disabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              {trusty: {
+                hosts: {$HOST: {disableDefaultTrustManager: true}}
+              }}
+          - pattern: |
+              RNSslPinning.fetch($URL, {
+                ...
+                pkPinning: false,
+                ...
+              })
+      - pattern-not-inside: |
+          test('...', () => { ... })
+    message: |
+      SSL certificate pinning disabled (OWASP M5).
+      Disabling certificate validation or pinning enables MITM attacks.
+
+      VULNERABLE PATTERN:
+      ```javascript
+      // VULNERABLE: Trusty with disabled trust manager
+      const config = {
+        trusty: {
+          hosts: {
+            'api.example.com': {
+              disableDefaultTrustManager: true  // NEVER DO THIS
+            }
+          }
+        }
+      };
+
+      // VULNERABLE: react-native-ssl-pinning with pinning disabled
+      RNSslPinning.fetch(url, {
+        method: 'GET',
+        pkPinning: false,  // Defeats purpose of library
+      });
+      ```
+
+      SECURE IMPLEMENTATION WITH CERTIFICATE PINNING:
+      ```javascript
+      // Install: npm install react-native-ssl-pinning
+      import {fetch as sslFetch} from 'react-native-ssl-pinning';
+
+      class SecurePinnedClient {
+        // SHA-256 hashes of trusted certificates
+        static CERT_HASHES = [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          'sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=',
+        ];
+
+        static async fetch(url, options = {}) {
+          return await sslFetch(url, {
+            ...options,
+            sslPinning: {
+              certs: this.CERT_HASHES,
+            },
+            // Reject self-signed certificates
+            disableAllSecurity: false,
+          });
+        }
+
+        static async get(url, headers = {}) {
+          const response = await this.fetch(url, {
+            method: 'GET',
+            headers,
+          });
+          return JSON.parse(response.bodyString);
+        }
+
+        static async post(url, data, headers = {}) {
+          const response = await this.fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...headers,
+            },
+            body: JSON.stringify(data),
+          });
+          return JSON.parse(response.bodyString);
+        }
+      }
+
+      // Usage
+      try {
+        const data = await SecurePinnedClient.get('https://api.example.com/users');
+      } catch (error) {
+        console.error('Certificate pinning failed:', error);
+        // Handle MITM attack or certificate change
+      }
+      ```
+
+      ALTERNATIVE: TrustKit for iOS
+      ```javascript
+      // ios/Podfile
+      pod 'TrustKit'
+
+      // ios/<App>/AppDelegate.m
+      #import <TrustKit/TrustKit.h>
+
+      - (BOOL)application:(UIApplication *)application
+          didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+
+        NSDictionary *trustKitConfig = @{
+          kTSKSwizzleNetworkDelegates: @YES,
+          kTSKPinnedDomains: @{
+            @"api.example.com": @{
+              kTSKPublicKeyHashes: @[
+                @"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+                @"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+              ],
+            }
+          }
+        };
+
+        [TrustKit initSharedInstanceWithConfiguration:trustKitConfig];
+        return YES;
+      }
+      ```
+
+      GETTING CERTIFICATE HASHES:
+      ```bash
+      # Get certificate from server
+      openssl s_client -connect api.example.com:443 < /dev/null | \\
+        openssl x509 -outform DER > cert.der
+
+      # Calculate SHA-256 hash
+      openssl x509 -in cert.der -inform DER -pubkey -noout | \\
+        openssl pkey -pubin -outform DER | \\
+        openssl dgst -sha256 -binary | \\
+        openssl base64
+      ```
+
+      PINNING BEST PRACTICES:
+      - Pin to intermediate CA + leaf certificate (backup)
+      - Monitor certificate expiry
+      - Implement fallback mechanism for cert rotation
+      - Test pinning in development
+      - Have update mechanism for emergency cert changes
+
+      NEVER ACCEPTABLE:
+      - Disabling trust manager
+      - Accepting all certificates
+      - Trusting self-signed certs in production
+
+      Reference: OWASP Certificate Pinning, React Native Security
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+      - objective-c
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: VERY_HIGH
+      false_positive_likelihood: VERY_LOW
+
+  - id: react-native-webview-javascript-enabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <WebView
+                source={{uri: $URI}}
+                javaScriptEnabled={true}
+                ...
+              />
+          - pattern: |
+              <WebView
+                source={{uri: $URI}}
+                ...
+              />
+      - pattern-not-inside: |
+          source={{uri: 'https://trusted.example.com'}}
+      - pattern-not-inside: |
+          // Test
+          test('...', () => { ... })
+    message: |
+      WebView with JavaScript enabled for untrusted content (OWASP M7).
+      Enabling JavaScript in WebView for user-controlled URLs exposes
+      app to XSS and malicious script execution.
+
+      VULNERABLE PATTERN:
+      ```javascript
+      // VULNERABLE: User-provided URL with JavaScript
+      <WebView
+        source={{uri: userProvidedUrl}}
+        javaScriptEnabled={true}
+      />
+
+      // VULNERABLE: Dynamic URL
+      <WebView
+        source={{uri: `https://${userInput}.example.com`}}
+        javaScriptEnabled={true}
+        onMessage={handleMessage}
+      />
+      ```
+
+      ATTACK SCENARIO:
+      1. Attacker provides malicious URL
+      2. WebView loads with JavaScript enabled
+      3. Malicious script executes
+      4. Script calls postMessage to send data to React Native
+      5. Data exfiltration or app compromise
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import React, {useState} from 'react';
+      import {WebView} from 'react-native-webview';
+
+      const TRUSTED_DOMAINS = [
+        'example.com',
+        'www.example.com',
+        'api.example.com',
+      ];
+
+      function SecureWebView({url}) {
+        const [currentUrl, setCurrentUrl] = useState(url);
+
+        const isUrlTrusted = (urlString) => {
+          try {
+            const urlObj = new URL(urlString);
+
+            // Only HTTPS
+            if (urlObj.protocol !== 'https:') {
+              return false;
+            }
+
+            // Check domain whitelist
+            return TRUSTED_DOMAINS.some(domain =>
+              urlObj.hostname === domain ||
+              urlObj.hostname.endsWith(`.${domain}`)
+            );
+          } catch {
+            return false;
+          }
+        };
+
+        const handleNavigationStateChange = (navState) => {
+          const {url: newUrl} = navState;
+
+          // Block navigation to untrusted domains
+          if (!isUrlTrusted(newUrl)) {
+            console.warn('Blocked navigation to untrusted URL:', newUrl);
+            return false;
+          }
+
+          setCurrentUrl(newUrl);
+          return true;
+        };
+
+        const handleMessage = (event) => {
+          try {
+            const message = JSON.parse(event.nativeEvent.data);
+
+            // Validate message structure
+            if (!message.type || !message.payload) {
+              throw new Error('Invalid message format');
+            }
+
+            // Whitelist allowed message types
+            const allowedTypes = ['log', 'analytics', 'navigation'];
+            if (!allowedTypes.includes(message.type)) {
+              throw new Error('Unknown message type');
+            }
+
+            // Process validated message
+            processMessage(message);
+          } catch (error) {
+            console.error('Invalid WebView message:', error);
+          }
+        };
+
+        // Only enable JavaScript for trusted URLs
+        const javaScriptEnabled = isUrlTrusted(currentUrl);
+
+        return (
+          <WebView
+            source={{uri: currentUrl}}
+            javaScriptEnabled={javaScriptEnabled}
+            onNavigationStateChange={handleNavigationStateChange}
+            onShouldStartLoadWithRequest={(request) => {
+              return isUrlTrusted(request.url);
+            }}
+            onMessage={handleMessage}
+            // Security settings
+            thirdPartyCookiesEnabled={false}
+            sharedCookiesEnabled={false}
+            geolocationEnabled={false}
+            // Inject CSP
+            injectedJavaScript={`
+              const meta = document.createElement('meta');
+              meta.httpEquiv = 'Content-Security-Policy';
+              meta.content = "default-src 'self'; script-src 'self' 'unsafe-inline';";
+              document.head.appendChild(meta);
+              true;
+            `}
+          />
+        );
+      }
+      ```
+
+      WEBVIEW SECURITY CHECKLIST:
+      - [ ] Whitelist trusted domains
+      - [ ] Disable JavaScript for untrusted content
+      - [ ] Validate all WebView messages
+      - [ ] Disable geolocation unless needed
+      - [ ] Disable third-party cookies
+      - [ ] Inject Content Security Policy
+      - [ ] Implement navigation controls
+
+      BRIDGE SECURITY:
+      ```javascript
+      // Secure message validation
+      const MESSAGE_SCHEMA = {
+        log: {required: ['level', 'message']},
+        analytics: {required: ['event', 'properties']},
+      };
+
+      function validateMessage(message) {
+        const schema = MESSAGE_SCHEMA[message.type];
+        if (!schema) return false;
+
+        return schema.required.every(field => field in message.payload);
+      }
+      ```
+
+      Reference: OWASP WebView Security, React Native Docs
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: HIGH
+      false_positive_likelihood: MEDIUM

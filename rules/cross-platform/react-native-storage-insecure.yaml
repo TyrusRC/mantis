@@ -1,0 +1,481 @@
+rules:
+  # React Native Insecure Data Storage Rules
+  # AsyncStorage misuse, unencrypted storage, sensitive data exposure
+  # Sources: React Native Security Research 2024-2025, OWASP Mobile
+  # Focus: Data storage vulnerabilities in React Native applications
+
+  - id: react-native-asyncstorage-sensitive-data
+    patterns:
+      - pattern-either:
+          - pattern: |
+              AsyncStorage.setItem('$KEY', $VALUE)
+          - pattern: |
+              AsyncStorage.multiSet([..., ['$KEY', $VALUE], ...])
+          - pattern: |
+              await AsyncStorage.setItem('$KEY', $VALUE)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(password|token|secret|key|api[_-]?key|auth|session|credential|pin|ssn|credit[_-]?card|private[_-]?key).*
+      - pattern-not-inside: |
+          // Test
+          test('...', () => { ... })
+      - pattern-not-inside: |
+          // Mock
+          jest.mock('...', () => { ... })
+    message: |
+      Sensitive data stored in AsyncStorage without encryption (OWASP M9).
+      AsyncStorage stores data in plain text. On rooted/jailbroken devices
+      or via ADB backup, this data is easily extracted.
+
+      VULNERABLE PATTERNS:
+      ```javascript
+      // VULNERABLE: Storing auth token
+      await AsyncStorage.setItem('authToken', token);
+
+      // VULNERABLE: Storing password
+      await AsyncStorage.setItem('userPassword', password);
+
+      // VULNERABLE: Storing API key
+      await AsyncStorage.setItem('apiKey', 'sk-1234567890abcdef');
+
+      // VULNERABLE: Storing credit card
+      await AsyncStorage.multiSet([
+        ['cardNumber', '4111111111111111'],
+        ['cvv', '123'],
+      ]);
+      ```
+
+      ATTACK SCENARIOS:
+      1. **Android ADB Backup**:
+         ```bash
+         adb backup -f backup.ab com.example.app
+         # Extract and read RKStorage files
+         ```
+
+      2. **Rooted Android**:
+         ```bash
+         adb shell
+         su
+         cat /data/data/com.example.app/files/RKStorage
+         ```
+
+      3. **iOS Jailbroken**:
+         ```bash
+         cat /var/mobile/Containers/Data/Application/<UUID>/Documents/RCTAsyncLocalStorage_V1/*
+         ```
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      // Install: npm install react-native-keychain
+      // OR: npm install react-native-encrypted-storage
+      import * as Keychain from 'react-native-keychain';
+      import EncryptedStorage from 'react-native-encrypted-storage';
+
+      // Option 1: react-native-keychain (Recommended for credentials)
+      class SecureCredentialStorage {
+        static async saveCredentials(username, password) {
+          await Keychain.setGenericPassword(username, password, {
+            service: 'com.myapp.auth',
+            accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+          });
+        }
+
+        static async getCredentials() {
+          try {
+            const credentials = await Keychain.getGenericPassword({
+              service: 'com.myapp.auth',
+            });
+            if (credentials) {
+              return {
+                username: credentials.username,
+                password: credentials.password,
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error('Error retrieving credentials:', error);
+            return null;
+          }
+        }
+
+        static async deleteCredentials() {
+          await Keychain.resetGenericPassword({
+            service: 'com.myapp.auth',
+          });
+        }
+      }
+
+      // Option 2: react-native-encrypted-storage (For general encrypted data)
+      class SecureDataStorage {
+        static async saveAuthToken(token) {
+          await EncryptedStorage.setItem('authToken', token);
+        }
+
+        static async getAuthToken() {
+          return await EncryptedStorage.getItem('authToken');
+        }
+
+        static async saveUserData(userData) {
+          await EncryptedStorage.setItem(
+            'userData',
+            JSON.stringify(userData)
+          );
+        }
+
+        static async getUserData() {
+          const data = await EncryptedStorage.getItem('userData');
+          return data ? JSON.parse(data) : null;
+        }
+
+        static async clearAllData() {
+          await EncryptedStorage.clear();
+        }
+      }
+
+      // Usage
+      await SecureCredentialStorage.saveCredentials('user@example.com', password);
+      await SecureDataStorage.saveAuthToken(authToken);
+      ```
+
+      STORAGE COMPARISON:
+      | Storage Type | Security | Use Case |
+      |--------------|----------|----------|
+      | AsyncStorage | ❌ Plain text | Non-sensitive UI settings |
+      | react-native-keychain | ✅ Hardware-backed | Passwords, tokens |
+      | react-native-encrypted-storage | ✅ Encrypted | Large encrypted data |
+      | react-native-mmkv | ⚠️ Fast but check encryption | High-performance storage |
+
+      PLATFORM SECURITY:
+      - **Android**: Uses KeyStore (hardware-backed on modern devices)
+      - **iOS**: Uses Keychain with hardware encryption (Secure Enclave)
+
+      WHEN TO USE ASYNCSTORAGE:
+      - Theme preference (dark/light mode)
+      - Language selection
+      - Last selected tab
+      - Non-sensitive user preferences
+      - Cache keys (non-sensitive)
+
+      NEVER USE ASYNCSTORAGE FOR:
+      - Authentication tokens
+      - Passwords or PINs
+      - API keys
+      - Session IDs
+      - Personal identifiable information (PII)
+      - Credit card data
+      - Private keys
+      - Biometric data
+
+      MIGRATION FROM ASYNCSTORAGE:
+      ```javascript
+      // Migrate sensitive data to secure storage
+      async function migrateSensitiveData() {
+        const keys = [
+          'authToken',
+          'refreshToken',
+          'apiKey',
+        ];
+
+        for (const key of keys) {
+          const value = await AsyncStorage.getItem(key);
+          if (value) {
+            // Move to encrypted storage
+            await EncryptedStorage.setItem(key, value);
+            // Delete from AsyncStorage
+            await AsyncStorage.removeItem(key);
+            console.log(`Migrated ${key} to secure storage`);
+          }
+        }
+      }
+      ```
+
+      SECURITY AUDIT CHECKLIST:
+      - [ ] No passwords in AsyncStorage
+      - [ ] No auth tokens in AsyncStorage
+      - [ ] No API keys in AsyncStorage
+      - [ ] No PII in AsyncStorage
+      - [ ] Sensitive data uses react-native-keychain or encrypted-storage
+      - [ ] Secure storage cleared on logout
+
+      Reference: OWASP Mobile Top 10 2024, React Native Security Guide
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: react-native-realm-unencrypted
+    patterns:
+      - pattern-either:
+          - pattern: |
+              new Realm({schema: $SCHEMA})
+          - pattern: |
+              Realm.open({schema: $SCHEMA})
+      - pattern-not: |
+          new Realm({schema: $SCHEMA, encryptionKey: $KEY})
+      - pattern-not: |
+          Realm.open({schema: $SCHEMA, encryptionKey: $KEY})
+      - pattern-not-inside: |
+          test('...', () => { ... })
+    message: |
+      Realm database created without encryption (OWASP M9).
+      Unencrypted Realm databases store data in plain text on disk.
+
+      VULNERABLE PATTERN:
+      ```javascript
+      // VULNERABLE: Realm without encryption
+      const realm = await Realm.open({
+        schema: [PersonSchema, CarSchema],
+      });
+
+      // VULNERABLE: Even with sensitive data
+      const realm = new Realm({
+        schema: [UserCredentialsSchema],  // Contains passwords!
+      });
+      ```
+
+      ATTACK SCENARIO:
+      On rooted/jailbroken devices or with physical access:
+      ```bash
+      # Access Realm file directly
+      cat /data/data/com.example.app/files/default.realm
+      # File is unencrypted and readable
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import Realm from 'realm';
+      import * as Keychain from 'react-native-keychain';
+
+      class SecureRealmManager {
+        static async getEncryptionKey() {
+          // Try to retrieve existing key
+          const credentials = await Keychain.getGenericPassword({
+            service: 'realm.encryption.key',
+          });
+
+          if (credentials) {
+            // Convert base64 key to buffer
+            return Buffer.from(credentials.password, 'base64');
+          }
+
+          // Generate new 64-byte encryption key
+          const key = new Int8Array(64);
+          for (let i = 0; i < 64; i++) {
+            key[i] = Math.floor(Math.random() * 256) - 128;
+          }
+
+          // Store key securely
+          await Keychain.setGenericPassword(
+            'realm_key',
+            Buffer.from(key).toString('base64'),
+            {
+              service: 'realm.encryption.key',
+              accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+            }
+          );
+
+          return key;
+        }
+
+        static async openEncryptedRealm() {
+          const encryptionKey = await this.getEncryptionKey();
+
+          const realm = await Realm.open({
+            schema: [UserSchema, MessageSchema],
+            encryptionKey: encryptionKey,
+            schemaVersion: 1,
+          });
+
+          return realm;
+        }
+
+        static async deleteRealm() {
+          // Delete encryption key
+          await Keychain.resetGenericPassword({
+            service: 'realm.encryption.key',
+          });
+
+          // Delete Realm file
+          Realm.deleteFile({schema: [UserSchema, MessageSchema]});
+        }
+      }
+
+      // Usage
+      const realm = await SecureRealmManager.openEncryptedRealm();
+
+      // Write data
+      realm.write(() => {
+        realm.create('User', {
+          id: 1,
+          email: 'user@example.com',
+          token: 'sensitive_auth_token',
+        });
+      });
+
+      // Close when done
+      realm.close();
+      ```
+
+      ENCRYPTION KEY BEST PRACTICES:
+      - Generate random 64-byte key (Realm requirement)
+      - Store key in Keychain (iOS) or KeyStore (Android)
+      - NEVER hardcode encryption key
+      - Delete key on user logout
+      - Rotate keys periodically (with data migration)
+
+      KEY ROTATION:
+      ```javascript
+      async function rotateRealmEncryptionKey() {
+        const oldKey = await SecureRealmManager.getEncryptionKey();
+        const newKey = await generateNewEncryptionKey();
+
+        // Open with old key
+        const oldRealm = await Realm.open({
+          schema: [UserSchema],
+          encryptionKey: oldKey,
+        });
+
+        // Copy to new encrypted Realm
+        const newPath = oldRealm.path + '.new';
+        oldRealm.writeCopyTo(newPath, newKey);
+
+        oldRealm.close();
+
+        // Replace old Realm with new
+        await Realm.deleteFile({schema: [UserSchema]});
+        // Move newPath to original path
+      }
+      ```
+
+      PERFORMANCE IMPACT:
+      - Encryption overhead: ~5-10% performance impact
+      - Worth it for protecting sensitive data
+      - Unnoticeable in most applications
+
+      COMPLIANCE:
+      Many regulations (GDPR, HIPAA, PCI-DSS) REQUIRE encryption
+      of sensitive data at rest.
+
+      Reference: Realm Encryption Docs, OWASP Mobile Storage
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      false_positive_likelihood: LOW
+
+  - id: react-native-mmkv-no-encryption
+    patterns:
+      - pattern-either:
+          - pattern: |
+              new MMKV()
+          - pattern: |
+              new MMKV({id: $ID})
+      - pattern-not: |
+          new MMKV({id: $ID, encryptionKey: $KEY})
+      - pattern-not-inside: |
+          test('...', () => { ... })
+    message: |
+      MMKV storage created without encryption (OWASP M9).
+      MMKV is a high-performance key-value store that supports encryption
+      but must be explicitly configured.
+
+      VULNERABLE PATTERN:
+      ```javascript
+      // VULNERABLE: MMKV without encryption
+      const storage = new MMKV();
+      storage.set('authToken', token);
+
+      // VULNERABLE: Even with custom ID
+      const userStorage = new MMKV({id: 'user-data'});
+      userStorage.set('password', password);
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```javascript
+      import {MMKV} from 'react-native-mmkv';
+      import * as Keychain from 'react-native-keychain';
+
+      class SecureMMKVManager {
+        static async getEncryptionKey() {
+          const credentials = await Keychain.getGenericPassword({
+            service: 'mmkv.encryption.key',
+          });
+
+          if (credentials) {
+            return credentials.password;
+          }
+
+          // Generate new random key
+          const key = Array.from(
+            {length: 32},
+            () => Math.random().toString(36)[2]
+          ).join('');
+
+          await Keychain.setGenericPassword('mmkv_key', key, {
+            service: 'mmkv.encryption.key',
+            accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+          });
+
+          return key;
+        }
+
+        static async createEncryptedStorage(storageId = 'secure_storage') {
+          const encryptionKey = await this.getEncryptionKey();
+
+          return new MMKV({
+            id: storageId,
+            encryptionKey: encryptionKey,
+          });
+        }
+      }
+
+      // Usage
+      const secureStorage = await SecureMMKVManager.createEncryptedStorage();
+
+      // Store sensitive data
+      secureStorage.set('authToken', token);
+      secureStorage.set('user.email', email);
+
+      // Retrieve
+      const token = secureStorage.getString('authToken');
+
+      // Delete
+      secureStorage.delete('authToken');
+
+      // Clear all
+      secureStorage.clearAll();
+      ```
+
+      MMKV FEATURES WITH ENCRYPTION:
+      - Fast performance (mmap-based)
+      - AES-CFB-128 encryption
+      - Concurrent multi-process access
+      - Support for multiple instances
+
+      WHEN TO USE ENCRYPTED MMKV:
+      - High-performance encrypted storage needed
+      - Multiple storage instances required
+      - Frequent read/write operations on sensitive data
+
+      Reference: MMKV Documentation, React Native Security
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M9: Insecure Data Storage"
+      confidence: HIGH
+      false_positive_likelihood: LOW

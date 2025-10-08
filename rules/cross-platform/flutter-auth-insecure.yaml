@@ -1,0 +1,1940 @@
+rules:
+  # Flutter Authentication/Authorization Security Rules
+  # OWASP Mobile Top 10 2024 - M3: Insecure Authentication/Authorization
+  # Comprehensive detection of authentication vulnerabilities in Flutter apps
+  # Coverage: Biometrics, JWT, OAuth, session management, password policies
+
+  # ============================================================================
+  # BIOMETRIC AUTHENTICATION VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-biometric-event-based-no-crypto
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $AUTH.authenticate(
+                ...,
+                options: AuthenticationOptions(...)
+              )
+          - pattern: |
+              await $AUTH.authenticate(...)
+      - pattern-not-inside: |
+          final cipher = ...
+          ...
+          await $AUTH.authenticate(
+            ...,
+            options: AuthenticationOptions(
+              ...,
+              biometricOnly: true,
+              ...
+            )
+          )
+      - pattern-not-inside: |
+          final authenticated = await $AUTH.authenticate(...)
+          if (authenticated) {
+            final key = await _getEncryptedKey(...)
+            ...
+          }
+    message: |
+      Event-based biometric authentication without cryptographic binding (OWASP M3).
+
+      VULNERABILITY:
+      Relying only on the boolean result of biometric authentication without
+      cryptographic operations allows attackers to bypass biometrics via:
+      - Frida/Xposed hooking to return true
+      - Binary patching
+      - Runtime manipulation
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: Event-based biometric auth
+      import 'package:local_auth/local_auth.dart';
+
+      class InsecureBiometricAuth {
+        final LocalAuthentication auth = LocalAuthentication();
+
+        Future<void> authenticateUser() async {
+          try {
+            final authenticated = await auth.authenticate(
+              localizedReason: 'Please authenticate',
+              options: const AuthenticationOptions(
+                biometricOnly: true,
+                stickyAuth: true,
+              ),
+            );
+
+            // VULNERABLE: Just checking boolean result
+            if (authenticated) {
+              // Grant access to sensitive data
+              await loadSensitiveData();
+            }
+          } catch (e) {
+            print('Authentication error: $e');
+          }
+        }
+      }
+      ```
+
+      ATTACK SCENARIO:
+      ```javascript
+      // Frida script to bypass biometric check
+      Java.perform(function() {
+        var LocalAuthentication = Java.use('io.flutter.plugins.localauth.LocalAuthPlugin');
+        LocalAuthentication.authenticate.implementation = function() {
+          console.log('[*] Biometric authentication bypassed!');
+          return true; // Always return success
+        };
+      });
+      ```
+
+      SECURE IMPLEMENTATION - Crypto-bound biometrics:
+      ```dart
+      import 'package:local_auth/local_auth.dart';
+      import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+      import 'package:pointycastle/export.dart';
+
+      class SecureBiometricAuth {
+        final LocalAuthentication _auth = LocalAuthentication();
+        final FlutterSecureStorage _storage = FlutterSecureStorage(
+          aOptions: AndroidOptions(
+            encryptedSharedPreferences: true,
+            // Use biometric-protected keystore
+            biometricOnly: true,
+          ),
+          iOptions: IOSOptions(
+            accessibility: KeychainAccessibility.when_passcode_set_this_device_only,
+            // Require biometric or passcode
+            authenticationPrompt: 'Authenticate to access data',
+          ),
+        );
+
+        // Initialize biometric-protected encryption
+        Future<void> setupBiometricKey() async {
+          // Generate encryption key during first setup
+          final keyBytes = _generateSecureKey();
+          final keyB64 = base64Encode(keyBytes);
+
+          // Store key in biometric-protected storage
+          await _storage.write(
+            key: 'biometric_encryption_key',
+            value: keyB64,
+            aOptions: AndroidOptions(
+              biometricOnly: true,
+            ),
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.when_passcode_set_this_device_only,
+              accessGroup: 'com.myapp.biometric',
+            ),
+          );
+        }
+
+        // Authenticate with crypto-bound biometrics
+        Future<String?> authenticateAndDecryptData(String encryptedData) async {
+          try {
+            // Check biometric availability
+            final canAuthenticate = await _auth.canCheckBiometrics;
+            if (!canAuthenticate) {
+              throw Exception('Biometric authentication not available');
+            }
+
+            // Attempt biometric authentication
+            final authenticated = await _auth.authenticate(
+              localizedReason: 'Authenticate to access sensitive data',
+              options: const AuthenticationOptions(
+                biometricOnly: true,
+                stickyAuth: true,
+                sensitiveTransaction: true,
+              ),
+            );
+
+            if (!authenticated) {
+              return null;
+            }
+
+            // SECURE: Retrieve encryption key from biometric-protected storage
+            // This operation REQUIRES successful biometric authentication
+            final keyB64 = await _storage.read(
+              key: 'biometric_encryption_key',
+              aOptions: AndroidOptions(
+                biometricOnly: true,
+              ),
+              iOptions: IOSOptions(
+                authenticationPrompt: 'Authenticate to decrypt data',
+              ),
+            );
+
+            if (keyB64 == null) {
+              throw Exception('Encryption key not found');
+            }
+
+            final key = base64Decode(keyB64);
+
+            // Decrypt data using biometric-protected key
+            return _decryptData(encryptedData, key);
+          } catch (e) {
+            print('Biometric authentication failed: $e');
+            return null;
+          }
+        }
+
+        // Encrypt sensitive data
+        Future<String> encryptData(String plaintext) async {
+          final keyB64 = await _storage.read(key: 'biometric_encryption_key');
+          if (keyB64 == null) {
+            throw Exception('Encryption key not initialized');
+          }
+
+          final key = base64Decode(keyB64);
+          return _encryptData(plaintext, key);
+        }
+
+        Uint8List _generateSecureKey() {
+          final random = FortunaRandom();
+          final seed = List<int>.generate(32, (_) => Random.secure().nextInt(256));
+          random.seed(KeyParameter(Uint8List.fromList(seed)));
+          return random.nextBytes(32);
+        }
+
+        String _encryptData(String plaintext, Uint8List key) {
+          final iv = _generateIV();
+          final cipher = GCMBlockCipher(AESEngine())
+            ..init(
+              true,
+              AEADParameters(KeyParameter(key), 128, iv, Uint8List(0))
+            );
+
+          final plaintextBytes = utf8.encode(plaintext);
+          final ciphertext = cipher.process(Uint8List.fromList(plaintextBytes));
+
+          // Return IV + ciphertext
+          return base64Encode([...iv, ...ciphertext]);
+        }
+
+        String _decryptData(String encrypted, Uint8List key) {
+          final data = base64Decode(encrypted);
+          final iv = data.sublist(0, 16);
+          final ciphertext = data.sublist(16);
+
+          final cipher = GCMBlockCipher(AESEngine())
+            ..init(
+              false,
+              AEADParameters(KeyParameter(key), 128, iv, Uint8List(0))
+            );
+
+          final plaintext = cipher.process(ciphertext);
+          return utf8.decode(plaintext);
+        }
+
+        Uint8List _generateIV() {
+          final random = Random.secure();
+          return Uint8List.fromList(
+            List<int>.generate(16, (_) => random.nextInt(256))
+          );
+        }
+      }
+      ```
+
+      PLATFORM-SPECIFIC SECURITY:
+
+      **Android (BiometricPrompt + Keystore):**
+      - Use `setUserAuthenticationRequired(true)` in Keystore
+      - Set `setUserAuthenticationValidityDurationSeconds(0)` for per-use auth
+      - Keys protected by Secure Element (StrongBox) on supported devices
+
+      **iOS (Face ID/Touch ID + Keychain):**
+      - Use `kSecAccessControlBiometryCurrentSet` for biometric binding
+      - Store encryption keys in Keychain with Secure Enclave protection
+      - Use `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`
+
+      BEST PRACTICES:
+      - NEVER rely on biometric callback boolean alone
+      - ALWAYS bind biometric auth to cryptographic operations
+      - Use hardware-backed keystores (Android KeyStore, iOS Secure Enclave)
+      - Require biometric re-authentication for sensitive operations
+      - Invalidate biometric keys when biometrics change
+      - Implement fallback to strong password/PIN
+
+      TESTING:
+      ```dart
+      // Test biometric bypass resistance
+      test('Biometric authentication requires crypto validation', () async {
+        final auth = SecureBiometricAuth();
+
+        // Mock biometric success but without valid key
+        // Should fail to decrypt
+        final result = await auth.authenticateAndDecryptData(encryptedData);
+        expect(result, isNull);
+      });
+      ```
+
+      References:
+      - OWASP MASTG: MASTG-TEST-0025 (Biometric Authentication)
+      - CWE-287: Improper Authentication
+      - MASVS-AUTH-3: The app secures sensitive operations with additional authentication
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      masvs-v2: "MASVS-AUTH-3"
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory:
+        - vuln
+
+  - id: flutter-biometric-no-fallback
+    patterns:
+      - pattern: |
+          $AUTH.authenticate(
+            ...,
+            options: AuthenticationOptions(
+              biometricOnly: true,
+              ...
+            )
+          )
+      - pattern-not-inside: |
+          try {
+            ...
+            await $AUTH.authenticate(...)
+            ...
+          } catch ($E) {
+            ...
+            await _authenticateWithPassword(...)
+            ...
+          }
+      - pattern-not-inside: |
+          final result = await $AUTH.authenticate(...)
+          if (!result) {
+            await _showPasswordDialog(...)
+            ...
+          }
+    message: |
+      Biometric authentication without password/PIN fallback (OWASP M3).
+
+      RISK:
+      Biometric-only authentication can lock users out if:
+      - Biometric hardware fails
+      - Biometric enrollment is removed
+      - Device doesn't support biometrics
+      - Too many failed biometric attempts
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class BiometricWithFallback {
+        final LocalAuthentication _auth = LocalAuthentication();
+
+        Future<bool> authenticate() async {
+          try {
+            // Try biometric first
+            final biometricAvailable = await _auth.canCheckBiometrics;
+
+            if (biometricAvailable) {
+              final authenticated = await _auth.authenticate(
+                localizedReason: 'Authenticate to continue',
+                options: const AuthenticationOptions(
+                  biometricOnly: true,
+                  stickyAuth: true,
+                ),
+              );
+
+              if (authenticated) return true;
+            }
+
+            // Fallback to password/PIN
+            return await _showPasswordDialog();
+          } catch (e) {
+            // Biometric failed, use password fallback
+            return await _showPasswordDialog();
+          }
+        }
+
+        Future<bool> _showPasswordDialog() async {
+          // Implement secure password verification
+          // Verify against server-side hash, not client-side
+          return false;
+        }
+      }
+      ```
+
+      Reference: MASVS-AUTH-3, CWE-306
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-306: Missing Authentication for Critical Function"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============================================================================
+  # JWT TOKEN VALIDATION VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-jwt-no-signature-verification
+    patterns:
+      - pattern-either:
+          - pattern: |
+              JWT.decode($TOKEN)
+          - pattern: |
+              JwtDecoder.decode($TOKEN)
+          - pattern: |
+              JsonWebToken.decode($TOKEN)
+      - pattern-not-inside: |
+          JWT.verify($TOKEN, $SECRET)
+          ...
+      - pattern-not-inside: |
+          JwtDecoder.isExpired($TOKEN)
+          ...
+          final verified = JwtDecoder.tryDecode($TOKEN)
+          ...
+    message: |
+      JWT decoded without signature verification (OWASP M3).
+
+      VULNERABILITY:
+      Decoding JWTs without verifying signatures allows attackers to:
+      - Forge tokens with elevated privileges
+      - Modify token claims (user ID, roles, permissions)
+      - Create tokens with "none" algorithm
+      - Bypass authentication entirely
+
+      VULNERABLE PATTERN:
+      ```dart
+      import 'package:jwt_decoder/jwt_decoder.dart';
+
+      class InsecureJWT {
+        void processToken(String token) {
+          // VULNERABLE: Decode without verification
+          Map<String, dynamic> payload = JwtDecoder.decode(token);
+
+          String userId = payload['user_id'];
+          bool isAdmin = payload['admin'] ?? false;
+
+          // Grant access based on unverified claims
+          if (isAdmin) {
+            grantAdminAccess();
+          }
+        }
+      }
+      ```
+
+      ATTACK SCENARIO:
+      ```bash
+      # Attacker creates forged JWT with admin claim
+      # Using https://jwt.io or custom script
+
+      # Header (alg: none)
+      {
+        "alg": "none",
+        "typ": "JWT"
+      }
+
+      # Payload (forged admin claim)
+      {
+        "user_id": "attacker123",
+        "admin": true,
+        "exp": 9999999999
+      }
+
+      # Signature: (empty for "none" algorithm)
+
+      # Final forged token:
+      eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VyX2lkIjoiYXR0YWNrZXIxMjMiLCJhZG1pbiI6dHJ1ZSwiZXhwIjo5OTk5OTk5OTk5fQ.
+
+      # App decodes without verification → Admin access granted!
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+      import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+      class SecureJWTHandler {
+        final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+        // IMPORTANT: In production, get public key from secure backend
+        // NEVER hardcode private keys in mobile app
+        Future<String?> getPublicKey() async {
+          // Fetch from secure backend or app signing
+          return await _storage.read(key: 'jwt_public_key');
+        }
+
+        Future<Map<String, dynamic>?> verifyAndDecodeToken(String token) async {
+          try {
+            // Get public key (for RS256, ES256)
+            final publicKeyPEM = await getPublicKey();
+
+            if (publicKeyPEM == null) {
+              throw Exception('Public key not available');
+            }
+
+            // SECURE: Verify signature before trusting claims
+            final jwt = JWT.verify(
+              token,
+              RSAPublicKey(publicKeyPEM),
+              // Specify allowed algorithms (prevent "none" algorithm attack)
+              checkExpiresIn: true,
+              checkNotBefore: true,
+            );
+
+            // Additional validations
+            if (!_validateClaims(jwt.payload)) {
+              throw JWTException('Invalid token claims');
+            }
+
+            return jwt.payload as Map<String, dynamic>;
+          } on JWTExpiredException {
+            print('Token expired');
+            return null;
+          } on JWTException catch (e) {
+            print('Invalid token: $e');
+            return null;
+          }
+        }
+
+        bool _validateClaims(dynamic payload) {
+          if (payload is! Map<String, dynamic>) return false;
+
+          // Validate issuer
+          if (payload['iss'] != 'https://your-auth-server.com') {
+            return false;
+          }
+
+          // Validate audience
+          if (payload['aud'] != 'your-mobile-app') {
+            return false;
+          }
+
+          // Validate token type
+          if (payload['typ'] != 'Bearer') {
+            return false;
+          }
+
+          return true;
+        }
+
+        // For symmetric key verification (HS256) - less recommended for mobile
+        Future<Map<String, dynamic>?> verifyHMACToken(String token) async {
+          try {
+            // HMAC secret should NEVER be in mobile app
+            // This is only for backend verification
+            // Mobile apps should use asymmetric verification (RS256, ES256)
+            throw UnimplementedError(
+              'HMAC verification should be done server-side. '
+              'Use RS256/ES256 for mobile apps.'
+            );
+          } catch (e) {
+            return null;
+          }
+        }
+      }
+
+      // Usage
+      final jwtHandler = SecureJWTHandler();
+
+      Future<void> handleAuthToken(String token) async {
+        final payload = await jwtHandler.verifyAndDecodeToken(token);
+
+        if (payload != null) {
+          final userId = payload['sub'];
+          final roles = payload['roles'] as List?;
+
+          // Now safe to use verified claims
+          if (roles?.contains('admin') == true) {
+            grantAdminAccess();
+          }
+        } else {
+          // Invalid token - logout user
+          await logout();
+        }
+      }
+      ```
+
+      JWT SECURITY BEST PRACTICES:
+
+      1. **Algorithm Security:**
+         - ✅ Use: RS256, ES256, PS256 (asymmetric)
+         - ⚠️ Avoid: HS256 (symmetric) in mobile apps
+         - ❌ Never: "none" algorithm
+
+      2. **Key Management:**
+         - Store public keys securely (not hardcoded)
+         - Fetch public keys from backend (with cert pinning)
+         - NEVER include private keys in mobile app
+         - Rotate keys periodically
+
+      3. **Validation Checks:**
+         - Verify signature (always!)
+         - Check expiration (exp claim)
+         - Check not-before (nbf claim)
+         - Validate issuer (iss claim)
+         - Validate audience (aud claim)
+         - Validate token type
+
+      4. **Token Storage:**
+         - Store tokens in flutter_secure_storage
+         - Never in SharedPreferences
+         - Clear tokens on logout
+         - Implement token refresh flow
+
+      TESTING:
+      ```dart
+      test('JWT verification rejects tampered tokens', () async {
+        final handler = SecureJWTHandler();
+
+        // Valid token
+        final validToken = 'eyJ...';
+        final validPayload = await handler.verifyAndDecodeToken(validToken);
+        expect(validPayload, isNotNull);
+
+        // Tampered token (modified payload)
+        final tamperedToken = validToken.replaceFirst('user', 'admin');
+        final tamperedPayload = await handler.verifyAndDecodeToken(tamperedToken);
+        expect(tamperedPayload, isNull); // Should reject
+
+        // None algorithm attack
+        final noneAlgToken = 'eyJhbGciOiJub25lIn0...';
+        final nonePayload = await handler.verifyAndDecodeToken(noneAlgToken);
+        expect(nonePayload, isNull); // Should reject
+      });
+      ```
+
+      References:
+      - OWASP JWT Cheat Sheet
+      - CWE-347: Improper Verification of Cryptographic Signature
+      - RFC 7519: JSON Web Token (JWT)
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: flutter-jwt-hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: |
+              JWT.sign($PAYLOAD, SecretKey('$SECRET'))
+          - pattern: |
+              JWT.verify($TOKEN, SecretKey('$SECRET'))
+          - pattern: |
+              final secret = '$SECRET';
+              ...
+              JWT.sign($PAYLOAD, SecretKey(secret))
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: ^[A-Za-z0-9+/=]{16,}$
+    message: |
+      JWT with hardcoded secret key (OWASP M3).
+
+      RISK:
+      Hardcoded JWT secrets can be extracted via:
+      - APK/IPA decompilation
+      - Binary analysis tools
+      - Runtime memory inspection
+      - Frida/objection hooking
+
+      Once extracted, attackers can:
+      - Forge valid tokens for any user
+      - Bypass authentication completely
+      - Escalate privileges to admin
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      // WRONG: Mobile apps should NEVER sign JWTs
+      // JWT signing should ONLY happen on backend server
+
+      // Mobile apps should only:
+      // 1. Verify JWT signatures (using public key)
+      // 2. Read verified claims
+      // 3. Store tokens securely
+
+      class ProperMobileJWTUsage {
+        // ✅ CORRECT: Verify with public key
+        Future<bool> verifyToken(String token, String publicKeyPEM) async {
+          try {
+            JWT.verify(token, RSAPublicKey(publicKeyPEM));
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        // ❌ WRONG: Never sign tokens in mobile app
+        String signToken(Map<String, dynamic> payload) {
+          throw UnimplementedError(
+            'Token signing must be done on backend server, not mobile app!'
+          );
+        }
+      }
+      ```
+
+      Reference: CWE-798, OWASP M3
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: flutter-jwt-no-expiration-check
+    patterns:
+      - pattern: |
+          $PAYLOAD = JwtDecoder.decode($TOKEN)
+      - pattern-not-inside: |
+          if (JwtDecoder.isExpired($TOKEN)) {
+            ...
+          }
+      - pattern-not-inside: |
+          final isExpired = JwtDecoder.isExpired($TOKEN);
+          if (isExpired) ...
+    message: |
+      JWT used without checking expiration (OWASP M3).
+
+      RISK:
+      Tokens without expiration checks remain valid indefinitely if stolen.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:jwt_decoder/jwt_decoder.dart';
+
+      class TokenValidator {
+        Future<Map<String, dynamic>?> validateToken(String token) async {
+          // Check expiration
+          if (JwtDecoder.isExpired(token)) {
+            print('Token expired, refreshing...');
+            token = await refreshToken();
+            if (token.isEmpty) return null;
+          }
+
+          // Verify signature (use secure method above)
+          final payload = await verifyAndDecode(token);
+          return payload;
+        }
+
+        Future<String> refreshToken() async {
+          // Implement token refresh flow
+          // Call backend with refresh token
+          return '';
+        }
+      }
+      ```
+
+      Reference: CWE-613, OWASP M3
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============================================================================
+  # OAUTH & OIDC VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-oauth-no-pkce
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FlutterAppAuth().$METHOD(
+                AuthorizationTokenRequest(
+                  ...,
+                  redirectUrl: $REDIRECT,
+                  ...
+                )
+              )
+          - pattern: |
+              appAuth.authorizeAndExchangeCode(
+                AuthorizationTokenRequest(...)
+              )
+      - pattern-not: |
+          AuthorizationTokenRequest(
+            ...,
+            codeVerifier: $VERIFIER,
+            ...
+          )
+      - pattern-not: |
+          AuthorizationTokenRequest(
+            ...,
+            additionalParameters: {'code_challenge': $CHALLENGE, ...},
+            ...
+          )
+    message: |
+      OAuth flow without PKCE (Proof Key for Code Exchange) (OWASP M3).
+
+      VULNERABILITY:
+      OAuth Authorization Code flow without PKCE is vulnerable to:
+      - Authorization code interception
+      - Malicious app registration with same redirect URI
+      - Code replay attacks
+
+      ATTACK SCENARIO:
+      ```
+      1. User initiates OAuth login in legitimate app
+      2. Attacker intercepts authorization code via:
+         - Malicious app with same redirect URI scheme
+         - Custom URL scheme hijacking
+         - Deep link interception
+      3. Attacker exchanges code for access token
+      4. Attacker gains access to victim's account
+      ```
+
+      VULNERABLE PATTERN:
+      ```dart
+      import 'package:flutter_appauth/flutter_appauth.dart';
+
+      class InsecureOAuth {
+        final FlutterAppAuth _appAuth = FlutterAppAuth();
+
+        Future<void> login() async {
+          // VULNERABLE: No PKCE
+          final result = await _appAuth.authorizeAndExchangeCode(
+            AuthorizationTokenRequest(
+              'client_id',
+              'com.myapp://oauth/callback',
+              serviceConfiguration: AuthorizationServiceConfiguration(
+                authorizationEndpoint: 'https://auth.example.com/authorize',
+                tokenEndpoint: 'https://auth.example.com/token',
+              ),
+              scopes: ['openid', 'profile', 'email'],
+            ),
+          );
+
+          if (result != null) {
+            // Use access token
+            await saveToken(result.accessToken);
+          }
+        }
+      }
+      ```
+
+      SECURE IMPLEMENTATION with PKCE:
+      ```dart
+      import 'package:flutter_appauth/flutter_appauth.dart';
+      import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+      import 'dart:convert';
+      import 'dart:math';
+      import 'package:crypto/crypto.dart';
+
+      class SecureOAuthWithPKCE {
+        final FlutterAppAuth _appAuth = FlutterAppAuth();
+        final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+        // Generate PKCE code verifier and challenge
+        Map<String, String> _generatePKCE() {
+          // Generate random code verifier (43-128 characters)
+          final random = Random.secure();
+          final values = List<int>.generate(32, (_) => random.nextInt(256));
+          final codeVerifier = base64Url
+              .encode(values)
+              .replaceAll('=', '')
+              .replaceAll('+', '-')
+              .replaceAll('/', '_');
+
+          // Generate code challenge (SHA256 of verifier)
+          final bytes = utf8.encode(codeVerifier);
+          final digest = sha256.convert(bytes);
+          final codeChallenge = base64Url
+              .encode(digest.bytes)
+              .replaceAll('=', '')
+              .replaceAll('+', '-')
+              .replaceAll('/', '_');
+
+          return {
+            'code_verifier': codeVerifier,
+            'code_challenge': codeChallenge,
+          };
+        }
+
+        Future<void> login() async {
+          try {
+            // Generate PKCE parameters
+            final pkce = _generatePKCE();
+
+            // SECURE: OAuth with PKCE
+            final result = await _appAuth.authorizeAndExchangeCode(
+              AuthorizationTokenRequest(
+                'your_client_id',
+                'com.myapp://oauth/callback',
+                serviceConfiguration: AuthorizationServiceConfiguration(
+                  authorizationEndpoint: 'https://auth.example.com/authorize',
+                  tokenEndpoint: 'https://auth.example.com/token',
+                ),
+                scopes: ['openid', 'profile', 'email'],
+                // PKCE parameters
+                additionalParameters: {
+                  'code_challenge': pkce['code_challenge']!,
+                  'code_challenge_method': 'S256',
+                },
+                // Code verifier for token exchange
+                codeVerifier: pkce['code_verifier'],
+                // State parameter for CSRF protection
+                nonce: _generateNonce(),
+              ),
+            );
+
+            if (result != null) {
+              // Store tokens securely
+              await _storage.write(
+                key: 'access_token',
+                value: result.accessToken,
+              );
+
+              if (result.refreshToken != null) {
+                await _storage.write(
+                  key: 'refresh_token',
+                  value: result.refreshToken,
+                );
+              }
+
+              // Validate ID token if present
+              if (result.idToken != null) {
+                await _validateIDToken(result.idToken!);
+              }
+            }
+          } catch (e) {
+            print('OAuth error: $e');
+          }
+        }
+
+        String _generateNonce() {
+          final random = Random.secure();
+          final values = List<int>.generate(16, (_) => random.nextInt(256));
+          return base64Url.encode(values);
+        }
+
+        Future<void> _validateIDToken(String idToken) async {
+          // Validate ID token signature and claims
+          // Implementation depends on your identity provider
+        }
+
+        Future<void> refreshAccessToken() async {
+          final refreshToken = await _storage.read(key: 'refresh_token');
+
+          if (refreshToken == null) {
+            throw Exception('No refresh token available');
+          }
+
+          try {
+            final result = await _appAuth.token(
+              TokenRequest(
+                'your_client_id',
+                'com.myapp://oauth/callback',
+                refreshToken: refreshToken,
+                serviceConfiguration: AuthorizationServiceConfiguration(
+                  authorizationEndpoint: 'https://auth.example.com/authorize',
+                  tokenEndpoint: 'https://auth.example.com/token',
+                ),
+              ),
+            );
+
+            if (result != null) {
+              await _storage.write(
+                key: 'access_token',
+                value: result.accessToken,
+              );
+
+              if (result.refreshToken != null) {
+                await _storage.write(
+                  key: 'refresh_token',
+                  value: result.refreshToken,
+                );
+              }
+            }
+          } catch (e) {
+            print('Token refresh failed: $e');
+            // Force re-authentication
+            await logout();
+          }
+        }
+
+        Future<void> logout() async {
+          await _storage.delete(key: 'access_token');
+          await _storage.delete(key: 'refresh_token');
+
+          // Optional: Revoke tokens on server
+          // await revokeTokens();
+        }
+      }
+      ```
+
+      PKCE SECURITY GUARANTEES:
+      - Code verifier never transmitted (only challenge)
+      - Attackers can't exchange intercepted code without verifier
+      - Protection against authorization code injection
+      - Works with public clients (mobile apps)
+
+      OAUTH 2.0 MOBILE BEST PRACTICES:
+      1. ✅ Always use PKCE (RFC 7636)
+      2. ✅ Use S256 challenge method (SHA-256)
+      3. ✅ Implement state parameter for CSRF protection
+      4. ✅ Use secure redirect URIs (app-specific schemes)
+      5. ✅ Store tokens in secure storage
+      6. ✅ Implement token refresh flow
+      7. ❌ Never use implicit flow
+      8. ❌ Never use password grant
+
+      REDIRECT URI SECURITY:
+      ```dart
+      // ✅ SECURE: App-specific custom scheme
+      redirectUrl: 'com.yourcompany.yourapp://oauth/callback'
+
+      // ⚠️ LESS SECURE: Universal links (can be hijacked)
+      redirectUrl: 'https://yourapp.com/oauth/callback'
+
+      // ❌ INSECURE: Generic schemes
+      redirectUrl: 'myapp://callback'
+      ```
+
+      TESTING:
+      ```dart
+      test('PKCE code challenge validation', () {
+        final oauth = SecureOAuthWithPKCE();
+        final pkce = oauth._generatePKCE();
+
+        expect(pkce['code_verifier']!.length, greaterThanOrEqualTo(43));
+        expect(pkce['code_challenge']!.length, equals(43));
+      });
+      ```
+
+      References:
+      - RFC 7636: Proof Key for Code Exchange
+      - OAuth 2.0 for Native Apps (RFC 8252)
+      - OWASP Mobile Top 10: M3
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-940: Improper Verification of Source of a Communication Channel"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: flutter-oauth-implicit-flow
+    patterns:
+      - pattern-either:
+          - pattern: |
+              responseType = 'token'
+          - pattern: |
+              'response_type=token'
+          - pattern: |
+              responseType: 'token'
+    message: |
+      OAuth Implicit Flow used (OWASP M3).
+
+      VULNERABILITY:
+      Implicit flow exposes access tokens in:
+      - URL fragments (visible in browser history)
+      - Redirect URIs (logged on servers)
+      - Referrer headers
+
+      SECURE ALTERNATIVE:
+      Use Authorization Code flow with PKCE (see flutter-oauth-no-pkce rule).
+
+      Reference: OAuth 2.0 Security Best Current Practice
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============================================================================
+  # PASSWORD & CREDENTIAL VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-weak-password-policy
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($PASSWORD.length >= $LEN) { ... }
+          - pattern: |
+              $PASSWORD.length >= $LEN
+          - pattern: |
+              $PASSWORD.length > $LEN
+      - metavariable-comparison:
+          metavariable: $LEN
+          comparison: $LEN < 8
+    message: |
+      Weak password length requirement (OWASP M3).
+
+      NIST 800-63B and OWASP recommend minimum 8 characters.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class PasswordValidator {
+        static const int minLength = 8;
+        static const int recommendedLength = 12;
+
+        static ValidationResult validate(String password) {
+          if (password.length < minLength) {
+            return ValidationResult.error(
+              'Password must be at least $minLength characters'
+            );
+          }
+
+          // Check for common passwords
+          if (_isCommonPassword(password)) {
+            return ValidationResult.error(
+              'Password is too common. Choose a stronger password.'
+            );
+          }
+
+          // Check for complexity (optional but recommended)
+          final hasUppercase = password.contains(RegExp(r'[A-Z]'));
+          final hasLowercase = password.contains(RegExp(r'[a-z]'));
+          final hasDigits = password.contains(RegExp(r'[0-9]'));
+          final hasSpecialChars = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+          final complexityCount = [
+            hasUppercase,
+            hasLowercase,
+            hasDigits,
+            hasSpecialChars,
+          ].where((e) => e).length;
+
+          if (complexityCount < 3) {
+            return ValidationResult.warning(
+              'Password should include uppercase, lowercase, numbers, and special characters'
+            );
+          }
+
+          if (password.length < recommendedLength) {
+            return ValidationResult.warning(
+              'For better security, use at least $recommendedLength characters'
+            );
+          }
+
+          return ValidationResult.success('Strong password');
+        }
+
+        static bool _isCommonPassword(String password) {
+          // Check against common password list
+          const commonPasswords = [
+            'password', '12345678', 'qwerty', 'abc123',
+            'password123', '111111', '123123', 'admin',
+          ];
+          return commonPasswords.contains(password.toLowerCase());
+        }
+      }
+      ```
+
+      Reference: NIST 800-63B, CWE-521
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-521: Weak Password Requirements"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: flutter-client-side-auth-check
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($USERNAME == '$USER' && $PASSWORD == '$PASS') { ... }
+          - pattern: |
+              final isAuthenticated = $PREFS.getBool('is_logged_in') ?? false;
+              if (isAuthenticated) { ... }
+          - pattern: |
+              if ($USER.isLoggedIn) { ... }
+      - pattern-not-inside: |
+          final response = await http.post(...)
+          ...
+    message: |
+      Client-side authentication check (OWASP M3).
+
+      RISK:
+      Client-side authentication can be bypassed via:
+      - Frida/Xposed hooking
+      - Binary patching
+      - SharedPreferences manipulation
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class SecureAuth {
+        Future<bool> authenticate(String username, String password) async {
+          // ALWAYS authenticate server-side
+          final response = await http.post(
+            Uri.parse('https://api.example.com/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'username': username,
+              'password': password,
+            }),
+          );
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            final token = data['access_token'];
+
+            // Store token securely
+            await _storage.write(key: 'auth_token', value: token);
+            return true;
+          }
+
+          return false;
+        }
+      }
+      ```
+
+      Reference: CWE-603, OWASP M3
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-603: Use of Client-Side Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  # ============================================================================
+  # SESSION MANAGEMENT VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-session-no-timeout
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PREFS.setString('session_token', $TOKEN)
+          - pattern: |
+              $PREFS.setString('auth_token', $TOKEN)
+      - pattern-not-inside: |
+          $PREFS.setString('session_token', $TOKEN);
+          $PREFS.setInt('session_expiry', ...);
+      - pattern-not-inside: |
+          await _storage.write(key: 'token_expiry', ...)
+    message: |
+      Session token stored without expiration (OWASP M3).
+
+      RISK:
+      Tokens without expiration remain valid indefinitely if stolen.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class SessionManager {
+        final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+        Future<void> saveSession(String token, int expiresIn) async {
+          final expiry = DateTime.now().add(Duration(seconds: expiresIn));
+
+          await _storage.write(key: 'auth_token', value: token);
+          await _storage.write(
+            key: 'token_expiry',
+            value: expiry.toIso8601String(),
+          );
+        }
+
+        Future<String?> getValidToken() async {
+          final token = await _storage.read(key: 'auth_token');
+          final expiryStr = await _storage.read(key: 'token_expiry');
+
+          if (token == null || expiryStr == null) return null;
+
+          final expiry = DateTime.parse(expiryStr);
+          if (DateTime.now().isAfter(expiry)) {
+            // Token expired, try refresh
+            return await refreshToken();
+          }
+
+          return token;
+        }
+      }
+      ```
+
+      Reference: CWE-613, OWASP M3
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: flutter-token-in-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Uri.parse('$URL?token=$TOKEN')
+          - pattern: |
+              '$URL?token=$TOKEN'
+          - pattern: |
+              '$URL?access_token=$TOKEN'
+          - pattern: |
+              http.get(Uri.parse('$URL?token=$TOKEN'))
+    message: |
+      Authentication token in URL parameter (OWASP M3).
+
+      RISK:
+      Tokens in URLs are exposed in:
+      - Server logs
+      - Browser history
+      - Referrer headers
+      - Proxy logs
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      // ❌ WRONG
+      final response = await http.get(
+        Uri.parse('https://api.example.com/data?token=$authToken')
+      );
+
+      // ✅ CORRECT
+      final response = await http.get(
+        Uri.parse('https://api.example.com/data'),
+        headers: {
+          'Authorization': 'Bearer $authToken',
+        },
+      );
+      ```
+
+      Reference: CWE-598, OWASP M3
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-598: Use of GET Request Method With Sensitive Query Strings"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  # ============================================================================
+  # AUTHORIZATION VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-client-side-authorization
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if ($USER.role == 'admin') { ... }
+          - pattern: |
+              if ($USER.isAdmin) { ... }
+          - pattern: |
+              final canAccess = $USER.permissions.contains($PERMISSION);
+              if (canAccess) { ... }
+      - pattern-not-inside: |
+          final response = await $API.checkPermission(...)
+          ...
+    message: |
+      Client-side authorization check (OWASP M3).
+
+      RISK:
+      Client-side role/permission checks can be bypassed.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class SecureAuthorization {
+        Future<bool> canAccessAdminFeature() async {
+          // Check permissions server-side
+          final response = await http.get(
+            Uri.parse('https://api.example.com/auth/permissions'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            return data['permissions'].contains('admin');
+          }
+
+          return false;
+        }
+
+        Future<void> performAdminAction() async {
+          // Verify on server, not client
+          final response = await http.post(
+            Uri.parse('https://api.example.com/admin/action'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+
+          // Server validates permissions
+          if (response.statusCode == 403) {
+            throw UnauthorizedException('Insufficient permissions');
+          }
+        }
+      }
+      ```
+
+      Reference: CWE-862, OWASP M3
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW
+
+  # ============================================================================
+  # FIREBASE AUTHENTICATION VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-firebase-auth-no-email-verification
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FirebaseAuth.instance.createUserWithEmailAndPassword(...)
+          - pattern: |
+              await $AUTH.createUserWithEmailAndPassword(...)
+      - pattern-not-inside: |
+          final userCredential = await $AUTH.createUserWithEmailAndPassword(...)
+          ...
+          await userCredential.user?.sendEmailVerification()
+          ...
+      - pattern-not-inside: |
+          await $USER.sendEmailVerification()
+          ...
+    message: |
+      Firebase user created without email verification (OWASP M3).
+
+      VULNERABILITY:
+      Creating users without email verification allows:
+      - Account enumeration attacks
+      - Spam account creation
+      - Account takeover via email typos
+      - Fake account registration
+
+      VULNERABLE PATTERN:
+      ```dart
+      import 'package:firebase_auth/firebase_auth.dart';
+
+      Future<void> registerUser(String email, String password) async {
+        // VULNERABLE: No email verification
+        final credential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // User can access app without verifying email
+        navigateToHome();
+      }
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:firebase_auth/firebase_auth.dart';
+
+      class SecureFirebaseRegistration {
+        final FirebaseAuth _auth = FirebaseAuth.instance;
+
+        Future<bool> registerAndVerify(String email, String password) async {
+          try {
+            // Create user account
+            final userCredential = await _auth.createUserWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+
+            final user = userCredential.user;
+            if (user == null) return false;
+
+            // SECURE: Send email verification
+            await user.sendEmailVerification();
+
+            // Sign out until email is verified
+            await _auth.signOut();
+
+            // Show verification message
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('Verify Your Email'),
+                content: Text(
+                  'A verification email has been sent to $email. '
+                  'Please verify your email before signing in.'
+                ),
+              ),
+            );
+
+            return true;
+          } catch (e) {
+            print('Registration error: $e');
+            return false;
+          }
+        }
+
+        Future<bool> signInWithVerification(String email, String password) async {
+          try {
+            final userCredential = await _auth.signInWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+
+            final user = userCredential.user;
+            if (user == null) return false;
+
+            // SECURE: Check email verification status
+            if (!user.emailVerified) {
+              await _auth.signOut();
+
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Email Not Verified'),
+                  content: Text(
+                    'Please verify your email before signing in. '
+                    'Check your inbox for the verification link.'
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        await user.sendEmailVerification();
+                        Navigator.pop(context);
+                      },
+                      child: Text('Resend Verification Email'),
+                    ),
+                  ],
+                ),
+              );
+
+              return false;
+            }
+
+            return true;
+          } catch (e) {
+            print('Sign-in error: $e');
+            return false;
+          }
+        }
+
+        // Periodically check verification status
+        Future<void> monitorEmailVerification() async {
+          final user = _auth.currentUser;
+          if (user == null || user.emailVerified) return;
+
+          // Reload user to get latest verification status
+          await user.reload();
+          final updatedUser = _auth.currentUser;
+
+          if (updatedUser?.emailVerified == true) {
+            // Email verified, proceed to app
+            navigateToHome();
+          }
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - Always send email verification after registration
+      - Require email verification before granting app access
+      - Provide resend verification email option
+      - Check emailVerified on every sign-in
+      - Periodically reload user to check verification status
+      - Sign out unverified users
+
+      Reference: MASVS-AUTH-1, CWE-287
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+
+  - id: flutter-firebase-auth-weak-password
+    patterns:
+      - pattern: |
+          FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: $EMAIL,
+            password: $PASSWORD,
+          )
+      - pattern-not-inside: |
+          if ($PASSWORD.length >= 8) {
+            ...
+          }
+      - pattern-not-inside: |
+          validatePassword($PASSWORD)
+          ...
+    message: |
+      Firebase user creation without password validation (OWASP M3).
+
+      RISK:
+      Firebase Auth allows weak passwords by default. Client-side validation prevents weak passwords.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class PasswordValidator {
+        static const int minLength = 8;
+
+        static String? validate(String password) {
+          if (password.length < minLength) {
+            return 'Password must be at least $minLength characters';
+          }
+
+          if (!RegExp(r'[A-Z]').hasMatch(password)) {
+            return 'Password must contain at least one uppercase letter';
+          }
+
+          if (!RegExp(r'[a-z]').hasMatch(password)) {
+            return 'Password must contain at least one lowercase letter';
+          }
+
+          if (!RegExp(r'[0-9]').hasMatch(password)) {
+            return 'Password must contain at least one number';
+          }
+
+          if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
+            return 'Password must contain at least one special character';
+          }
+
+          return null;
+        }
+      }
+
+      Future<void> registerUser(String email, String password) async {
+        // Validate password strength
+        final error = PasswordValidator.validate(password);
+        if (error != null) {
+          throw Exception(error);
+        }
+
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      }
+      ```
+
+      Reference: CWE-521, OWASP M3
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-521: Weak Password Requirements"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM
+
+  - id: flutter-firebase-auth-no-mfa
+    patterns:
+      - pattern-either:
+          - pattern: |
+              FirebaseAuth.instance.signInWithEmailAndPassword(...)
+          - pattern: |
+              await $AUTH.signInWithEmailAndPassword(...)
+      - pattern-not-inside: |
+          if ($USER.multiFactor.enrolledFactors.isNotEmpty) {
+            ...
+          }
+      - pattern-not-inside: |
+          final resolver = await $AUTH.signInWithEmailAndPassword(...)
+          ...
+          $RESOLVER.resolveSignIn($ASSERTION)
+          ...
+    message: |
+      Firebase authentication without Multi-Factor Authentication (MFA) check (OWASP M3).
+
+      RISK:
+      Sensitive applications should enforce MFA for enhanced security.
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:firebase_auth/firebase_auth.dart';
+
+      class SecureMFAAuth {
+        final FirebaseAuth _auth = FirebaseAuth.instance;
+
+        Future<bool> signInWithMFA(String email, String password) async {
+          try {
+            final credential = await _auth.signInWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+
+            final user = credential.user;
+            if (user == null) return false;
+
+            // Check if MFA is enrolled
+            final enrolledFactors = user.multiFactor.enrolledFactors;
+
+            if (enrolledFactors.isEmpty) {
+              // Prompt user to enroll in MFA
+              await _promptMFAEnrollment();
+            }
+
+            return true;
+          } on FirebaseAuthMultiFactorException catch (e) {
+            // MFA required
+            await _handleMFAChallenge(e.resolver);
+            return true;
+          } catch (e) {
+            print('Sign-in error: $e');
+            return false;
+          }
+        }
+
+        Future<void> _handleMFAChallenge(MultiFactorResolver resolver) async {
+          // Get verification code from user
+          final verificationCode = await _showMFADialog();
+
+          // Verify code
+          final assertion = PhoneAuthProvider.credential(
+            verificationId: resolver.hints.first.uid,
+            smsCode: verificationCode,
+          );
+
+          await resolver.resolveSignIn(
+            PhoneMultiFactorGenerator.getAssertion(assertion as PhoneAuthCredential),
+          );
+        }
+
+        Future<void> enrollMFA(String phoneNumber) async {
+          final user = _auth.currentUser;
+          if (user == null) return;
+
+          await user.multiFactor.enroll(
+            PhoneMultiFactorGenerator.getAssertion(
+              await _verifyPhoneNumber(phoneNumber),
+            ),
+          );
+        }
+      }
+      ```
+
+      Reference: MASVS-AUTH-2, CWE-308
+    severity: WARNING
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-308: Use of Single-factor Authentication"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: LOW
+
+  - id: flutter-firebase-missing-reauthentication
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $USER.updatePassword($NEW_PASSWORD)
+          - pattern: |
+              $USER.updateEmail($NEW_EMAIL)
+          - pattern: |
+              $USER.delete()
+      - pattern-not-inside: |
+          await $USER.reauthenticateWithCredential($CREDENTIAL)
+          ...
+      - pattern-not-inside: |
+          final credential = EmailAuthProvider.credential(...)
+          ...
+          await $USER.reauthenticateWithCredential(credential)
+          ...
+    message: |
+      Sensitive Firebase operation without re-authentication (OWASP M3).
+
+      CRITICAL VULNERABILITY:
+      Changing password, email, or deleting account without re-authentication allows:
+      - Account takeover if device is left unlocked
+      - Unauthorized password changes
+      - Account deletion by unauthorized users
+
+      VULNERABLE PATTERN:
+      ```dart
+      Future<void> changePassword(String newPassword) async {
+        final user = FirebaseAuth.instance.currentUser;
+
+        // VULNERABLE: No re-authentication
+        await user?.updatePassword(newPassword);
+      }
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:firebase_auth/firebase_auth.dart';
+
+      class SecureSensitiveOperations {
+        final FirebaseAuth _auth = FirebaseAuth.instance;
+
+        Future<bool> changePassword(
+          String currentPassword,
+          String newPassword,
+        ) async {
+          final user = _auth.currentUser;
+          if (user == null || user.email == null) return false;
+
+          try {
+            // SECURE: Re-authenticate before sensitive operation
+            final credential = EmailAuthProvider.credential(
+              email: user.email!,
+              password: currentPassword,
+            );
+
+            await user.reauthenticateWithCredential(credential);
+
+            // Now safe to update password
+            await user.updatePassword(newPassword);
+
+            return true;
+          } on FirebaseAuthException catch (e) {
+            if (e.code == 'wrong-password') {
+              throw Exception('Current password is incorrect');
+            }
+            rethrow;
+          }
+        }
+
+        Future<bool> changeEmail(
+          String currentPassword,
+          String newEmail,
+        ) async {
+          final user = _auth.currentUser;
+          if (user == null || user.email == null) return false;
+
+          try {
+            // Re-authenticate before email change
+            final credential = EmailAuthProvider.credential(
+              email: user.email!,
+              password: currentPassword,
+            );
+
+            await user.reauthenticateWithCredential(credential);
+
+            // Update email
+            await user.updateEmail(newEmail);
+
+            // Send verification to new email
+            await user.sendEmailVerification();
+
+            return true;
+          } catch (e) {
+            print('Email update error: $e');
+            return false;
+          }
+        }
+
+        Future<bool> deleteAccount(String password) async {
+          final user = _auth.currentUser;
+          if (user == null || user.email == null) return false;
+
+          try {
+            // Re-authenticate before account deletion
+            final credential = EmailAuthProvider.credential(
+              email: user.email!,
+              password: password,
+            );
+
+            await user.reauthenticateWithCredential(credential);
+
+            // Show final confirmation dialog
+            final confirmed = await _showDeleteConfirmation();
+            if (!confirmed) return false;
+
+            // Delete account
+            await user.delete();
+
+            return true;
+          } catch (e) {
+            print('Account deletion error: $e');
+            return false;
+          }
+        }
+
+        Future<bool> _showDeleteConfirmation() async {
+          // Show confirmation dialog
+          return true; // Placeholder
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - ALWAYS require re-authentication for:
+        * Password changes
+        * Email changes
+        * Account deletion
+        * Adding payment methods
+        * Changing security settings
+      - Use recent authentication (within last 5 minutes)
+      - Require biometric auth for sensitive operations
+      - Log all sensitive operations
+
+      Reference: MASVS-AUTH-3, CWE-306
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-306: Missing Authentication for Critical Function"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+
+  # ============================================================================
+  # DEEP LINK AUTHENTICATION VULNERABILITIES
+  # ============================================================================
+
+  - id: flutter-deeplink-auth-bypass
+    patterns:
+      - pattern-either:
+          - pattern: |
+              void handleDeepLink(Uri uri) {
+                ...
+                final token = uri.queryParameters['token'];
+                ...
+              }
+          - pattern: |
+              final token = uri.queryParameters['access_token'];
+              ...
+              await saveToken(token);
+      - pattern-not-inside: |
+          if (await _validateTokenWithServer(token)) {
+            ...
+          }
+    message: |
+      Deep link authentication without server validation (OWASP M3).
+
+      RISK:
+      Accepting tokens from deep links without validation allows:
+      - Token injection attacks
+      - Session fixation
+      - Account takeover via malicious links
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      class SecureDeepLinkAuth {
+        Future<void> handleAuthDeepLink(Uri uri) async {
+          final code = uri.queryParameters['code'];
+          final state = uri.queryParameters['state'];
+
+          if (code == null || state == null) {
+            throw Exception('Invalid deep link');
+          }
+
+          // Validate state parameter (CSRF protection)
+          final savedState = await _storage.read(key: 'oauth_state');
+          if (state != savedState) {
+            throw Exception('State mismatch - possible CSRF attack');
+          }
+
+          // Exchange code for token server-side
+          final token = await _exchangeCodeForToken(code);
+
+          // Validate token
+          if (await _validateToken(token)) {
+            await _storage.write(key: 'auth_token', value: token);
+          }
+        }
+      }
+      ```
+
+      Reference: CWE-352, OWASP M3
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-352: Cross-Site Request Forgery (CSRF)"
+      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
+      confidence: MEDIUM

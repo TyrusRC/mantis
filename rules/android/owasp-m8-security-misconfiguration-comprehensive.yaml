@@ -1,0 +1,1359 @@
+rules:
+  # OWASP Mobile Top 10 2024 - M8: Security Misconfiguration (Comprehensive)
+  # Complete coverage of Android configuration security issues
+  # Focus: Production-ready, low false-positive detection
+  # Sources: OWASP MASVS, MASTG, Google Android Security, CWE Database
+  # Coverage Target: 95%+ of M8 attack vectors
+
+  # ============ BUILD CONFIGURATION SECURITY ============
+
+  - id: m8-android-build-type-debuggable-release
+    patterns:
+      - pattern: |
+          buildTypes {
+            ...
+            release {
+              ...
+              debuggable true
+              ...
+            }
+            ...
+          }
+    message: |
+      Debuggable enabled in release build type (OWASP M8 - CRITICAL).
+      Release builds must never be debuggable in production.
+
+      SECURITY IMPACT:
+      - ADB debugging enabled without root
+      - Memory dumps accessible
+      - Logcat reveals sensitive data
+      - Runtime inspection possible
+      - Security controls bypassed
+      - Google Play rejection
+
+      ATTACK SCENARIOS:
+      ```bash
+      # Attacker with physical access
+      adb shell am set-debug-app -w com.example.app
+      adb jdwp
+      # Attach debugger to running app
+      jdb -attach localhost:8700
+      # Extract memory, modify variables
+      ```
+
+      SECURE FIX:
+      ```gradle
+      // android/app/build.gradle
+      android {
+          buildTypes {
+              release {
+                  debuggable false  // Explicit false
+                  minifyEnabled true
+                  shrinkResources true
+                  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                                'proguard-rules.pro'
+              }
+              debug {
+                  debuggable true
+                  applicationIdSuffix ".debug"
+                  versionNameSuffix "-DEBUG"
+              }
+          }
+      }
+      ```
+
+      VERIFICATION:
+      ```bash
+      # Check APK
+      aapt dump badging app-release.apk | grep debuggable
+      # Should return nothing
+
+      # Or use apktool
+      apktool d app-release.apk
+      grep debuggable app-release/AndroidManifest.xml
+      ```
+
+      Reference: OWASP M8, MASVS-RESILIENCE-2, CWE-489
+    severity: ERROR
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/build.gradle.kts"
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-RESILIENCE-2"
+      confidence: VERY_HIGH
+      playstore_rejection_risk: HIGH
+
+  - id: m8-android-signing-config-hardcoded-credentials
+    patterns:
+      - pattern-either:
+          - pattern: |
+              signingConfigs {
+                ...
+                $NAME {
+                  ...
+                  storePassword "$PASSWORD"
+                  ...
+                }
+                ...
+              }
+          - pattern: |
+              signingConfigs {
+                ...
+                $NAME {
+                  ...
+                  keyPassword "$PASSWORD"
+                  ...
+                }
+                ...
+              }
+    message: |
+      Hardcoded signing credentials in build.gradle (OWASP M8 - CRITICAL).
+      Signing passwords must never be committed to version control.
+
+      SECURITY RISKS:
+      - Signing keys compromised if repo leaked
+      - Unauthorized app updates possible
+      - Keystore theft enables impersonation
+      - Supply chain attacks
+      - App reputation damage
+
+      SECURE FIX - Environment Variables:
+      ```gradle
+      // android/app/build.gradle
+      def keystorePropertiesFile = rootProject.file("keystore.properties")
+      def keystoreProperties = new Properties()
+      keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+      android {
+          signingConfigs {
+              release {
+                  keyAlias keystoreProperties['keyAlias']
+                  keyPassword keystoreProperties['keyPassword']
+                  storeFile file(keystoreProperties['storeFile'])
+                  storePassword keystoreProperties['storePassword']
+              }
+          }
+
+          buildTypes {
+              release {
+                  signingConfig signingConfigs.release
+              }
+          }
+      }
+      ```
+
+      ```properties
+      # keystore.properties (ADD TO .gitignore!)
+      storePassword=YOUR_STORE_PASSWORD
+      keyPassword=YOUR_KEY_PASSWORD
+      keyAlias=YOUR_KEY_ALIAS
+      storeFile=../path/to/keystore.jks
+      ```
+
+      SECURE FIX - CI/CD:
+      ```gradle
+      android {
+          signingConfigs {
+              release {
+                  storeFile file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
+                  storePassword System.getenv("KEYSTORE_PASSWORD")
+                  keyAlias System.getenv("KEY_ALIAS")
+                  keyPassword System.getenv("KEY_PASSWORD")
+              }
+          }
+      }
+      ```
+
+      .gitignore:
+      ```
+      keystore.properties
+      *.jks
+      *.keystore
+      ```
+
+      Reference: OWASP M8, CWE-798, Android Signing Best Practices
+    severity: ERROR
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/build.gradle.kts"
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: VERY_HIGH
+
+  - id: m8-android-build-config-api-keys
+    patterns:
+      - pattern-either:
+          - pattern: |
+              buildConfigField "String", "$NAME", "$VALUE"
+          - pattern: |
+              resValue "string", "$NAME", "$VALUE"
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(API|SECRET|KEY|TOKEN|PASSWORD|CREDENTIAL|AUTH).*
+    message: |
+      Sensitive data in BuildConfig or resources (OWASP M8).
+      API keys and secrets in BuildConfig are embedded in APK and easily extracted.
+
+      SECURITY RISKS:
+      - API keys extracted via reverse engineering
+      - APK decompilation reveals secrets
+      - BuildConfig.java in clear text
+      - Keys reused across all users
+      - No key rotation possible
+
+      VULNERABLE PATTERN:
+      ```gradle
+      android {
+          defaultConfig {
+              buildConfigField "String", "API_KEY", '"sk_live_abc123xyz"'
+              resValue "string", "google_api_key", "AIzaSyABC123XYZ"
+          }
+      }
+      ```
+
+      EXTRACTION METHOD:
+      ```bash
+      # Decompile APK
+      apktool d app-release.apk
+
+      # View BuildConfig
+      cat app-release/smali/com/example/app/BuildConfig.smali
+      # API keys visible in clear text
+
+      # Or use jadx
+      jadx app-release.apk
+      # View BuildConfig.java - all fields visible
+      ```
+
+      SECURE ALTERNATIVES:
+
+      Option 1: Server-Side API Key Exchange
+      ```kotlin
+      class ApiKeyManager {
+          suspend fun getApiKey(): String {
+              // Request encrypted API key from your server
+              val response = apiService.getSessionKey()
+              return response.encryptedKey.decrypt()
+          }
+      }
+      ```
+
+      Option 2: Android Keystore + NDK
+      ```gradle
+      android {
+          defaultConfig {
+              // Store encrypted key reference only
+              buildConfigField "String", "KEY_ID", '"key_v1"'
+          }
+      }
+      ```
+
+      ```kotlin
+      // Retrieve from Android Keystore
+      class SecureKeyStorage {
+          fun getApiKey(keyId: String): String {
+              val keyStore = KeyStore.getInstance("AndroidKeyStore")
+              keyStore.load(null)
+              val entry = keyStore.getEntry(keyId, null) as KeyStore.SecretKeyEntry
+              return String(entry.secretKey.encoded)
+          }
+      }
+      ```
+
+      Option 3: Native Library (NDK)
+      ```cpp
+      // native-lib.cpp
+      #include <jni.h>
+      #include <string>
+
+      extern "C" JNIEXPORT jstring JNICALL
+      Java_com_example_app_NativeKeys_getApiKey(JNIEnv* env, jobject) {
+          // Still extractable but requires more effort
+          std::string key = "sk_live_abc123xyz";
+          // Add obfuscation, checksums, anti-debug
+          return env->NewStringUTF(key.c_str());
+      }
+      ```
+
+      Best Practice: Never store production keys in app
+      - Use OAuth with short-lived tokens
+      - Implement certificate pinning
+      - Server-to-server API calls
+      - Per-user key generation
+
+      Reference: OWASP M8, MASVS-STORAGE-1, CWE-798
+    severity: ERROR
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/build.gradle.kts"
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-STORAGE-1"
+      confidence: HIGH
+
+  - id: m8-android-proguard-disabled-release
+    patterns:
+      - pattern: |
+          buildTypes {
+            ...
+            release {
+              ...
+              minifyEnabled false
+              ...
+            }
+            ...
+          }
+    message: |
+      ProGuard/R8 code shrinking disabled in release (OWASP M7/M8).
+      Release builds should enable minification for code protection.
+
+      SECURITY BENEFITS OF MINIFICATION:
+      - Code obfuscation (class/method name mangling)
+      - Unused code removal
+      - String encryption
+      - Resource shrinking
+      - Reverse engineering difficulty increased
+      - APK size reduced
+
+      VULNERABLE BUILD:
+      ```gradle
+      buildTypes {
+          release {
+              minifyEnabled false  // INSECURE
+              signingConfig signingConfigs.release
+          }
+      }
+      ```
+
+      SECURE BUILD:
+      ```gradle
+      android {
+          buildTypes {
+              release {
+                  minifyEnabled true
+                  shrinkResources true
+                  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                                'proguard-rules.pro'
+              }
+          }
+      }
+      ```
+
+      PROGUARD RULES FOR ANDROID:
+      ```proguard
+      # proguard-rules.pro
+
+      # Keep public APIs
+      -keep public class * extends android.app.Activity
+      -keep public class * extends android.app.Service
+
+      # Remove logging
+      -assumenosideeffects class android.util.Log {
+          public static *** d(...);
+          public static *** v(...);
+          public static *** i(...);
+      }
+
+      # Obfuscate code
+      -repackageclasses ''
+      -allowaccessmodification
+
+      # Optimize
+      -optimizationpasses 5
+      -optimizations !code/simplification/arithmetic
+
+      # Keep specific classes (adjust for your app)
+      -keep class com.example.app.models.** { *; }
+      -keep class * implements java.io.Serializable
+      ```
+
+      TESTING MINIFICATION:
+      ```bash
+      # Build release APK
+      ./gradlew assembleRelease
+
+      # Check obfuscation
+      jadx app-release.apk
+      # Class names should be obfuscated (a.b.c)
+
+      # Check mapping file (for crash reports)
+      cat app/build/outputs/mapping/release/mapping.txt
+      ```
+
+      CRASH REPORTING WITH OBFUSCATION:
+      ```gradle
+      // Upload mapping file to crash reporting service
+      apply plugin: 'com.google.firebase.crashlytics'
+
+      android {
+          buildTypes {
+              release {
+                  firebaseCrashlytics {
+                      mappingFileUploadEnabled true
+                  }
+              }
+          }
+      }
+      ```
+
+      Reference: OWASP M7, M8, MASVS-RESILIENCE-4
+    severity: WARNING
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/build.gradle.kts"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      masvs: "MASVS-RESILIENCE-4"
+      confidence: MEDIUM
+
+  # ============ GRADLE DEPENDENCY SECURITY ============
+
+  - id: m8-android-insecure-dependency-resolution
+    patterns:
+      - pattern-either:
+          - pattern: |
+              repositories {
+                ...
+                maven { url "http://$URL" }
+                ...
+              }
+          - pattern: |
+              maven { url 'http://$URL' }
+    message: |
+      Insecure HTTP repository in Gradle (OWASP M2/M8 - CRITICAL).
+      HTTP repositories allow man-in-the-middle dependency poisoning.
+
+      SECURITY IMPACT:
+      - Dependencies downloaded over HTTP
+      - MITM can inject malicious code
+      - No integrity verification
+      - Supply chain compromise
+      - Backdoor insertion
+      - Credential theft
+
+      ATTACK SCENARIO:
+      ```
+      1. Attacker intercepts HTTP request to maven repository
+      2. Replaces legitimate dependency with malicious version
+      3. Malicious code executes during build
+      4. Backdoor embedded in production APK
+      5. All users compromised
+      ```
+
+      VULNERABLE CONFIGURATION:
+      ```gradle
+      repositories {
+          maven { url "http://insecure-repo.com/maven" }
+          maven { url "http://10.0.0.1:8080/repository" }
+      }
+      ```
+
+      SECURE FIX:
+      ```gradle
+      repositories {
+          google()
+          mavenCentral()
+
+          // Use HTTPS for custom repositories
+          maven {
+              url "https://secure-repo.com/maven"
+              credentials {
+                  username = project.findProperty("repoUser") ?: ""
+                  password = project.findProperty("repoPassword") ?: ""
+              }
+          }
+      }
+      ```
+
+      GRADLE 7+ SECURITY:
+      ```gradle
+      // Gradle 7+ blocks HTTP by default
+      // Don't use allowInsecureProtocol!
+
+      repositories {
+          google()
+          mavenCentral()
+
+          // For legacy repo (migrate to HTTPS!)
+          maven {
+              url "https://legacy-repo.com/maven"
+              // allowInsecureProtocol = true  // NEVER DO THIS
+          }
+      }
+      ```
+
+      DEPENDENCY VERIFICATION:
+      ```gradle
+      // gradle/verification-metadata.xml
+      dependencyVerification {
+          verify {
+              checksum {
+                  enabled = true
+                  strict = true
+              }
+          }
+      }
+      ```
+
+      Reference: OWASP M2, M8, Gradle Security, CWE-494
+    severity: ERROR
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/build.gradle.kts"
+        - "**/settings.gradle"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: VERY_HIGH
+
+  - id: m8-android-dependency-dynamic-version
+    patterns:
+      - pattern-either:
+          - pattern: |
+              implementation '$GROUP:$ARTIFACT:+'
+          - pattern: |
+              implementation "$GROUP:$ARTIFACT:+"
+          - pattern: |
+              implementation '$GROUP:$ARTIFACT:latest.release'
+    message: |
+      Dynamic dependency version ('+' or 'latest') (OWASP M2/M8).
+      Dynamic versions allow uncontrolled dependency updates with potential vulnerabilities.
+
+      SECURITY RISKS:
+      - Automatic updates may introduce vulnerabilities
+      - Build non-reproducibility
+      - Supply chain attack vector
+      - Breaking changes in production
+      - No dependency audit trail
+
+      VULNERABLE PATTERNS:
+      ```gradle
+      dependencies {
+          implementation 'com.example:library:+'  // Any version
+          implementation 'com.example:library:1.+'  // Any patch version
+          implementation 'com.example:library:latest.release'  // Latest
+      }
+      ```
+
+      ATTACK SCENARIO:
+      ```
+      1. Attacker compromises library repository
+      2. Publishes malicious version 1.2.5
+      3. Your app uses 'com.example:library:1.+'
+      4. Build automatically pulls malicious 1.2.5
+      5. Backdoor in production without code review
+      ```
+
+      SECURE FIX:
+      ```gradle
+      dependencies {
+          // Use exact versions
+          implementation 'com.example:library:1.2.3'
+
+          // Or version ranges with upper bounds
+          implementation 'com.example:library:[1.2.3,1.3.0['
+
+          // Use dependency constraints for transitives
+          constraints {
+              implementation('com.example:library') {
+                  version {
+                      strictly '[1.2.3, 2.0['
+                  }
+              }
+          }
+      }
+      ```
+
+      DEPENDENCY MANAGEMENT:
+      ```gradle
+      // Use dependencyManagement or BOM
+      dependencies {
+          implementation platform('com.example:bom:1.0.0')
+          implementation 'com.example:library'  // Version from BOM
+      }
+      ```
+
+      DEPENDENCY UPDATES:
+      ```gradle
+      // Use gradle-versions-plugin
+      plugins {
+          id "com.github.ben-manes.versions" version "0.50.0"
+      }
+
+      // Check for updates manually
+      ./gradlew dependencyUpdates
+
+      // Review and update explicitly
+      ```
+
+      LOCKFILE (Gradle 8+):
+      ```gradle
+      // settings.gradle
+      dependencyResolutionManagement {
+          repositories {
+              google()
+              mavenCentral()
+          }
+
+          // Enable dependency locking
+          dependencyLocking {
+              lockAllConfigurations()
+          }
+      }
+
+      // Generate lockfiles
+      ./gradlew dependencies --write-locks
+      ```
+
+      Reference: OWASP M2, M8, Gradle Dependency Management
+    severity: WARNING
+    languages:
+      - gradle
+    paths:
+      include:
+        - "**/build.gradle"
+        - "**/build.gradle.kts"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ ANDROID MANIFEST SECURITY ============
+
+  - id: m8-android-manifest-sharedUserId
+    patterns:
+      - pattern: |
+          <manifest
+            ...
+            android:sharedUserId="$UID"
+            ...
+          >
+    message: |
+      Shared User ID declared in manifest (OWASP M8).
+      sharedUserId is deprecated (API 29+) and creates security risks.
+
+      SECURITY RISKS:
+      - Apps share same Linux user ID
+      - Apps can access each other's data
+      - Apps share same process (if sharedUserIdMaxSdkVersion not set)
+      - Security boundary violated
+      - Difficult to enforce least privilege
+      - Deprecated since Android 10
+
+      WHY IT'S DANGEROUS:
+      ```xml
+      <!-- App A -->
+      <manifest package="com.example.app1"
+                android:sharedUserId="com.example.shared">
+
+      <!-- App B (malicious) -->
+      <manifest package="com.evil.app2"
+                android:sharedUserId="com.example.shared">
+
+      <!-- Both apps can now access each other's:
+           - Private files
+           - Databases
+           - SharedPreferences
+           - App memory (if same process)
+      -->
+      ```
+
+      ATTACK SCENARIO:
+      ```kotlin
+      // Malicious App B accessing App A's data
+      val context = createPackageContext("com.example.app1", 0)
+      val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
+      val authToken = prefs.getString("auth_token", null)
+      // Steal authentication token
+      ```
+
+      MIGRATION FROM sharedUserId:
+      ```xml
+      <!-- Existing app with sharedUserId -->
+      <manifest package="com.example.app"
+                android:sharedUserId="com.example.shared"
+                android:sharedUserIdMaxSdkVersion="32">
+          <!-- sharedUserId ignored on Android 13+ -->
+      </manifest>
+      ```
+
+      SECURE ALTERNATIVES:
+
+      1. Content Provider with Permissions:
+      ```xml
+      <!-- App A -->
+      <provider
+          android:name=".SharedDataProvider"
+          android:authorities="com.example.provider"
+          android:exported="true"
+          android:permission="com.example.permission.ACCESS_DATA">
+      </provider>
+
+      <permission
+          android:name="com.example.permission.ACCESS_DATA"
+          android:protectionLevel="signature"/>
+      ```
+
+      2. Account Manager:
+      ```kotlin
+      // App A creates account
+      val account = Account("user@example.com", "com.example.account")
+      accountManager.addAccountExplicitly(account, password, userData)
+
+      // App B (with signature permission) accesses account
+      val accounts = accountManager.getAccountsByType("com.example.account")
+      ```
+
+      3. Bound Service:
+      ```kotlin
+      // App A exposes service
+      class DataSharingService : Service() {
+          private val binder = object : IDataSharing.Stub() {
+              override fun getData(): String {
+                  // Check caller signature
+                  if (!verifyCallerSignature()) {
+                      throw SecurityException("Unauthorized")
+                  }
+                  return secureData
+              }
+          }
+      }
+      ```
+
+      Reference: OWASP M8, MASVS-PLATFORM-1, Android 10 Migration
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-PLATFORM-1"
+      confidence: HIGH
+      deprecated_api: true
+
+  - id: m8-android-manifest-install-location-external
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <manifest
+                ...
+                android:installLocation="preferExternal"
+                ...
+              >
+          - pattern: |
+              <manifest
+                ...
+                android:installLocation="auto"
+                ...
+              >
+    message: |
+      App allows installation on external storage (OWASP M8).
+      External storage installation creates security and availability risks.
+
+      SECURITY RISKS:
+      - APK accessible to all apps (world-readable)
+      - APK modification possible
+      - Native libraries exposed
+      - SD card removal breaks app
+      - Code injection attacks
+      - Encrypted storage not guaranteed
+
+      ATTACK SCENARIOS:
+
+      1. APK Modification:
+      ```bash
+      # User installs app to SD card
+      # Attacker with USB debugging
+      adb shell
+      mount -o remount,rw /mnt/sdcard
+
+      # Locate APK
+      find /mnt/sdcard -name "*.apk"
+
+      # Replace with trojanized version
+      cp malicious.apk /mnt/sdcard/Android/app/com.example.app/base.apk
+
+      # App executes malicious code on next launch
+      ```
+
+      2. Library Hijacking:
+      ```bash
+      # Native libraries on external storage
+      ls /mnt/sdcard/Android/app/com.example.app/lib/
+
+      # Replace legitimate library
+      cp malicious-lib.so /mnt/sdcard/.../libnative.so
+      ```
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- INSECURE: Allows external storage -->
+      <manifest
+          package="com.example.app"
+          android:installLocation="preferExternal">
+      </manifest>
+      ```
+
+      SECURE FIX:
+      ```xml
+      <!-- SECURE: Internal storage only -->
+      <manifest
+          package="com.example.app"
+          android:installLocation="internalOnly">
+      </manifest>
+
+      <!-- Or omit installLocation (defaults to internal) -->
+      <manifest package="com.example.app">
+      </manifest>
+      ```
+
+      WHEN EXTERNAL STORAGE IS ACCEPTABLE:
+      - Large media files (not code/executables)
+      - Public content (videos, music)
+      - Non-security-sensitive apps
+      - User choice for storage management
+
+      IF EXTERNAL STORAGE NEEDED:
+      ```kotlin
+      // Verify APK integrity at runtime
+      class ApkIntegrityChecker {
+          fun verifyApk(context: Context): Boolean {
+              try {
+                  val packageInfo = context.packageManager
+                      .getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+
+                  val signatures = packageInfo.signatures
+                  val expectedSignature = "YOUR_SIGNATURE_HASH"
+
+                  val actualSignature = signatures[0].toCharsString()
+                      .hashCode().toString()
+
+                  if (actualSignature != expectedSignature) {
+                      // APK modified - exit app
+                      exitProcess(1)
+                  }
+
+                  return true
+              } catch (e: Exception) {
+                  return false
+              }
+          }
+      }
+      ```
+
+      Reference: OWASP M8, MASVS-RESILIENCE-3, CWE-552
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-552: Files Accessible to External Parties"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-RESILIENCE-3"
+      confidence: MEDIUM
+
+  # ============ ADVANCED PERMISSION CONFIGURATIONS ============
+
+  - id: m8-android-permission-group-misuse
+    patterns:
+      - pattern: |
+          <permission
+            ...
+            android:permissionGroup="$GROUP"
+            ...
+          />
+      - pattern-not-inside: |
+          <permission
+            ...
+            android:protectionLevel="dangerous"
+            ...
+          />
+    message: |
+      Custom permission with permission group but not dangerous protection (OWASP M8).
+      Permission groups only apply to dangerous permissions for runtime permission UI.
+
+      CONFIGURATION ISSUE:
+      permissionGroup is ignored for normal/signature permissions.
+      This may indicate a misconfiguration or misunderstanding of permission system.
+
+      VULNERABLE PATTERN:
+      ```xml
+      <!-- permissionGroup ignored (not dangerous) -->
+      <permission
+          android:name="com.example.CUSTOM"
+          android:protectionLevel="normal"
+          android:permissionGroup="android.permission-group.STORAGE"/>
+      ```
+
+      CORRECT USAGE - Dangerous Permission:
+      ```xml
+      <!-- Permission group shown in runtime dialog -->
+      <permission
+          android:name="com.example.READ_SENSITIVE_DATA"
+          android:protectionLevel="dangerous"
+          android:permissionGroup="android.permission-group.STORAGE"
+          android:description="@string/perm_desc"
+          android:label="@string/perm_label"/>
+      ```
+
+      CORRECT USAGE - Signature Permission:
+      ```xml
+      <!-- No permission group needed -->
+      <permission
+          android:name="com.example.ADMIN_ACCESS"
+          android:protectionLevel="signature"
+          android:description="@string/admin_desc"
+          android:label="@string/admin_label"/>
+      ```
+
+      PERMISSION PROTECTION LEVELS:
+      - normal: Auto-granted, no group needed
+      - dangerous: Runtime request, group shown in UI
+      - signature: Auto-granted if same signature, no group
+      - signatureOrSystem: System/signature, no group
+
+      Reference: OWASP M8, Android Permission System
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+
+  # ============ ADVANCED NETWORK SECURITY ============
+
+  - id: m8-android-network-config-debug-overrides-production
+    patterns:
+      - pattern: |
+          <network-security-config>
+            ...
+            <debug-overrides>
+              ...
+              <trust-anchors>
+                ...
+                <certificates src="user" />
+                ...
+              </trust-anchors>
+              ...
+            </debug-overrides>
+            ...
+          </network-security-config>
+      - pattern-not-inside: |
+          <!-- This is actually OK - debug-overrides only apply to debug builds -->
+    message: |
+      User certificates in debug-overrides (OWASP M5/M8 - INFO).
+      This configuration is ACCEPTABLE for development but verify it's debug-only.
+
+      CLARIFICATION:
+      - debug-overrides ONLY applies to debuggable builds
+      - Automatically ignored in release builds
+      - Safe for development/testing with proxy tools
+
+      VERIFY BUILD CONFIGURATION:
+      ```gradle
+      android {
+          buildTypes {
+              release {
+                  debuggable false  // Ensures debug-overrides ignored
+              }
+              debug {
+                  debuggable true  // debug-overrides active
+              }
+          }
+      }
+      ```
+
+      RECOMMENDED DEBUG CONFIG:
+      ```xml
+      <network-security-config>
+          <!-- Production config -->
+          <base-config cleartextTrafficPermitted="false">
+              <trust-anchors>
+                  <certificates src="system"/>
+              </trust-anchors>
+          </base-config>
+
+          <!-- Debug-only overrides (safe) -->
+          <debug-overrides>
+              <trust-anchors>
+                  <certificates src="system"/>
+                  <certificates src="user"/>  <!-- Burp/Charles in debug builds -->
+              </trust-anchors>
+          </debug-overrides>
+
+          <!-- Development localhost -->
+          <domain-config cleartextTrafficPermitted="true">
+              <domain includeSubdomains="true">localhost</domain>
+              <domain includeSubdomains="true">10.0.2.2</domain>
+          </domain-config>
+      </network-security-config>
+      ```
+
+      SECURITY TESTING WORKFLOW:
+      1. Debug build: Test with Burp/Charles (user certs trusted)
+      2. Release build: Verify proxy tools blocked (user certs ignored)
+      3. Ensure release builds have debuggable=false
+
+      Reference: OWASP M5, M8, Android Network Security Config
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M5: Insecure Communication"
+      confidence: LOW
+
+  - id: m8-android-certificate-pinning-expiration-missing
+    patterns:
+      - pattern: |
+          <pin-set>
+            ...
+            <pin digest="$DIGEST">$HASH</pin>
+            ...
+          </pin-set>
+      - pattern-not-inside: |
+          <pin-set expiration="$DATE">
+            ...
+          </pin-set>
+    message: |
+      Certificate pinning without expiration date (OWASP M5/M8).
+      Pin-sets should include expiration to force pin rotation.
+
+      WHY EXPIRATION IS IMPORTANT:
+      - Forces regular pin updates
+      - Prevents stale pins after certificate rotation
+      - Allows planned migration
+      - Reduces risk of app breaking on cert renewal
+      - Best practice for pin management
+
+      VULNERABLE PATTERN:
+      ```xml
+      <domain-config>
+          <domain includeSubdomains="true">api.example.com</domain>
+          <pin-set>
+              <!-- No expiration = pins never expire -->
+              <pin digest="SHA-256">base64hash==</pin>
+              <pin digest="SHA-256">backup-hash==</pin>
+          </pin-set>
+      </domain-config>
+      ```
+
+      SECURE PATTERN:
+      ```xml
+      <domain-config>
+          <domain includeSubdomains="true">api.example.com</domain>
+          <!-- Set expiration 1 year from now -->
+          <pin-set expiration="2026-01-01">
+              <!-- Pin to intermediate CA (longer lifetime) -->
+              <pin digest="SHA-256">intermediateCaHash==</pin>
+              <!-- Backup pin to different CA -->
+              <pin digest="SHA-256">backupCaHash==</pin>
+          </pin-set>
+      </domain-config>
+      ```
+
+      CERTIFICATE PINNING BEST PRACTICES:
+
+      1. Pin to Intermediate CA (not leaf cert):
+      ```bash
+      # Get intermediate CA pin
+      openssl s_client -connect api.example.com:443 -showcerts < /dev/null 2>/dev/null | \
+        openssl x509 -outform DER | \
+        openssl dgst -sha256 -binary | \
+        openssl base64
+      ```
+
+      2. Include Backup Pins:
+      ```xml
+      <pin-set expiration="2026-12-31">
+          <!-- Current intermediate CA -->
+          <pin digest="SHA-256">primary-ca-hash==</pin>
+          <!-- Backup CA (different provider) -->
+          <pin digest="SHA-256">backup-ca-hash==</pin>
+          <!-- Future CA (rotation plan) -->
+          <pin digest="SHA-256">future-ca-hash==</pin>
+      </pin-set>
+      ```
+
+      3. Monitor Expiration:
+      ```kotlin
+      // Monitor pin expiration
+      class CertPinningMonitor {
+          fun checkPinExpiration() {
+              val expirationDate = SimpleDateFormat("yyyy-MM-dd")
+                  .parse("2026-01-01")
+
+              val daysUntilExpiration = ChronoUnit.DAYS.between(
+                  LocalDate.now(),
+                  expirationDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+              )
+
+              if (daysUntilExpiration < 30) {
+                  // Alert: Update pins in next release
+                  logWarning("Certificate pins expiring in $daysUntilExpiration days")
+              }
+          }
+      }
+      ```
+
+      4. Emergency Pin Bypass (for recovery):
+      ```kotlin
+      // Build.gradle
+      android {
+          buildTypes {
+              release {
+                  buildConfigField "boolean", "ENABLE_PINNING", "true"
+              }
+              debug {
+                  buildConfigField "boolean", "ENABLE_PINNING", "false"
+              }
+          }
+      }
+
+      // OkHttp certificate pinning
+      val certificatePinner = if (BuildConfig.ENABLE_PINNING) {
+          CertificatePinner.Builder()
+              .add("api.example.com", "sha256/hash==")
+              .build()
+      } else {
+          null
+      }
+      ```
+
+      PIN ROTATION STRATEGY:
+      - Year 0: Deploy app with pins expiring Year 1
+      - Month 9: Issue update with new pins expiring Year 2
+      - Year 1: Old pins expire, users must update
+      - Repeat cycle
+
+      Reference: OWASP M5, M8, MASVS-NETWORK-2, RFC 7469
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M5: Insecure Communication"
+      masvs: "MASVS-NETWORK-2"
+      confidence: MEDIUM
+
+  # ============ COMPLIANCE & REGULATORY ============
+
+  - id: m8-android-gdpr-privacy-manifest-incomplete
+    patterns:
+      - pattern: |
+          <uses-permission android:name="$PERM" />
+      - metavariable-regex:
+          metavariable: $PERM
+          regex: ^android\.permission\.(ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION|READ_CONTACTS|READ_PHONE_STATE|CAMERA|RECORD_AUDIO)$
+    message: |
+      Privacy-sensitive permission without clear justification (GDPR/CCPA Compliance).
+      GDPR/CCPA require clear disclosure of why personal data is collected.
+
+      REGULATORY REQUIREMENTS:
+      - GDPR Article 13: Purpose specification
+      - GDPR Article 25: Data protection by design
+      - CCPA 1798.100: Right to know
+      - Google Play Data Safety: Permission disclosure
+
+      COMPLIANCE CHECKLIST:
+      - [ ] Privacy policy includes permission justification
+      - [ ] Runtime permission rationale shown to users
+      - [ ] Data minimization (only request needed permissions)
+      - [ ] User consent before data collection
+      - [ ] Data retention policy documented
+      - [ ] Ability to delete collected data
+
+      SECURE IMPLEMENTATION:
+      ```kotlin
+      class GDPRCompliantPermissions(private val activity: Activity) {
+
+          fun requestLocationWithRationale() {
+              when {
+                  hasPermission(ACCESS_FINE_LOCATION) -> {
+                      // Permission already granted
+                      useLocation()
+                  }
+
+                  shouldShowRationale(ACCESS_FINE_LOCATION) -> {
+                      // Show detailed explanation (GDPR requirement)
+                      showPermissionRationale(
+                          title = "Location Permission Required",
+                          message = """
+                              We need access to your location to:
+
+                              1. Show nearby stores (GDPR Purpose: Service delivery)
+                              2. Provide accurate delivery estimates
+
+                              Your location is:
+                              - Used only when app is open
+                              - Never shared with third parties
+                              - Deleted after 30 days
+                              - Can be disabled anytime in Settings
+
+                              You can refuse this permission and still use basic features.
+                          """.trimIndent(),
+                          onAccept = {
+                              requestPermission(ACCESS_FINE_LOCATION)
+                          },
+                          onDecline = {
+                              // Allow app usage without location
+                              enableLimitedMode()
+                          }
+                      )
+                  }
+
+                  else -> {
+                      // First time request
+                      requestPermission(ACCESS_FINE_LOCATION)
+                  }
+              }
+          }
+
+          fun showPermissionRationale(
+              title: String,
+              message: String,
+              onAccept: () -> Unit,
+              onDecline: () -> Unit
+          ) {
+              MaterialAlertDialogBuilder(activity)
+                  .setTitle(title)
+                  .setMessage(message)
+                  .setPositiveButton("Allow") { _, _ -> onAccept() }
+                  .setNegativeButton("Deny") { _, _ -> onDecline() }
+                  .setNeutralButton("Learn More") { _, _ ->
+                      // Open privacy policy
+                      openPrivacyPolicy()
+                  }
+                  .setCancelable(false)
+                  .show()
+          }
+      }
+      ```
+
+      PRIVACY POLICY REQUIREMENTS:
+      ```markdown
+      ## Data Collection & Usage
+
+      ### Location Data
+      - Purpose: Show nearby stores and delivery estimates
+      - Collection: Only when app is in use
+      - Storage: Encrypted on device for 30 days
+      - Sharing: Never shared with third parties
+      - Retention: Automatically deleted after 30 days
+      - Your Rights: Delete anytime in Settings > Privacy
+
+      ### Camera Permission
+      - Purpose: Scan QR codes and upload profile photos
+      - Collection: Only when explicitly triggered by user
+      - Storage: Photos stored locally, QR data not retained
+      - Sharing: Not shared unless you choose to share photos
+      ```
+
+      DATA SAFETY SECTION (Google Play):
+      ```yaml
+      # data_safety.yml
+      location:
+        purpose: Provide location-based services
+        optional: true
+        ephemeral: false
+        shared: false
+
+      contacts:
+        purpose: Enable social features
+        optional: true
+        ephemeral: false
+        shared: false
+      ```
+
+      CONSENT MANAGEMENT:
+      ```kotlin
+      class ConsentManager(private val context: Context) {
+          private val prefs = context.getSharedPreferences("consent", MODE_PRIVATE)
+
+          fun requestConsent(
+              dataType: String,
+              purpose: String,
+              onConsent: (Boolean) -> Unit
+          ) {
+              if (hasConsent(dataType)) {
+                  onConsent(true)
+                  return
+              }
+
+              showConsentDialog(
+                  "We'd like to collect $dataType for: $purpose\n\n" +
+                  "You can withdraw consent anytime.",
+                  onAccept = {
+                      saveConsent(dataType, true)
+                      logConsent(dataType, "granted")
+                      onConsent(true)
+                  },
+                  onDecline = {
+                      saveConsent(dataType, false)
+                      logConsent(dataType, "denied")
+                      onConsent(false)
+                  }
+              )
+          }
+
+          fun withdrawConsent(dataType: String) {
+              saveConsent(dataType, false)
+              deleteCollectedData(dataType)
+              logConsent(dataType, "withdrawn")
+          }
+      }
+      ```
+
+      Reference: GDPR, CCPA, OWASP M6, M8, MASVS-PRIVACY-1
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      masvs: "MASVS-PRIVACY-1"
+      compliance: "GDPR, CCPA, Google Play Data Safety"
+      confidence: LOW

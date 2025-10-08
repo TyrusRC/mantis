@@ -1,0 +1,881 @@
+rules:
+  # OWASP Mobile Top 10 - M2: Inadequate Supply Chain Security
+  # Flutter/Dart Dependency & Package Vulnerability Detection
+  # Comprehensive detection for pub.dev packages and plugin vulnerabilities
+
+  # ============ PUBSPEC.YAML SECURITY ============
+
+  - id: flutter-dep-git-dependency-without-ref
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PKG:
+                git:
+                  url: $URL
+          - pattern: |
+              $PKG:
+                git: $URL
+      - pattern-not: |
+          $PKG:
+            git:
+              url: $URL
+              ref: $REF
+    message: |
+      Flutter Git dependency without ref/commit (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Git dependencies without ref/commit can change unexpectedly,
+      introducing vulnerabilities or breaking changes without warning.
+
+      Remediation:
+      - Pin to specific ref, tag, or commit
+      ```yaml
+      package_name:
+        git:
+          url: https://github.com/user/package.git
+          ref: v1.0.0  # or specific commit SHA
+      ```
+
+      References:
+      - https://dart.dev/tools/pub/dependencies#git-packages
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: flutter-dep-git-http-url
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PKG:
+                git:
+                  url: http://$URL
+          - pattern: |
+              $PKG:
+                git: http://$URL
+    message: |
+      Insecure HTTP URL for Flutter Git dependency (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Git dependencies over HTTP can be intercepted and replaced with
+      malicious code via man-in-the-middle attacks.
+
+      Remediation:
+      - Use HTTPS or SSH URLs
+      ```yaml
+      package_name:
+        git:
+          url: https://github.com/user/package.git
+          ref: v1.0.0
+      ```
+
+      References:
+      - https://dart.dev/tools/pub/dependencies#git-packages
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: flutter-dep-version-constraint-any
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PKG: any
+          - pattern: |
+              $PKG: "any"
+    message: |
+      Flutter package with 'any' version constraint (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Using 'any' version constraint allows any version of the package,
+      including ones with known vulnerabilities or breaking changes.
+
+      Remediation:
+      - Use specific version constraints
+      ```yaml
+      package_name: ^1.2.3  # Compatible with 1.2.3 to <2.0.0
+      # or
+      package_name: 1.2.3   # Exact version
+      ```
+
+      References:
+      - https://dart.dev/tools/pub/dependencies#version-constraints
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ VULNERABLE FLUTTER PACKAGES ============
+
+  - id: flutter-dep-http-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              http: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              http: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 0
+    message: |
+      Outdated Dart http package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: http package 0.x versions are outdated and may have security issues
+      with HTTP/HTTPS handling, certificate validation, and TLS configuration.
+
+      Remediation:
+      - Update to http 1.x or newer
+      ```yaml
+      http: ^1.1.0
+      ```
+
+      References:
+      - https://pub.dev/packages/http
+      - https://pub.dev/packages/http/changelog
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: flutter-dep-dio-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              dio: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              dio: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 5
+    message: |
+      Vulnerable Dio HTTP client (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Dio versions < 5.0 may have security vulnerabilities in HTTP handling,
+      certificate pinning, and interceptor logic.
+
+      Remediation:
+      - Update to Dio 5.x or newer
+      ```yaml
+      dio: ^5.4.0
+      ```
+
+      References:
+      - https://pub.dev/packages/dio
+      - https://github.com/cfug/dio
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: flutter-dep-shared-preferences-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              shared_preferences: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              shared_preferences: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 0
+    message: |
+      Outdated shared_preferences package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: shared_preferences 0.x versions may have security issues with
+      data persistence and platform-specific storage.
+
+      Remediation:
+      - Update to shared_preferences 2.x or newer
+      ```yaml
+      shared_preferences: ^2.2.0
+      ```
+
+      References:
+      - https://pub.dev/packages/shared_preferences
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: flutter-dep-sqflite-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              sqflite: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              sqflite: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 1
+    message: |
+      Outdated sqflite database package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: sqflite 1.x versions may have SQL injection vulnerabilities or
+      data integrity issues if not properly updated.
+
+      Remediation:
+      - Update to sqflite 2.x or newer
+      ```yaml
+      sqflite: ^2.3.0
+      ```
+
+      Security considerations:
+      - Always use parameterized queries
+      - Never concatenate user input into SQL strings
+      - Enable write-ahead logging for better data integrity
+
+      References:
+      - https://pub.dev/packages/sqflite
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: flutter-dep-webview-flutter-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              webview_flutter: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              webview_flutter: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 4
+    message: |
+      Outdated webview_flutter package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: webview_flutter versions < 4.0 may have WebView security vulnerabilities,
+      JavaScript injection issues, or improper content security policy handling.
+
+      Remediation:
+      - Update to webview_flutter 4.x or newer
+      ```yaml
+      webview_flutter: ^4.5.0
+      ```
+
+      Security best practices:
+      - Enable JavaScript only when necessary
+      - Implement proper JavaScript channels with validation
+      - Use Content Security Policy headers
+      - Sanitize URLs before loading
+
+      References:
+      - https://pub.dev/packages/webview_flutter
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: flutter-dep-firebase-core-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              firebase_core: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              firebase_core: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 1
+    message: |
+      Outdated Firebase Core package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: firebase_core 1.x is outdated and may not include latest security
+      patches and privacy features.
+
+      Remediation:
+      - Update to firebase_core 2.x or newer
+      ```yaml
+      firebase_core: ^2.24.0
+      ```
+
+      Note: Ensure all Firebase packages are updated together:
+      - firebase_auth
+      - cloud_firestore
+      - firebase_storage
+      - etc.
+
+      References:
+      - https://pub.dev/packages/firebase_core
+      - https://firebase.google.com/support/release-notes/flutter
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ DEPRECATED FLUTTER PACKAGES ============
+
+  - id: flutter-dep-flutter-webview-plugin-deprecated
+    patterns:
+      - pattern: |
+          flutter_webview_plugin: $ANY
+    message: |
+      Deprecated flutter_webview_plugin package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: flutter_webview_plugin is deprecated and no longer maintained.
+      It has known security vulnerabilities and should be replaced.
+
+      Remediation:
+      - Migrate to webview_flutter (official Flutter plugin)
+      ```yaml
+      webview_flutter: ^4.5.0
+      ```
+
+      References:
+      - https://pub.dev/packages/webview_flutter
+      - https://github.com/dart-flutterCommunity/flutter_webview_plugin
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: flutter-dep-path-provider-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              path_provider: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              path_provider: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 1
+    message: |
+      Outdated path_provider package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: path_provider 1.x may have issues with secure file path handling
+      and permissions on different platforms.
+
+      Remediation:
+      - Update to path_provider 2.x or newer
+      ```yaml
+      path_provider: ^2.1.0
+      ```
+
+      Security considerations:
+      - Always validate file paths
+      - Use getApplicationDocumentsDirectory() for sensitive data
+      - Never store sensitive data in getTemporaryDirectory()
+
+      References:
+      - https://pub.dev/packages/path_provider
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ FLUTTER PLUGIN SECURITY ============
+
+  - id: flutter-dep-plugin-platform-interface-mismatch
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PLUGIN: ^$MAJOR1.$MINOR1.$PATCH1
+              ...
+              $PLUGIN_platform_interface: ^$MAJOR2.$MINOR2.$PATCH2
+      - metavariable-comparison:
+          metavariable: $MAJOR1
+          comparison: $MAJOR1 != $MAJOR2
+    message: |
+      Flutter plugin and platform interface version mismatch (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Mismatched versions between a plugin and its platform interface
+      can lead to unexpected behavior, crashes, or security issues.
+
+      Remediation:
+      - Ensure plugin and platform interface versions are compatible
+      - Use 'flutter pub upgrade' to resolve version conflicts
+      - Check plugin documentation for compatible versions
+
+      References:
+      - https://docs.flutter.dev/packages-and-plugins/developing-packages
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ DART CRYPTOGRAPHY PACKAGES ============
+
+  - id: flutter-dep-crypto-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              crypto: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              crypto: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 2
+    message: |
+      Outdated crypto package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: crypto 2.x may lack important cryptographic algorithm updates
+      and security patches.
+
+      Remediation:
+      - Update to crypto 3.x or newer
+      ```yaml
+      crypto: ^3.0.3
+      ```
+
+      Security considerations:
+      - Avoid deprecated hash algorithms (MD5, SHA1 for security purposes)
+      - Use SHA-256 or stronger for cryptographic hashing
+      - Consider using pointycastle for advanced cryptography
+
+      References:
+      - https://pub.dev/packages/crypto
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: flutter-dep-encrypt-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              encrypt: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              encrypt: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 5
+    message: |
+      Vulnerable encrypt package version (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: encrypt package versions < 5.0 may have cryptographic vulnerabilities
+      or improper algorithm implementations.
+
+      Remediation:
+      - Update to encrypt 5.x or newer
+      ```yaml
+      encrypt: ^5.0.3
+      ```
+
+      Security best practices:
+      - Use AES-256 in GCM mode for encryption
+      - Generate secure random IVs for each encryption
+      - Use proper key derivation (PBKDF2, Argon2)
+      - Never hardcode encryption keys
+
+      References:
+      - https://pub.dev/packages/encrypt
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ FLUTTER STATE MANAGEMENT ============
+
+  - id: flutter-dep-provider-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              provider: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              provider: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 6
+    message: |
+      Outdated provider package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: provider versions < 6.0 may have issues with state management
+      and memory leaks that could expose sensitive data.
+
+      Remediation:
+      - Update to provider 6.x or newer
+      ```yaml
+      provider: ^6.1.0
+      ```
+
+      References:
+      - https://pub.dev/packages/provider
+    severity: INFO
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  # ============ NATIVE DEPENDENCY ISSUES ============
+
+  - id: flutter-dep-ffi-usage-security
+    patterns:
+      - pattern-either:
+          - pattern: |
+              ffi: $ANY
+          - pattern: |
+              dart:ffi
+    message: |
+      FFI (Foreign Function Interface) usage detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: FFI allows calling native C code which can introduce memory safety
+      issues, buffer overflows, and security vulnerabilities if not properly handled.
+
+      Security considerations:
+      - Validate all inputs passed to native code
+      - Check for buffer overflows and memory corruption
+      - Ensure native libraries are from trusted sources
+      - Review native code for vulnerabilities
+      - Use safe FFI patterns (avoid manual memory management)
+
+      Best practices:
+      - Prefer pure Dart implementations when possible
+      - Use well-maintained packages that wrap native libraries
+      - Audit native library code regularly
+
+      References:
+      - https://dart.dev/guides/libraries/c-interop
+      - https://pub.dev/packages/ffi
+    severity: INFO
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-119: Improper Restriction of Operations within Memory Buffers"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ FLUTTER IMAGE LOADING PACKAGES ============
+
+  - id: flutter-dep-cached-network-image-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              cached_network_image: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              cached_network_image: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 2
+    message: |
+      Outdated cached_network_image package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: cached_network_image 2.x may have image processing vulnerabilities
+      or caching issues that could lead to data leakage.
+
+      Remediation:
+      - Update to cached_network_image 3.x or newer
+      ```yaml
+      cached_network_image: ^3.3.0
+      ```
+
+      Security considerations:
+      - Validate image URLs before loading
+      - Implement proper cache eviction policies
+      - Use HTTPS for image URLs
+      - Consider using image proxies for additional security
+
+      References:
+      - https://pub.dev/packages/cached_network_image
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ FLUTTER JSON/SERIALIZATION ============
+
+  - id: flutter-dep-json-annotation-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              json_annotation: ^$MAJOR.$MINOR.$PATCH
+          - pattern: |
+              json_annotation: $MAJOR.$MINOR.$PATCH
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 4
+    message: |
+      Outdated json_annotation package (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: json_annotation versions < 4.0 may have issues with code generation
+      and type safety that could lead to runtime errors.
+
+      Remediation:
+      - Update to json_annotation 4.x or newer
+      ```yaml
+      json_annotation: ^4.8.1
+      json_serializable: ^6.7.1  # Update build dependency too
+      ```
+
+      References:
+      - https://pub.dev/packages/json_annotation
+    severity: INFO
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  # ============ TYPOSQUATTING DETECTION ============
+
+  - id: flutter-dep-suspicious-package-name
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PKG: $VERSION
+      - metavariable-regex:
+          metavariable: $PKG
+          regex: .*(fluter|gogle|fireabse|sqflte|provder|httpp).*
+    message: |
+      Suspicious package name - possible typosquatting (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Package name contains common typos that may indicate a malicious
+      typosquatting attack.
+
+      Common typosquats:
+      - fluter → flutter
+      - gogle → google
+      - fireabse → firebase
+      - sqflte → sqflite
+      - provder → provider
+      - httpp → http
+
+      Remediation:
+      - Verify package name spelling carefully
+      - Check official documentation for correct package name
+      - Review package publisher and pub points on pub.dev
+      - Check package likes and popularity score
+
+      References:
+      - https://pub.dev
+      - https://owasp.org/www-community/attacks/Typosquatting
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers or Frames"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ PUBSPEC.LOCK INTEGRITY ============
+
+  - id: flutter-dep-path-dependency-production
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PKG:
+                path: $PATH
+    message: |
+      Path dependency in production pubspec.yaml (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Path dependencies reference local packages that may not be
+      consistent across development environments and CI/CD pipelines.
+
+      Remediation:
+      - For development only: Move to dev_dependencies
+      - For production: Publish package to pub.dev or use Git dependency
+      ```yaml
+      # Development only
+      dev_dependencies:
+        my_package:
+          path: ../my_package
+
+      # Production - use pub.dev or Git
+      dependencies:
+        my_package: ^1.0.0
+        # or
+        my_package:
+          git:
+            url: https://github.com/user/my_package.git
+            ref: v1.0.0
+      ```
+
+      References:
+      - https://dart.dev/tools/pub/dependencies#path-packages
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ FLUTTER SDK CONSTRAINTS ============
+
+  - id: flutter-dep-flutter-sdk-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              environment:
+                sdk: ">=$MIN <$MAX"
+                flutter: ">=$FLUTTER_MIN <$FLUTTER_MAX"
+      - metavariable-regex:
+          metavariable: $MIN
+          regex: ^2\.(1[0-6]|[0-9])\..*
+    message: |
+      Outdated Dart SDK constraint (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Dart SDK versions < 2.17 may have security vulnerabilities and
+      lack important language features and security improvements.
+
+      Remediation:
+      - Update SDK constraint to recent stable version
+      ```yaml
+      environment:
+        sdk: '>=3.0.0 <4.0.0'
+        flutter: '>=3.10.0'
+      ```
+
+      Benefits of newer SDK:
+      - Improved null safety
+      - Better security patches
+      - Performance improvements
+      - Enhanced type safety
+
+      References:
+      - https://dart.dev/get-dart
+      - https://docs.flutter.dev/release/breaking-changes
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM

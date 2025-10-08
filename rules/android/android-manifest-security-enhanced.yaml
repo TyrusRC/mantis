@@ -1,0 +1,1007 @@
+rules:
+  # Enhanced Android Manifest Security Configuration Rules (OWASP M8)
+  # Comprehensive AndroidManifest.xml and XML configuration security checks
+  # Sources: OWASP Mobile Top 10 2024, MASVS, Android Security Best Practices
+  # Focus: Configuration-based security vulnerabilities
+
+  # ============ NETWORK SECURITY CONFIGURATION ============
+
+  - id: android-network-security-config-missing
+    patterns:
+      - pattern: |
+          <application
+            ...
+          >
+      - pattern-not-inside: |
+          <application
+            ...
+            android:networkSecurityConfig="@xml/network_security_config"
+            ...
+          >
+    message: |
+      Network Security Config missing (OWASP M8 - High Priority).
+      Apps targeting Android 9+ should explicitly configure network security.
+
+      SECURITY BENEFITS OF NETWORK SECURITY CONFIG:
+      - Block cleartext (HTTP) traffic
+      - Enforce certificate pinning
+      - Control trust anchors
+      - Specify TLS requirements
+      - Debug configuration separation
+
+      WHY IT'S IMPORTANT:
+      - Android 9+ blocks HTTP by default, but explicit config is clearer
+      - Enables certificate pinning for high-security apps
+      - Prevents accidental HTTP usage
+      - Documents security requirements
+
+      SECURE IMPLEMENTATION:
+      ```xml
+      <!-- AndroidManifest.xml -->
+      <application
+          android:networkSecurityConfig="@xml/network_security_config"
+          ...>
+      </application>
+      ```
+
+      ```xml
+      <!-- res/xml/network_security_config.xml -->
+      <?xml version="1.0" encoding="utf-8"?>
+      <network-security-config>
+          <!-- Production: Block all HTTP -->
+          <base-config cleartextTrafficPermitted="false">
+              <trust-anchors>
+                  <!-- System CA certificates only -->
+                  <certificates src="system" />
+              </trust-anchors>
+          </base-config>
+
+          <!-- Development: Allow localhost HTTP -->
+          <domain-config cleartextTrafficPermitted="true">
+              <domain includeSubdomains="true">localhost</domain>
+              <domain includeSubdomains="true">10.0.2.2</domain>
+              <domain includeSubdomains="true">127.0.0.1</domain>
+          </domain-config>
+
+          <!-- Production API: Certificate Pinning -->
+          <domain-config>
+              <domain includeSubdomains="true">api.example.com</domain>
+              <pin-set expiration="2026-01-01">
+                  <!-- Primary certificate pin -->
+                  <pin digest="SHA-256">base64==</pin>
+                  <!-- Backup certificate pin -->
+                  <pin digest="SHA-256">backup-base64==</pin>
+              </pin-set>
+          </domain-config>
+      </network-security-config>
+      ```
+
+      CERTIFICATE PINNING BEST PRACTICES:
+      ```xml
+      <!-- Always pin to intermediate CA + leaf certificate -->
+      <domain-config>
+          <domain includeSubdomains="true">secure.example.com</domain>
+          <pin-set expiration="2026-12-31">
+              <!-- Leaf certificate -->
+              <pin digest="SHA-256">leafCertHash==</pin>
+              <!-- Intermediate CA (backup) -->
+              <pin digest="SHA-256">intermediateCaHash==</pin>
+          </pin-set>
+          <!-- Enforce TLS 1.2+ -->
+          <connection cleartextTrafficPermitted="false" />
+      </domain-config>
+      ```
+
+      GETTING CERTIFICATE PINS:
+      ```bash
+      # Get certificate from server
+      openssl s_client -connect api.example.com:443 < /dev/null | \
+        openssl x509 -outform DER > cert.der
+
+      # Calculate SHA-256 pin
+      openssl x509 -in cert.der -inform DER -pubkey -noout | \
+        openssl pkey -pubin -outform DER | \
+        openssl dgst -sha256 -binary | \
+        openssl base64
+      ```
+
+      MIGRATION STRATEGY:
+      ```xml
+      <!-- Phase 1: Log violations only (Android 7+) -->
+      <base-config cleartextTrafficPermitted="false">
+          <trust-anchors>
+              <certificates src="system" />
+              <certificates src="user" /> <!-- Remove after testing -->
+          </trust-anchors>
+      </base-config>
+
+      <!-- Phase 2: Enforce after testing -->
+      <base-config cleartextTrafficPermitted="false">
+          <trust-anchors>
+              <certificates src="system" />
+          </trust-anchors>
+      </base-config>
+      ```
+
+      DEBUGGING NETWORK SECURITY:
+      ```bash
+      # Monitor network security violations
+      adb logcat | grep NetworkSecurityConfig
+
+      # Test with proxy (should fail with pinning)
+      adb shell settings put global http_proxy 192.168.1.100:8080
+      ```
+
+      Reference: OWASP M5, M8, MASVS-NETWORK-1, Android Network Security Config
+    severity: INFO
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: LOW
+      priority: HIGH
+
+  - id: android-network-security-user-certs-production
+    patterns:
+      - pattern: |
+          <trust-anchors>
+            ...
+            <certificates src="user" />
+            ...
+          </trust-anchors>
+    message: |
+      User-installed certificates trusted (OWASP M5/M8 - Critical).
+      Trusting user certificates enables trivial MITM attacks via proxy tools.
+
+      SECURITY IMPACT:
+      - Burp Suite/Charles Proxy can intercept HTTPS
+      - User-installed CA certificates accepted
+      - SSL pinning completely bypassed
+      - Corporate proxies can decrypt traffic
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- network_security_config.xml - INSECURE -->
+      <network-security-config>
+          <base-config>
+              <trust-anchors>
+                  <certificates src="system" />
+                  <certificates src="user" /> <!-- DANGEROUS -->
+              </trust-anchors>
+          </base-config>
+      </network-security-config>
+      ```
+
+      ATTACK SCENARIO:
+      1. Attacker installs Burp/Charles CA certificate on device
+      2. App trusts user certificates due to configuration
+      3. Proxy intercepts all HTTPS traffic
+      4. Attacker reads/modifies encrypted data
+
+      WHEN USER CERTS ARE ACCEPTABLE:
+      - ✅ Debug builds only
+      - ✅ Development/testing environments
+      - ✅ Enterprise apps with MDM-managed certificates
+      - ❌ NEVER in production consumer apps
+
+      SECURE FIX - Production:
+      ```xml
+      <!-- network_security_config.xml - Production -->
+      <network-security-config>
+          <base-config>
+              <trust-anchors>
+                  <certificates src="system" />
+                  <!-- NO user certificates -->
+              </trust-anchors>
+          </base-config>
+      </network-security-config>
+      ```
+
+      SECURE FIX - Debug Build Only:
+      ```xml
+      <!-- res/xml/network_security_config.xml (debug variant) -->
+      <network-security-config>
+          <debug-overrides>
+              <trust-anchors>
+                  <certificates src="system" />
+                  <certificates src="user" /> <!-- Debug only -->
+              </trust-anchors>
+          </debug-overrides>
+          <base-config>
+              <trust-anchors>
+                  <certificates src="system" />
+              </trust-anchors>
+          </base-config>
+      </network-security-config>
+      ```
+
+      BUILD VARIANT SEPARATION:
+      ```gradle
+      // android/app/build.gradle
+      android {
+          buildTypes {
+              debug {
+                  manifestPlaceholders = [
+                      networkSecurityConfig: "@xml/network_security_config_debug"
+                  ]
+              }
+              release {
+                  manifestPlaceholders = [
+                      networkSecurityConfig: "@xml/network_security_config"
+                  ]
+              }
+          }
+      }
+      ```
+
+      ```xml
+      <!-- AndroidManifest.xml -->
+      <application
+          android:networkSecurityConfig="${networkSecurityConfig}">
+      </application>
+      ```
+
+      RUNTIME DETECTION:
+      ```java
+      // Detect if user certificates are trusted
+      public class SecurityChecker {
+          public static boolean isUserCertTrusted() {
+              try {
+                  TrustManagerFactory tmf = TrustManagerFactory.getInstance(
+                      TrustManagerFactory.getDefaultAlgorithm()
+                  );
+                  tmf.init((KeyStore) null);
+
+                  for (TrustManager tm : tmf.getTrustManagers()) {
+                      if (tm instanceof X509TrustManager) {
+                          X509Certificate[] certs =
+                              ((X509TrustManager) tm).getAcceptedIssuers();
+
+                          for (X509Certificate cert : certs) {
+                              // Check if cert is user-installed
+                              if (isUserInstalledCert(cert)) {
+                                  return true;
+                              }
+                          }
+                      }
+                  }
+              } catch (Exception e) {
+                  Log.e("Security", "Cert check failed", e);
+              }
+              return false;
+          }
+      }
+      ```
+
+      GOOGLE PLAY STORE POLICY:
+      Apps trusting user certificates may be flagged during security review.
+      Enterprise apps need specific Play Store approval.
+
+      Reference: OWASP M5, M8, MASVS-NETWORK-2, CWE-295
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      owasp-mobile-2024: "M5: Insecure Communication"
+      masvs: "MASVS-NETWORK-2"
+      confidence: VERY_HIGH
+      playstore_rejection_risk: MEDIUM
+
+  - id: android-network-cleartext-base-config
+    patterns:
+      - pattern: |
+          <base-config cleartextTrafficPermitted="true">
+            ...
+          </base-config>
+    message: |
+      Cleartext traffic permitted globally (OWASP M8 - Critical).
+      Base config allows HTTP for ALL domains, defeating Android 9+ protections.
+
+      SECURITY IMPACT:
+      - HTTP enabled for all network requests
+      - No TLS/SSL requirement
+      - Man-in-the-middle attacks on all traffic
+      - Credentials sent in cleartext
+      - API tokens interceptable
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- network_security_config.xml - INSECURE -->
+      <network-security-config>
+          <base-config cleartextTrafficPermitted="true">
+              <trust-anchors>
+                  <certificates src="system" />
+              </trust-anchors>
+          </base-config>
+      </network-security-config>
+      ```
+
+      ATTACK SCENARIO:
+      ```bash
+      # Attacker on same WiFi network
+      # Run ARP spoofing
+      arpspoof -i wlan0 -t 192.168.1.100 192.168.1.1
+
+      # Intercept HTTP traffic
+      ettercap -T -M arp:remote /192.168.1.100/ /192.168.1.1/
+
+      # All HTTP requests visible and modifiable
+      ```
+
+      SECURE FIX:
+      ```xml
+      <!-- network_security_config.xml - SECURE -->
+      <network-security-config>
+          <!-- Block HTTP globally -->
+          <base-config cleartextTrafficPermitted="false">
+              <trust-anchors>
+                  <certificates src="system" />
+              </trust-anchors>
+          </base-config>
+
+          <!-- Only localhost for development -->
+          <domain-config cleartextTrafficPermitted="true">
+              <domain includeSubdomains="true">localhost</domain>
+              <domain includeSubdomains="true">10.0.2.2</domain>
+          </domain-config>
+      </network-security-config>
+      ```
+
+      MIGRATION FROM LEGACY HTTP APIS:
+      ```xml
+      <!-- Temporary exception for specific legacy API -->
+      <domain-config cleartextTrafficPermitted="true">
+          <domain includeSubdomains="false">legacy.oldapi.com</domain>
+          <!-- Set expiration date -->
+          <pin-set expiration="2025-06-01" />
+      </domain-config>
+      ```
+
+      CODE-LEVEL ENFORCEMENT:
+      ```java
+      // Enforce HTTPS in code
+      public class SecureHttpClient {
+          private static final String BASE_URL = "https://api.example.com";
+
+          public static Request buildRequest(String endpoint) {
+              URL url = new URL(BASE_URL + endpoint);
+
+              // Validate HTTPS
+              if (!"https".equals(url.getProtocol())) {
+                  throw new SecurityException("Only HTTPS allowed");
+              }
+
+              return new Request.Builder()
+                  .url(url)
+                  .build();
+          }
+      }
+      ```
+
+      VERIFICATION:
+      ```bash
+      # Test that HTTP is blocked
+      adb shell am start -a android.intent.action.VIEW \
+          -d "http://example.com"
+
+      # Should fail or show error
+      # Check logcat for NetworkSecurityConfig errors
+      adb logcat | grep "CLEARTEXT communication"
+      ```
+
+      Reference: OWASP M5, M8, MASVS-NETWORK-1, CWE-319
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: VERY_HIGH
+
+  - id: android-network-domain-cleartext-broad
+    patterns:
+      - pattern: |
+          <domain-config cleartextTrafficPermitted="true">
+            ...
+            <domain includeSubdomains="true">$DOMAIN</domain>
+            ...
+          </domain-config>
+      - metavariable-regex:
+          metavariable: $DOMAIN
+          regex: ^(?!localhost|127\.0\.0\.1|10\.0\.2\.2).*\.(com|net|org|io)$
+    message: |
+      Cleartext traffic allowed for production domain (OWASP M8).
+      HTTP enabled for non-localhost domain creates MITM vulnerability.
+
+      SECURITY RISKS:
+      - Production API exposed to MITM
+      - Credentials transmitted in cleartext
+      - Session tokens interceptable
+      - Data tampering possible
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- network_security_config.xml - INSECURE -->
+      <domain-config cleartextTrafficPermitted="true">
+          <domain includeSubdomains="true">api.example.com</domain>
+          <domain includeSubdomains="true">cdn.example.com</domain>
+      </domain-config>
+      ```
+
+      WHY THIS IS DANGEROUS:
+      - Allows HTTP to api.example.com and all subdomains
+      - No encryption for API calls
+      - Public WiFi = complete exposure
+      - Corporate proxies can intercept
+
+      SECURE FIX:
+      ```xml
+      <!-- Remove cleartext exception -->
+      <domain-config>
+          <domain includeSubdomains="true">api.example.com</domain>
+          <!-- HTTPS only (default) -->
+          <pin-set expiration="2026-01-01">
+              <pin digest="SHA-256">certHash==</pin>
+              <pin digest="SHA-256">backupHash==</pin>
+          </pin-set>
+      </domain-config>
+      ```
+
+      ACCEPTABLE USE CASES:
+      ```xml
+      <!-- Development/staging only -->
+      <domain-config cleartextTrafficPermitted="true">
+          <domain includeSubdomains="true">localhost</domain>
+          <domain includeSubdomains="true">10.0.2.2</domain>
+          <domain includeSubdomains="true">dev.internal.example.com</domain>
+      </domain-config>
+
+      <!-- Public CDN for non-sensitive content -->
+      <domain-config cleartextTrafficPermitted="true">
+          <domain includeSubdomains="false">public-images.cdn.example.com</domain>
+          <!-- Only for public images, never for APIs -->
+      </domain-config>
+      ```
+
+      CONTENT SECURITY:
+      - ✅ OK for HTTP: Public images, videos, static assets
+      - ❌ NEVER for HTTP: APIs, authentication, user data, payments
+
+      Reference: OWASP M5, M8, MASVS-NETWORK-1
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/network_security_config.xml"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: HIGH
+
+  # ============ COMPONENT EXPORT SECURITY ============
+
+  - id: android-activity-exported-intent-filter
+    patterns:
+      - pattern: |
+          <activity
+            ...
+          >
+            <intent-filter>
+              ...
+            </intent-filter>
+          </activity>
+      - pattern-not-inside: |
+          <activity
+            ...
+            android:exported="true"
+            ...
+          >
+      - pattern-not-inside: |
+          <activity
+            ...
+            android:exported="false"
+            ...
+          >
+    message: |
+      Activity with intent-filter missing explicit exported declaration (OWASP M8).
+      Android 12+ requires explicit android:exported for activities with intent-filters.
+
+      SECURITY IMPACT:
+      - Build failure on Android 12+ (targetSdk 31+)
+      - Implicit export may be unintended
+      - Intent injection risks
+      - Unclear security posture
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- Missing explicit exported - Android 12+ FAILS -->
+      <activity android:name=".DeepLinkActivity">
+          <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <data android:scheme="myapp" />
+          </intent-filter>
+      </activity>
+      ```
+
+      SECURE FIX - Public Activity:
+      ```xml
+      <!-- Explicitly exported for deep links -->
+      <activity
+          android:name=".DeepLinkActivity"
+          android:exported="true">
+          <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data android:scheme="https"
+                    android:host="example.com" />
+          </intent-filter>
+      </activity>
+      ```
+
+      SECURE FIX - Internal Activity:
+      ```xml
+      <!-- Not exported - internal use only -->
+      <activity
+          android:name=".SettingsActivity"
+          android:exported="false">
+          <!-- Can still have intent-filter for internal routing -->
+          <intent-filter>
+              <action android:name="com.example.OPEN_SETTINGS" />
+          </intent-filter>
+      </activity>
+      ```
+
+      PROTECTED EXPORT:
+      ```xml
+      <!-- Exported with permission protection -->
+      <activity
+          android:name=".AdminActivity"
+          android:exported="true"
+          android:permission="com.example.permission.ADMIN_ACCESS">
+          <intent-filter>
+              <action android:name="com.example.ADMIN" />
+          </intent-filter>
+      </activity>
+
+      <!-- Define signature-level permission -->
+      <permission
+          android:name="com.example.permission.ADMIN_ACCESS"
+          android:protectionLevel="signature" />
+      ```
+
+      MIGRATION CHECKLIST:
+      - [ ] Review all activities with intent-filters
+      - [ ] Add android:exported="true" for public activities
+      - [ ] Add android:exported="false" for internal activities
+      - [ ] Consider adding permissions for sensitive exports
+      - [ ] Test on Android 12+ devices
+      - [ ] Validate deep link security
+
+      SECURITY DECISION MATRIX:
+      | Activity Type | Exported | Permission | Use Case |
+      |--------------|----------|------------|----------|
+      | Deep Link | true | Optional | Public entry point |
+      | Launcher | true | No | Main activity |
+      | Internal | false | No | App-only navigation |
+      | Admin | true | signature | Privileged access |
+      | Share Target | true | Optional | Receive shared content |
+
+      Reference: OWASP M8, MASVS-PLATFORM-1, Android 12 Requirements
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-926: Improper Export of Android Application Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-PLATFORM-1"
+      confidence: HIGH
+      android_version_requirement: "12+"
+
+  - id: android-provider-exported-grant-uri
+    patterns:
+      - pattern: |
+          <provider
+            ...
+            android:exported="true"
+            android:grantUriPermissions="true"
+            ...
+          />
+      - pattern-not-inside: |
+          <provider
+            ...
+            android:permission="$PERM"
+            ...
+          />
+      - pattern-not-inside: |
+          <grant-uri-permission ... />
+    message: |
+      ContentProvider exported with global URI permissions (OWASP M8 - Critical).
+      Exported provider with grantUriPermissions=true allows any app to access data.
+
+      SECURITY IMPACT:
+      - Any app can request URI permissions
+      - Database/file access without permission
+      - Data exfiltration
+      - SQL injection potential
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- INSECURE: Global URI grant -->
+      <provider
+          android:name=".DataProvider"
+          android:authorities="com.example.provider"
+          android:exported="true"
+          android:grantUriPermissions="true" />
+      ```
+
+      ATTACK SCENARIO:
+      ```java
+      // Malicious app
+      Intent intent = new Intent();
+      intent.setData(Uri.parse("content://com.example.provider/sensitive_data"));
+      intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+      // Access granted due to grantUriPermissions="true"
+      Cursor cursor = getContentResolver().query(intent.getData(), null, null, null, null);
+      // Steal data
+      ```
+
+      SECURE FIX - Option 1 (Specific Paths):
+      ```xml
+      <provider
+          android:name=".DataProvider"
+          android:authorities="com.example.provider"
+          android:exported="true"
+          android:grantUriPermissions="false">
+
+          <!-- Grant for specific paths only -->
+          <grant-uri-permission
+              android:path="/public/images/"
+              android:pathPrefix="/public/" />
+      </provider>
+      ```
+
+      SECURE FIX - Option 2 (Permission Protection):
+      ```xml
+      <provider
+          android:name=".DataProvider"
+          android:authorities="com.example.provider"
+          android:exported="true"
+          android:grantUriPermissions="true"
+          android:permission="com.example.permission.PROVIDER_ACCESS">
+      </provider>
+
+      <permission
+          android:name="com.example.permission.PROVIDER_ACCESS"
+          android:protectionLevel="signature" />
+      ```
+
+      SECURE FIX - Option 3 (FileProvider):
+      ```xml
+      <!-- Use FileProvider for file sharing -->
+      <provider
+          android:name="androidx.core.content.FileProvider"
+          android:authorities="${applicationId}.fileprovider"
+          android:exported="false"
+          android:grantUriPermissions="true">
+          <meta-data
+              android:name="android.support.FILE_PROVIDER_PATHS"
+              android:resource="@xml/file_paths" />
+      </provider>
+      ```
+
+      ```xml
+      <!-- res/xml/file_paths.xml -->
+      <paths>
+          <!-- Specific directories only -->
+          <files-path name="shared_images" path="images/" />
+          <cache-path name="temp_files" path="temp/" />
+          <!-- NEVER use root-path -->
+      </paths>
+      ```
+
+      PROGRAMMATIC URI PERMISSION GRANT:
+      ```java
+      // Grant permission to specific app only
+      public void shareData(String packageName, Uri dataUri) {
+          // Verify recipient
+          if (!isTrustedPackage(packageName)) {
+              throw new SecurityException("Untrusted package");
+          }
+
+          // Grant temporary permission
+          grantUriPermission(
+              packageName,
+              dataUri,
+              Intent.FLAG_GRANT_READ_URI_PERMISSION
+          );
+
+          // Revoke after use
+          Handler handler = new Handler();
+          handler.postDelayed(() -> {
+              revokeUriPermission(dataUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          }, 60000); // 1 minute
+      }
+      ```
+
+      CONTENT PROVIDER SECURITY CHECKLIST:
+      - [ ] Set android:exported="false" if not needed externally
+      - [ ] Add android:permission for exported providers
+      - [ ] Use <grant-uri-permission> for specific paths only
+      - [ ] Validate all queries/inserts/updates
+      - [ ] Implement SQL injection protection
+      - [ ] Log access attempts
+      - [ ] Use FileProvider instead of custom provider for files
+
+      Reference: OWASP M8, MASVS-PLATFORM-1, CWE-732, CWE-926
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-PLATFORM-1"
+      confidence: VERY_HIGH
+
+  # ============ PERMISSION SECURITY ============
+
+  - id: android-signature-permission-weak
+    patterns:
+      - pattern: |
+          <permission
+            android:name="$NAME"
+            android:protectionLevel="$LEVEL"
+            ... />
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(admin|payment|secure|auth|credential|private|sensitive).*
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(normal|dangerous)$
+    message: |
+      Sensitive custom permission with weak protection level (OWASP M8).
+      Permissions protecting sensitive functionality must use signature protection.
+
+      SECURITY RISKS:
+      - Any app can request permission
+      - User grants access unknowingly
+      - No cryptographic verification
+      - Permission hijacking
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- INSECURE: Admin permission with normal protection -->
+      <permission
+          android:name="com.example.permission.ADMIN_ACCESS"
+          android:protectionLevel="normal"
+          android:description="@string/admin_desc" />
+
+      <!-- INSECURE: Payment permission with dangerous protection -->
+      <permission
+          android:name="com.example.permission.PAYMENT"
+          android:protectionLevel="dangerous"
+          android:description="@string/payment_desc" />
+      ```
+
+      PROTECTION LEVELS EXPLAINED:
+      | Level | Grant Method | Security | Use Case |
+      |-------|-------------|----------|----------|
+      | normal | Automatic | ❌ Low | Non-sensitive features |
+      | dangerous | User approval | ⚠️ Medium | Privacy-sensitive data |
+      | signature | Signing key match | ✅ High | Sensitive operations |
+      | signatureOrSystem | Signature + system | ✅ Very High | System-level access |
+
+      SECURE FIX:
+      ```xml
+      <!-- Signature-protected admin permission -->
+      <permission
+          android:name="com.example.permission.ADMIN_ACCESS"
+          android:protectionLevel="signature"
+          android:description="@string/admin_desc"
+          android:label="@string/admin_label" />
+
+      <!-- Use permission on component -->
+      <activity
+          android:name=".AdminActivity"
+          android:exported="true"
+          android:permission="com.example.permission.ADMIN_ACCESS" />
+      ```
+
+      PERMISSION USAGE:
+      ```java
+      // Only apps signed with same key can access
+      public class AdminActivity extends AppCompatActivity {
+          @Override
+          protected void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+
+              // Verify caller has permission
+              if (checkCallingPermission("com.example.permission.ADMIN_ACCESS")
+                      != PackageManager.PERMISSION_GRANTED) {
+                  throw new SecurityException("Admin permission required");
+              }
+
+              // Admin operations
+          }
+      }
+      ```
+
+      PERMISSION CATEGORIES:
+      ```xml
+      <!-- Signature-level permissions for: -->
+      <!-- - Admin functions -->
+      <!-- - Payment processing -->
+      <!-- - Sensitive data access -->
+      <!-- - Authentication bypass -->
+      <!-- - Privileged operations -->
+      <permission
+          android:name="com.example.permission.PRIVILEGED"
+          android:protectionLevel="signature" />
+
+      <!-- Dangerous-level permissions for: -->
+      <!-- - Camera access -->
+      <!-- - Location access -->
+      <!-- - Contacts access -->
+      <!-- - Storage access (Android 10+) -->
+      <uses-permission android:name="android.permission.CAMERA" />
+
+      <!-- Normal-level permissions for: -->
+      <!-- - Internet access -->
+      <!-- - Network state -->
+      <!-- - Non-sensitive app features -->
+      <uses-permission android:name="android.permission.INTERNET" />
+      ```
+
+      RUNTIME ENFORCEMENT:
+      ```java
+      public class PermissionChecker {
+          public static boolean verifySignaturePermission(
+              Context context,
+              String permission,
+              String packageName
+          ) {
+              PackageManager pm = context.getPackageManager();
+
+              try {
+                  // Check if caller has permission
+                  int result = pm.checkPermission(permission, packageName);
+
+                  // Verify signature match
+                  PackageInfo callerInfo = pm.getPackageInfo(
+                      packageName,
+                      PackageManager.GET_SIGNATURES
+                  );
+                  PackageInfo ourInfo = pm.getPackageInfo(
+                      context.getPackageName(),
+                      PackageManager.GET_SIGNATURES
+                  );
+
+                  return result == PackageManager.PERMISSION_GRANTED &&
+                         Arrays.equals(
+                             callerInfo.signatures,
+                             ourInfo.signatures
+                         );
+              } catch (Exception e) {
+                  return false;
+              }
+          }
+      }
+      ```
+
+      Reference: OWASP M8, MASVS-PLATFORM-1, CWE-732
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-PLATFORM-1"
+      confidence: HIGH
+
+  # ============ BUILD CONFIGURATION SECURITY ============
+
+  - id: android-min-sdk-too-low
+    patterns:
+      - pattern: |
+          <uses-sdk
+            ...
+            android:minSdkVersion="$VERSION"
+            ...
+          />
+      - metavariable-comparison:
+          metavariable: $VERSION
+          comparison: $VERSION < 23
+    message: |
+      Minimum SDK version below 23 (OWASP M8).
+      Supporting Android versions before 6.0 (Marshmallow) lacks critical security features.
+
+      SECURITY FEATURES MISSING BEFORE API 23:
+      - Runtime permissions (API 23+)
+      - App Links verification (API 23+)
+      - Direct Boot (API 24+)
+      - Network Security Config (API 24+)
+      - Scoped Storage (API 29+)
+      - Package Visibility (API 30+)
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <uses-sdk
+          android:minSdkVersion="21"
+          android:targetSdkVersion="33" />
+      ```
+
+      SECURITY RECOMMENDATIONS:
+      ```xml
+      <!-- Recommended minimum for security -->
+      <uses-sdk
+          android:minSdkVersion="23"
+          android:targetSdkVersion="34" />
+
+      <!-- Ideal for modern security -->
+      <uses-sdk
+          android:minSdkVersion="26"
+          android:targetSdkVersion="34" />
+      ```
+
+      RUNTIME PERMISSION HANDLING:
+      ```java
+      // Required for API 23+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          if (checkSelfPermission(Manifest.permission.CAMERA)
+                  != PackageManager.PERMISSION_GRANTED) {
+              requestPermissions(
+                  new String[]{Manifest.permission.CAMERA},
+                  REQUEST_CAMERA
+              );
+          }
+      }
+      ```
+
+      MARKET SHARE CONSIDERATION:
+      - API 21-22: <2% of devices (2024)
+      - API 23+: >98% of devices
+      - API 26+: >95% of devices
+
+      Reference: OWASP M8, Android Distribution Stats
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/AndroidManifest.xml"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM

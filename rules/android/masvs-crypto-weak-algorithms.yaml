@@ -92,6 +92,79 @@ rules:
       masvs: "MASVS-CRYPTO-1"
       confidence: HIGH
 
+  - id: mastg-android-custom-xor-obfuscation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              (char) ($INPUT.charAt($POS) ^ $KEY)
+          - pattern: |
+              (char) ($INPUT.charAt($POS) ^ '$CHAR')
+          - pattern: |
+              $RESULT[$POS] = (char) ($INPUT.charAt($POS) ^ $KEY)
+      - metavariable-pattern:
+          metavariable: $KEY
+          patterns:
+            - pattern-not: $RANDOM_VAR
+    message: |
+      XOR-based obfuscation with static key detected (MASVS-CRYPTO).
+      XOR with a static key is not encryption and can be trivially reversed.
+      Example: char ^ 'U' or char ^ 85 provides no real security.
+      Use proper encryption: AES-256-GCM with Android Keystore for key management.
+
+      Fix: Use EncryptedSharedPreferences or Android Keystore API.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: HIGH
+      found_in_sample: "sample/android-app/CredentialsLoader.java, C0955s.java"
+
+  - id: mastg-android-custom-rc4-implementation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $CLASS {
+                ...
+                int[] $S = new int[256];
+                ...
+                $S[$I] = ($S[$I] + $S[$J] + $KEY[$I % $KEYLEN]) % 256;
+                ...
+              }
+          - pattern: |
+              for ($I = 0; $I < 256; $I++) {
+                ...
+                $SWAP = $S[$I];
+                $S[$I] = $S[$J];
+                $S[$J] = $SWAP;
+                ...
+              }
+    message: |
+      Custom RC4 cipher implementation detected (MASVS-CRYPTO).
+      RC4 is a broken stream cipher vulnerable to multiple attacks (biases, key recovery).
+      Custom crypto implementations are highly prone to errors.
+
+      Use Android's standard cryptography APIs with AES-256-GCM mode instead.
+
+      Fix: Use javax.crypto.Cipher with "AES/GCM/NoPadding" transformation.
+    severity: ERROR
+    languages:
+      - java
+      - kotlin
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile: "M10: Insufficient Cryptography"
+      mastg-id: "MASTG-CRYPTO"
+      masvs: "MASVS-CRYPTO-1"
+      confidence: MEDIUM
+      found_in_sample: "sample/android-app/C0955s.java"
+
   - id: mastg-android-ecb-mode-encryption
     patterns:
       - pattern-either:

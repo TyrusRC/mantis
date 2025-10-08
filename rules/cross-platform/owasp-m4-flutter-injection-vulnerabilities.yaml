@@ -1,0 +1,732 @@
+rules:
+  # OWASP Mobile Top 10 - M4: Insufficient Input/Output Validation (Flutter)
+  # SQL Injection, XSS, Path Traversal, Deep Link Injection for Flutter apps
+  # Platform: Flutter/Dart
+  # Sources: OWASP Mobile 2024, Flutter Security Best Practices
+
+  # ============ SQL INJECTION (sqflite) ============
+
+  - id: owasp-m4-flutter-sqflite-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.rawQuery('$QUERY', ...)
+          - pattern: |
+              $DB.rawQuery("$QUERY", ...)
+          - pattern: |
+              await $DB.rawQuery('$QUERY', ...)
+      - metavariable-pattern:
+          metavariable: $QUERY
+          patterns:
+            - pattern-either:
+                - pattern: |
+                    "... WHERE ... = $VAR ..."
+                - pattern: |
+                    "... WHERE ... = '$VAR' ..."
+                - pattern: |
+                    '... WHERE ... = $VAR ...'
+    message: |
+      SQL Injection vulnerability in sqflite (OWASP M4: Insufficient Input/Output Validation).
+      Building SQL queries with string interpolation allows injection attacks.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: String interpolation in SQL
+      final String userId = request.params['id'];
+      final results = await db.rawQuery(
+        'SELECT * FROM users WHERE id = $userId'
+      );
+
+      // VULNERABLE: String concatenation
+      final query = "SELECT * FROM users WHERE name = '$userName'";
+      await db.rawQuery(query);
+      ```
+
+      ATTACK EXAMPLE:
+      ```dart
+      // User input: userId = "1 OR 1=1"
+      // Resulting query: SELECT * FROM users WHERE id = 1 OR 1=1
+      // Returns all users!
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:sqflite/sqflite.dart';
+
+      class SecureDatabase {
+        late Database _db;
+
+        // Use parameterized queries
+        Future<List<Map<String, dynamic>>> getUserById(String userId) async {
+          return await _db.rawQuery(
+            'SELECT * FROM users WHERE id = ?',
+            [userId]  // Parameters prevent injection
+          );
+        }
+
+        // Alternative: Use query() method
+        Future<List<Map<String, dynamic>>> getUserByName(String name) async {
+          return await _db.query(
+            'users',
+            where: 'name = ?',
+            whereArgs: [name],
+          );
+        }
+
+        // For multiple conditions
+        Future<List<Map<String, dynamic>>> searchUsers(
+          String name,
+          int minAge,
+        ) async {
+          return await _db.query(
+            'users',
+            where: 'name LIKE ? AND age >= ?',
+            whereArgs: ['%$name%', minAge],
+          );
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - Always use ? placeholders with parameter arrays
+      - Use db.query() / db.insert() / db.update() / db.delete() methods
+      - Never concatenate or interpolate user input into SQL
+      - Validate and sanitize ALL user inputs
+      - Use ORM patterns when possible
+
+      Reference: OWASP Mobile Top 10 2024, sqflite Documentation
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  - id: owasp-m4-flutter-sql-string-concatenation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              '$SQL' + $INPUT
+          - pattern: |
+              '$SQL $INPUT'
+          - pattern: |
+              "$SQL" + $INPUT
+          - pattern: |
+              "$SQL $INPUT"
+      - metavariable-regex:
+          metavariable: $SQL
+          regex: (?i).*(SELECT|INSERT|UPDATE|DELETE|WHERE|FROM).*
+    message: |
+      SQL query built with string concatenation (OWASP M4: Insufficient Input/Output Validation).
+      String concatenation in SQL queries is vulnerable to injection.
+
+      Use parameterized queries with ? placeholders instead:
+      ```dart
+      await db.rawQuery('SELECT * FROM users WHERE id = ?', [userId]);
+      ```
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ WEBVIEW XSS ============
+
+  - id: owasp-m4-flutter-webview-xss
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CONTROLLER.loadHtmlString($HTML)
+          - pattern: |
+              WebView(..., initialData: $DATA, ...)
+          - pattern: |
+              $CONTROLLER.loadData($DATA, ...)
+      - pattern-not: |
+          $CONTROLLER.loadHtmlString("...")
+    message: |
+      Cross-Site Scripting (XSS) in Flutter WebView (OWASP M4: Insufficient Input/Output Validation).
+      Loading untrusted HTML can execute malicious JavaScript.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: User-controlled HTML
+      final userHtml = request.params['content'];
+      webViewController.loadHtmlString(userHtml);
+
+      // VULNERABLE: Template interpolation
+      final html = '''
+        <html>
+          <body>
+            <h1>Welcome $userName</h1>
+          </body>
+        </html>
+      ''';
+      webViewController.loadHtmlString(html);
+      ```
+
+      ATTACK EXAMPLE:
+      ```dart
+      // User input: userName = "<script>alert(document.cookie)</script>"
+      // Resulting HTML: <h1>Welcome <script>alert(document.cookie)</script></h1>
+      // JavaScript executes and steals cookies!
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:webview_flutter/webview_flutter.dart';
+      import 'package:html/parser.dart' show parse;
+      import 'package:html/dom.dart';
+
+      class SecureWebView extends StatefulWidget {
+        @override
+        State<SecureWebView> createState() => _SecureWebViewState();
+      }
+
+      class _SecureWebViewState extends State<SecureWebView> {
+        late WebViewController _controller;
+
+        // Sanitize HTML before loading
+        String sanitizeHtml(String rawHtml) {
+          final document = parse(rawHtml);
+
+          // Remove dangerous elements
+          document.querySelectorAll('script').forEach((el) => el.remove());
+          document.querySelectorAll('iframe').forEach((el) => el.remove());
+
+          // Remove dangerous attributes
+          document.querySelectorAll('*').forEach((element) {
+            element.attributes.removeWhere((key, value) =>
+              key.startsWith('on') || // onclick, onerror, etc.
+              key == 'href' && value.startsWith('javascript:')
+            );
+          });
+
+          return document.outerHtml;
+        }
+
+        void loadUserContent(String userHtml) {
+          final safeHtml = sanitizeHtml(userHtml);
+          _controller.loadHtmlString(safeHtml);
+        }
+
+        // Alternative: Use HTML escaping
+        String escapeHtml(String text) {
+          return text
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#x27;');
+        }
+
+        void loadSafeMessage(String message) {
+          final escapedMessage = escapeHtml(message);
+          final html = '''
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="UTF-8">
+                <meta http-equiv="Content-Security-Policy"
+                      content="default-src 'self'; script-src 'none';">
+              </head>
+              <body>
+                <h1>$escapedMessage</h1>
+              </body>
+            </html>
+          ''';
+          _controller.loadHtmlString(html);
+        }
+
+        @override
+        Widget build(BuildContext context) {
+          return WebView(
+            initialUrl: 'about:blank',
+            javascriptMode: JavascriptMode.disabled,  // Disable JS if possible
+            onWebViewCreated: (controller) {
+              _controller = controller;
+            },
+          );
+        }
+      }
+      ```
+
+      CONTENT SECURITY POLICY:
+      ```dart
+      final html = '''
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta http-equiv="Content-Security-Policy"
+                  content="default-src 'self'; script-src 'none'; object-src 'none';">
+          </head>
+          <body>$content</body>
+        </html>
+      ''';
+      ```
+
+      BEST PRACTICES:
+      - Sanitize HTML before loading (remove <script>, <iframe>)
+      - Escape user input (convert < to &lt;)
+      - Use Content Security Policy headers
+      - Disable JavaScript if not needed
+      - Never trust user-provided HTML
+
+      Reference: OWASP XSS Prevention, Flutter WebView Security
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-Site Scripting"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ PATH TRAVERSAL ============
+
+  - id: owasp-m4-flutter-path-traversal
+    patterns:
+      - pattern-either:
+          - pattern: |
+              File('$PATH')
+          - pattern: |
+              File("$PATH")
+          - pattern: |
+              File($DIR + $FILENAME)
+          - pattern: |
+              File('$DIR/$FILENAME')
+      - pattern-not: |
+          File("...")
+    message: |
+      Path Traversal vulnerability in file operations (OWASP M4: Insufficient Input/Output Validation).
+      User-controlled file paths can access unauthorized directories.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: User-controlled path
+      final filename = request.params['file'];
+      final file = File('/app/data/$filename');
+      final content = await file.readAsString();
+
+      // VULNERABLE: Direct user input
+      final userPath = request.params['path'];
+      final file = File(userPath);
+      await file.writeAsString(data);
+      ```
+
+      ATTACK EXAMPLE:
+      ```dart
+      // User input: filename = "../../../etc/passwd"
+      // Resulting path: /app/data/../../../etc/passwd -> /etc/passwd
+      // Reads system files!
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'dart:io';
+      import 'package:path/path.dart' as path;
+
+      class SecureFileAccess {
+        final String _baseDirectory;
+
+        SecureFileAccess(this._baseDirectory);
+
+        // Validate and sanitize file paths
+        Future<File?> getSecureFile(String filename) async {
+          // Remove dangerous characters
+          final sanitized = filename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '');
+
+          // Prevent directory traversal
+          if (sanitized.contains('..') || sanitized.startsWith('/')) {
+            throw ArgumentError('Invalid filename: path traversal detected');
+          }
+
+          // Build safe path
+          final filePath = path.join(_baseDirectory, sanitized);
+
+          // Verify path is within base directory
+          final canonicalBase = Directory(_baseDirectory).absolute.path;
+          final canonicalFile = File(filePath).absolute.path;
+
+          if (!canonicalFile.startsWith(canonicalBase)) {
+            throw SecurityException('Path traversal attempt blocked');
+          }
+
+          return File(filePath);
+        }
+
+        // Read file securely
+        Future<String> readUserFile(String filename) async {
+          final file = await getSecureFile(filename);
+          if (file == null || !await file.exists()) {
+            throw FileSystemException('File not found');
+          }
+          return await file.readAsString();
+        }
+
+        // Write file securely
+        Future<void> writeUserFile(String filename, String content) async {
+          final file = await getSecureFile(filename);
+          await file?.writeAsString(content);
+        }
+
+        // List allowed files only
+        Future<List<String>> listUserFiles() async {
+          final dir = Directory(_baseDirectory);
+          final files = await dir.list().toList();
+
+          return files
+            .whereType<File>()
+            .map((f) => path.basename(f.path))
+            .where((name) => !name.startsWith('.'))  // Hide hidden files
+            .toList();
+        }
+      }
+
+      // Usage
+      final fileAccess = SecureFileAccess('/app/user_data');
+      final content = await fileAccess.readUserFile(userFilename);
+      ```
+
+      WHITELIST APPROACH:
+      ```dart
+      Future<File?> getWhitelistedFile(String filename) async {
+        const allowedFiles = [
+          'profile.json',
+          'settings.json',
+          'cache.dat',
+        ];
+
+        if (!allowedFiles.contains(filename)) {
+          throw SecurityException('File not allowed');
+        }
+
+        return File(path.join(_baseDirectory, filename));
+      }
+      ```
+
+      BEST PRACTICES:
+      - Use whitelist of allowed filenames
+      - Sanitize filenames (alphanumeric only)
+      - Check for ".." and "/" in paths
+      - Use path.join() for safe path construction
+      - Verify canonical paths are within allowed directory
+      - Never use user input directly as file path
+
+      Reference: OWASP Path Traversal, Dart path package
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ DEEP LINK INJECTION ============
+
+  - id: owasp-m4-flutter-deeplink-no-validation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Uri.parse($URL)
+          - pattern: |
+              Uri.tryParse($URL)
+          - pattern: |
+              final uri = Uri.parse($URL);
+              ...
+      - pattern-not-inside: |
+          if ($URI.scheme == '...' && $URI.host == '...') {
+            ...
+          }
+      - pattern-not-inside: |
+          if ($VALIDATION) {
+            ...
+          }
+    message: |
+      Deep link without validation (OWASP M4: Insufficient Input/Output Validation).
+      Unvalidated deep links can lead to URL injection, phishing, and data theft.
+
+      VULNERABLE PATTERN:
+      ```dart
+      // VULNERABLE: No validation
+      void handleDeepLink(String url) {
+        final uri = Uri.parse(url);
+        Navigator.pushNamed(context, uri.path);
+      }
+
+      // VULNERABLE: uni_links without validation
+      StreamSubscription? _sub;
+
+      @override
+      void initState() {
+        super.initState();
+        _sub = linkStream.listen((String? link) {
+          if (link != null) {
+            final uri = Uri.parse(link);
+            _handleNavigation(uri.path);  // NO VALIDATION
+          }
+        });
+      }
+      ```
+
+      ATTACK EXAMPLES:
+      ```dart
+      // Phishing: myapp://login?redirect=https://evil.com
+      // Open redirect: myapp://action?url=javascript:alert(1)
+      // Parameter pollution: myapp://item?id=1&id=999
+      ```
+
+      SECURE IMPLEMENTATION:
+      ```dart
+      import 'package:uni_links/uni_links.dart';
+
+      class SecureDeepLinkHandler {
+        static const String _appScheme = 'myapp';
+        static const String _appHost = 'app.example.com';
+
+        // Validate deep link
+        bool isValidDeepLink(Uri uri) {
+          // Check scheme
+          if (uri.scheme != _appScheme) {
+            return false;
+          }
+
+          // Check host (for Universal Links)
+          if (uri.host.isNotEmpty && uri.host != _appHost) {
+            return false;
+          }
+
+          // Validate path
+          final allowedPaths = [
+            '/home',
+            '/profile',
+            '/settings',
+            '/item',
+          ];
+
+          if (!allowedPaths.any((path) => uri.path.startsWith(path))) {
+            return false;
+          }
+
+          return true;
+        }
+
+        // Handle deep link securely
+        Future<void> handleDeepLink(String? link) async {
+          if (link == null || link.isEmpty) return;
+
+          final uri = Uri.tryParse(link);
+          if (uri == null) {
+            _logSecurityEvent('Invalid URI format', link);
+            return;
+          }
+
+          if (!isValidDeepLink(uri)) {
+            _logSecurityEvent('Unauthorized deep link', link);
+            _showSecurityAlert('Invalid link');
+            return;
+          }
+
+          // Sanitize query parameters
+          final sanitizedParams = _sanitizeParams(uri.queryParameters);
+
+          // Safe navigation
+          await _navigate(uri.path, sanitizedParams);
+        }
+
+        // Sanitize query parameters
+        Map<String, String> _sanitizeParams(Map<String, String> params) {
+          final sanitized = <String, String>{};
+
+          params.forEach((key, value) {
+            // Validate parameter names (whitelist)
+            if (_isAllowedParam(key)) {
+              // Sanitize value
+              sanitized[key] = _sanitizeValue(value);
+            }
+          });
+
+          return sanitized;
+        }
+
+        bool _isAllowedParam(String param) {
+          const allowed = ['id', 'category', 'page', 'tab'];
+          return allowed.contains(param);
+        }
+
+        String _sanitizeValue(String value) {
+          // Remove potentially dangerous characters
+          return value
+            .replaceAll(RegExp(r'[<>"\']'), '')
+            .substring(0, min(value.length, 100));  // Limit length
+        }
+
+        // Validate redirect URLs
+        bool isValidRedirect(String url) {
+          final uri = Uri.tryParse(url);
+          if (uri == null) return false;
+
+          // Only allow HTTPS
+          if (uri.scheme != 'https') return false;
+
+          // Whitelist allowed domains
+          const allowedHosts = [
+            'app.example.com',
+            'api.example.com',
+          ];
+
+          return allowedHosts.contains(uri.host);
+        }
+
+        Future<void> _navigate(String path, Map<String, String> params) async {
+          // Implement safe navigation logic
+        }
+
+        void _logSecurityEvent(String event, String details) {
+          // Log security events for monitoring
+        }
+
+        void _showSecurityAlert(String message) {
+          // Show user alert for suspicious activity
+        }
+      }
+
+      // Usage with uni_links
+      class MyApp extends StatefulWidget {
+        @override
+        _MyAppState createState() => _MyAppState();
+      }
+
+      class _MyAppState extends State<MyApp> {
+        final _deepLinkHandler = SecureDeepLinkHandler();
+        StreamSubscription? _linkSub;
+
+        @override
+        void initState() {
+          super.initState();
+          _initDeepLinks();
+        }
+
+        Future<void> _initDeepLinks() async {
+          // Handle initial link
+          try {
+            final initialLink = await getInitialLink();
+            await _deepLinkHandler.handleDeepLink(initialLink);
+          } catch (e) {
+            // Handle error
+          }
+
+          // Listen for links while app is open
+          _linkSub = linkStream.listen(
+            (String? link) => _deepLinkHandler.handleDeepLink(link),
+            onError: (err) {
+              // Handle error
+            },
+          );
+        }
+
+        @override
+        void dispose() {
+          _linkSub?.cancel();
+          super.dispose();
+        }
+
+        @override
+        Widget build(BuildContext context) {
+          return MaterialApp(/* ... */);
+        }
+      }
+      ```
+
+      GO_ROUTER VALIDATION:
+      ```dart
+      import 'package:go_router/go_router.dart';
+
+      final router = GoRouter(
+        redirect: (context, state) {
+          final uri = state.uri;
+
+          // Validate scheme and host
+          if (uri.scheme != 'myapp') {
+            return '/error';
+          }
+
+          // Validate parameters
+          final id = uri.queryParameters['id'];
+          if (id != null && !RegExp(r'^\d+$').hasMatch(id)) {
+            return '/error';  // Invalid ID format
+          }
+
+          return null;  // Allow navigation
+        },
+        routes: [/* ... */],
+      );
+      ```
+
+      BEST PRACTICES:
+      - Whitelist allowed schemes and hosts
+      - Validate all path components
+      - Sanitize query parameters
+      - Never trust deep link data
+      - Log suspicious deep link attempts
+      - Use HTTPS for Universal Links
+      - Implement rate limiting for deep link handling
+
+      Reference: OWASP Mobile Deep Link Security, uni_links package
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
+
+  # ============ COMMAND INJECTION ============
+
+  - id: owasp-m4-flutter-process-run
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Process.run($CMD, $ARGS)
+          - pattern: |
+              await Process.run($CMD, $ARGS)
+          - pattern: |
+              Process.start($CMD, $ARGS)
+      - pattern-not: |
+          Process.run("...", [...])
+    message: |
+      Command injection risk via Process.run() (OWASP M4: Insufficient Input/Output Validation).
+      Executing system commands with user input can lead to arbitrary command execution.
+
+      SECURE PRACTICES:
+      - Avoid Process.run() with user input
+      - Use strict input validation
+      - Whitelist allowed commands
+      - Never pass user input directly to shell
+
+      Example secure validation:
+      ```dart
+      Future<void> runSafeCommand(String userInput) async {
+        // Whitelist allowed commands
+        const allowedCommands = ['ls', 'pwd', 'date'];
+        if (!allowedCommands.contains(userInput)) {
+          throw SecurityException('Command not allowed');
+        }
+
+        await Process.run(userInput, []);
+      }
+      ```
+    severity: ERROR
+    languages:
+      - dart
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
+      confidence: HIGH
