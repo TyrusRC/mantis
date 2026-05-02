@@ -1,0 +1,54 @@
+rules:
+  - id: web-a01-express-route-missing-auth-middleware
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      Express route handler has no auth middleware in its argument list.
+      Confirm access control is enforced (route-level middleware, app-wide
+      auth, or controller-level guard). False positives are common — this is a
+      hint to verify, not a defect by itself.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+      Fix: pass an auth middleware before the handler, e.g.
+        app.get('/admin', requireAuth, requireRole('admin'), handler)
+    patterns:
+      - pattern-either:
+          - pattern: app.$METHOD($ROUTE, $HANDLER)
+          - pattern: $ROUTER.$METHOD($ROUTE, $HANDLER)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(get|post|put|delete|patch|all)$
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-285"
+      confidence: LOW
+      pack: [web, deep]
+
+  - id: web-a01-django-view-no-permission-decorator
+    languages: [python]
+    severity: WARNING
+    message: |
+      Django view function has no @login_required, @permission_required, or
+      class-based permission_classes. If this view exposes sensitive data,
+      add the appropriate guard.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern: |
+          def $FN(request, ...):
+              ...
+      - pattern-not-inside: |
+          @login_required
+          def $FN(request, ...):
+              ...
+      - pattern-not-inside: |
+          @permission_required(...)
+          def $FN(request, ...):
+              ...
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-285"
+      confidence: LOW
+      pack: [web, deep]

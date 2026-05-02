@@ -1,0 +1,10 @@
+name: mobile
+description: |
+  All mobile rules — iOS, Android, and cross-platform Flutter / React Native.
+filters:
+  paths_under:
+    - rules/ios/
+    - rules/android/
+    - rules/cross-platform/
+exclude:
+  rule_id_globs: []

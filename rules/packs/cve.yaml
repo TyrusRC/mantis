@@ -1,0 +1,8 @@
+name: cve
+description: |
+  Rules tied to a specific CVE. Run when triaging a CVE advisory or sweeping a
+  bug-bounty target for known issues.
+filters:
+  has_cve: true
+exclude:
+  rule_id_globs: []

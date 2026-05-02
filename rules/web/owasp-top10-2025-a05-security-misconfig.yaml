@@ -1,0 +1,64 @@
+rules:
+  - id: web-a05-django-debug-true
+    languages: [python]
+    severity: ERROR
+    message: |
+      DEBUG = True will leak stack traces, settings, and SQL to any user who
+      triggers an error. Set DEBUG = False in production and configure
+      ALLOWED_HOSTS.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern: DEBUG = True
+    paths:
+      include:
+        - "settings.py"
+        - "**/settings/*.py"
+        - "**/settings/production.py"
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-489"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a05-flask-debug-mode
+    languages: [python]
+    severity: ERROR
+    message: |
+      Flask app run with debug=True exposes the Werkzeug debugger, which
+      grants RCE to anyone who can reach an error page. Never enable in any
+      reachable environment.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: $APP.run(..., debug=True, ...)
+          - pattern: app.run(debug=True)
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-489"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a05-cors-allow-all-origins
+    languages: [javascript, typescript, python]
+    severity: WARNING
+    message: |
+      CORS configured to allow any origin (*) on a credentialed endpoint
+      defeats the same-origin policy. Restrict to a specific allow-list.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: 'app.use(cors({ origin: "*", credentials: true }))'
+          - pattern: 'app.use(cors({origin: true, credentials: true}))'
+          - pattern: 'response.headers["Access-Control-Allow-Origin"] = "*"'
+          - pattern: 'response["Access-Control-Allow-Origin"] = "*"'
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-942"
+      confidence: MEDIUM
+      pack: [web, deep]

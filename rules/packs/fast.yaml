@@ -1,0 +1,9 @@
+name: fast
+description: |
+  High-confidence ERROR-severity rules suitable for hooks, CI, and the /audit-fast
+  path. Designed for low false-positive rate over coverage breadth.
+filters:
+  severity: [ERROR]
+  confidence: [HIGH]
+exclude:
+  rule_id_globs: []

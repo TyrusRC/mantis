@@ -1,0 +1,10 @@
+name: bugbounty
+description: |
+  Bug-bounty oriented selection — high-severity, high-confidence rules plus
+  every CVE-linked rule. Pair with the bugbounty mode of /audit which gates on
+  reachability.
+filters:
+  severity: [ERROR]
+  confidence: [HIGH, MEDIUM]
+exclude:
+  rule_id_globs: []

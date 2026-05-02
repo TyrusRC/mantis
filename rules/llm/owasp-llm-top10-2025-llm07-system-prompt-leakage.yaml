@@ -1,0 +1,26 @@
+rules:
+  - id: llm-llm07-secret-in-system-prompt
+    languages: [python, javascript, typescript]
+    severity: ERROR
+    message: |
+      System prompt contains what looks like an API key, database
+      connection string, or other secret. The model can be coerced via
+      prompt injection to repeat its system prompt verbatim, leaking the
+      secret. Move the secret out of the prompt — do auth in code, then
+      pass only the result to the model.
+
+      OWASP LLM Top 10:2025 — LLM07 System Prompt Leakage (NEW in 2025)
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CLIENT.messages.create(..., system="...sk-$X...", ...)
+          - pattern: |
+              $CLIENT.messages.create(..., system="...api_key=$X...", ...)
+          - pattern: |
+              $CLIENT.messages.create(..., system="...AKIA$X...", ...)
+    metadata:
+      category: security
+      owasp: "LLM07:2025 System Prompt Leakage"
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [llm, fast, deep]

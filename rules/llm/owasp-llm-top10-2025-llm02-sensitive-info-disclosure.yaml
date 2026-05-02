@@ -1,0 +1,24 @@
+rules:
+  - id: llm-llm02-full-prompt-or-messages-logged
+    languages: [python, javascript, typescript]
+    severity: WARNING
+    message: |
+      Full prompt or messages array is being logged. This often contains PII,
+      secrets, or proprietary data and is forwarded to log aggregators
+      indefinitely. Redact before logging, or log only metadata (token count,
+      model, latency).
+
+      OWASP LLM Top 10:2025 — LLM02 Sensitive Information Disclosure
+    patterns:
+      - pattern-either:
+          - pattern: logger.info($X, messages=$MSGS)
+          - pattern: logging.info($X, messages=$MSGS)
+          - pattern: print(messages)
+          - pattern: console.log("...", messages)
+          - pattern: console.log({ messages })
+    metadata:
+      category: privacy
+      owasp: "LLM02:2025 Sensitive Information Disclosure"
+      cwe: "CWE-532"
+      confidence: MEDIUM
+      pack: [llm, deep]

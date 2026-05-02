@@ -1,0 +1,7 @@
+name: web
+description: Server-side web application rules — OWASP Top 10:2025, API Top 10:2023.
+filters:
+  paths_under:
+    - rules/web/
+exclude:
+  rule_id_globs: []

@@ -1,0 +1,10 @@
+name: sca
+description: |
+  Software composition analysis — lockfile / manifest scanning for known-bad
+  dependency versions.
+filters:
+  paths_under:
+    - rules/sca/
+    - rules/cross-platform/library-dependency-cve-detection.yaml
+exclude:
+  rule_id_globs: []

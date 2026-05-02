@@ -61,3 +61,6 @@ temp/
 # Claude Code
 .claude/
 .claude-code/
+
+# Local docs (generated / scratch)
+docs/

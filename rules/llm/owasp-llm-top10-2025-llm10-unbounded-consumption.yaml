@@ -1,0 +1,22 @@
+rules:
+  - id: llm-llm10-anthropic-create-without-max-tokens-cap
+    languages: [python, javascript, typescript]
+    severity: WARNING
+    message: |
+      anthropic.messages.create / openai.chat.completions.create called
+      without an explicit max_tokens cap. An adversary can drive cost via
+      long-output prompts or trigger DoS by exhausting your rate-limit budget.
+      Set a sane max_tokens for the use case and rate-limit at the gateway.
+
+      OWASP LLM Top 10:2025 — LLM10 Unbounded Consumption
+    patterns:
+      - pattern-either:
+          - pattern: $CLIENT.messages.create(model=$M, messages=$MSGS)
+          - pattern: $CLIENT.messages.create(messages=$MSGS, model=$M)
+      - pattern-not: $CLIENT.messages.create(..., max_tokens=$N, ...)
+    metadata:
+      category: security
+      owasp: "LLM10:2025 Unbounded Consumption"
+      cwe: "CWE-770"
+      confidence: MEDIUM
+      pack: [llm, deep]

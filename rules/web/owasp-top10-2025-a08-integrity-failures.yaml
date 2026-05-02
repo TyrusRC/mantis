@@ -1,0 +1,43 @@
+rules:
+  - id: web-a08-pickle-loads-untrusted
+    languages: [python]
+    severity: ERROR
+    message: |
+      pickle.loads / pickle.load on user-controlled data is RCE-equivalent.
+      Use json or a schema-validated format. If you must use a binary format,
+      use msgpack with strict typing.
+
+      OWASP Top 10:2025 — A08 Software & Data Integrity Failures
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads($X)
+          - pattern: pickle.load($X)
+          - pattern: cPickle.loads($X)
+          - pattern: dill.loads($X)
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a08-yaml-load-unsafe
+    languages: [python]
+    severity: ERROR
+    message: |
+      yaml.load without an explicit safe Loader allows arbitrary Python object
+      construction. Use yaml.safe_load.
+
+      OWASP Top 10:2025 — A08 Software & Data Integrity Failures
+    patterns:
+      - pattern-either:
+          - pattern: yaml.load($X)
+          - pattern: yaml.load($X, Loader=yaml.Loader)
+          - pattern: yaml.load($X, Loader=yaml.UnsafeLoader)
+          - pattern: yaml.load($X, Loader=yaml.FullLoader)
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502"
+      confidence: HIGH
+      pack: [web, fast, deep]

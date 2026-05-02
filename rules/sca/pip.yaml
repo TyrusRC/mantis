@@ -1,0 +1,55 @@
+rules:
+  - id: sca-pip-pyyaml-default-loader-unsafe
+    languages: [generic]
+    severity: WARNING
+    message: |
+      PyYAML < 5.1 — yaml.load defaults to the unsafe Loader, allowing
+      arbitrary Python object construction (RCE) on yaml.load(untrusted).
+      Upgrade to >= 5.1 (which warns) or >= 6.0 (which errors on unsafe load).
+
+      Reference: CVE-2017-18342, CVE-2020-14343
+    paths:
+      include:
+        - "requirements*.txt"
+        - "Pipfile"
+        - "Pipfile.lock"
+        - "pyproject.toml"
+        - "poetry.lock"
+        - "uv.lock"
+    patterns:
+      - pattern-either:
+          - pattern: PyYAML==3.$X
+          - pattern: PyYAML==4.$X
+          - pattern: PyYAML==5.0$X
+          - pattern: pyyaml==3.$X
+          - pattern: pyyaml==4.$X
+          - pattern: pyyaml==5.0$X
+    metadata:
+      category: security
+      cwe: "CWE-502"
+      cve: "CVE-2020-14343"
+      confidence: HIGH
+      pack: [sca, fast, deep, cve]
+
+  - id: sca-pip-requests-old-cve-2018-18074
+    languages: [generic]
+    severity: WARNING
+    message: |
+      requests < 2.20.0 forwarded the Authorization header on cross-origin
+      redirect (CVE-2018-18074). Upgrade to >= 2.20.0.
+    paths:
+      include:
+        - "requirements*.txt"
+        - "Pipfile"
+        - "Pipfile.lock"
+    patterns:
+      - pattern-either:
+          - pattern: requests==2.0.$X
+          - pattern: requests==2.1$X
+          - pattern: requests==2.19.$X
+    metadata:
+      category: security
+      cwe: "CWE-200"
+      cve: "CVE-2018-18074"
+      confidence: HIGH
+      pack: [sca, deep, cve]

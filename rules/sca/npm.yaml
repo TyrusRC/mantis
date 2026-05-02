@@ -1,0 +1,70 @@
+rules:
+  - id: sca-npm-event-stream-compromised
+    languages: [json]
+    severity: ERROR
+    message: |
+      event-stream@3.3.6 was compromised (Nov 2018) and shipped a malicious
+      payload (flatmap-stream) targeting Bitcoin wallet libraries. Pin to a
+      known-good version (>=4.x) or remove the dependency.
+
+      Reference: https://github.com/dominictarr/event-stream/issues/116
+    paths:
+      include:
+        - "package.json"
+        - "package-lock.json"
+        - "npm-shrinkwrap.json"
+    pattern: '"event-stream": "3.3.6"'
+    metadata:
+      category: security
+      cwe: "CWE-1357"
+      cve: "n/a"
+      confidence: HIGH
+      pack: [sca, fast, deep, cve]
+
+  - id: sca-npm-ua-parser-js-malicious
+    languages: [json]
+    severity: ERROR
+    message: |
+      ua-parser-js versions 0.7.29, 0.8.0, 1.0.0 were hijacked and shipped
+      cryptominer / credential-stealer payloads (Oct 2021). Upgrade to
+      0.7.30 / 0.8.1 / 1.0.1 or later.
+
+      Reference: GHSA-pjwm-rvh2-c87w
+    paths:
+      include:
+        - "package.json"
+        - "package-lock.json"
+    patterns:
+      - pattern-either:
+          - pattern: '"ua-parser-js": "0.7.29"'
+          - pattern: '"ua-parser-js": "0.8.0"'
+          - pattern: '"ua-parser-js": "1.0.0"'
+    metadata:
+      category: security
+      cwe: "CWE-506"
+      cve: "GHSA-pjwm-rvh2-c87w"
+      confidence: HIGH
+      pack: [sca, fast, deep, cve]
+
+  - id: sca-npm-lodash-prototype-pollution
+    languages: [json]
+    severity: ERROR
+    message: |
+      lodash < 4.17.21 has a prototype-pollution vulnerability (CVE-2020-8203,
+      CVE-2021-23337). Upgrade to >= 4.17.21.
+    paths:
+      include:
+        - "package.json"
+        - "package-lock.json"
+    patterns:
+      - pattern-either:
+          - pattern: '"lodash": "4.17.20"'
+          - pattern: '"lodash": "4.17.19"'
+          - pattern: '"lodash": "^4.17.20"'
+          - pattern: '"lodash": "^4.17.19"'
+    metadata:
+      category: security
+      cwe: "CWE-1321"
+      cve: "CVE-2021-23337"
+      confidence: HIGH
+      pack: [sca, fast, deep, cve]

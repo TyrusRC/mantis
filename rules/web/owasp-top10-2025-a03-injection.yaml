@@ -1,0 +1,65 @@
+rules:
+  - id: web-a03-sql-string-concat-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      SQL query built by string concatenation or f-string with a variable.
+      Use parameterized queries (cursor.execute(sql, (param,))) or an ORM.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute("..." + $X + "...")
+          - pattern: $CUR.execute(f"...{$X}...")
+          - pattern: $CUR.execute("...%s..." % $X)
+          - pattern: $CUR.execute("...{}".format($X))
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a03-sql-template-literal-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      SQL query built with a template literal containing a variable. Use
+      parameterized queries (db.query(sql, [param])) or an ORM.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: $DB.query(`...${$X}...`)
+          - pattern: $DB.query("..." + $X + "...")
+          - pattern: connection.query(`...${$X}...`)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a03-shell-command-from-user-input
+    languages: [python, javascript, typescript]
+    severity: ERROR
+    message: |
+      Shell command constructed from user input. Use a safe API
+      (subprocess with a list arg, child_process.execFile) and never pass
+      user-controlled strings to a shell.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: os.system($X + ...)
+          - pattern: os.system(f"...{$X}...")
+          - pattern: subprocess.run($X, shell=True, ...)
+          - pattern: subprocess.Popen($X, shell=True, ...)
+          - pattern: child_process.exec($X)
+          - pattern: require("child_process").exec($X)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78"
+      confidence: HIGH
+      pack: [web, fast, deep]

@@ -1,0 +1,6 @@
+name: mobile-ios
+description: iOS-only rules + cross-platform rules that target Swift / Objective-C.
+filters:
+  languages_any: [swift, objc, "objective-c"]
+exclude:
+  rule_id_globs: []

@@ -1,0 +1,78 @@
+rules:
+  - id: sca-gradle-log4j-core-log4shell
+    languages: [generic]
+    severity: ERROR
+    message: |
+      log4j-core in the affected version range is vulnerable to Log4Shell
+      (CVE-2021-44228), a critical RCE via JNDI lookup substitution in log
+      messages. Upgrade to >= 2.17.1 (or 2.12.4 for Java 7, 2.3.2 for Java 6).
+
+      Reference: CVE-2021-44228, CVE-2021-45046, CVE-2021-44832
+    paths:
+      include:
+        - "build.gradle"
+        - "build.gradle.kts"
+        - "*.gradle"
+        - "gradle.lockfile"
+        - "pom.xml"
+    patterns:
+      - pattern-either:
+          - pattern: 'log4j-core:2.0'
+          - pattern: 'log4j-core:2.1'
+          - pattern: 'log4j-core:2.2'
+          - pattern: 'log4j-core:2.3'
+          - pattern: 'log4j-core:2.4'
+          - pattern: 'log4j-core:2.5'
+          - pattern: 'log4j-core:2.6'
+          - pattern: 'log4j-core:2.7'
+          - pattern: 'log4j-core:2.8'
+          - pattern: 'log4j-core:2.9'
+          - pattern: 'log4j-core:2.10'
+          - pattern: 'log4j-core:2.11'
+          - pattern: 'log4j-core:2.12.0'
+          - pattern: 'log4j-core:2.12.1'
+          - pattern: 'log4j-core:2.12.2'
+          - pattern: 'log4j-core:2.12.3'
+          - pattern: 'log4j-core:2.13'
+          - pattern: 'log4j-core:2.14'
+          - pattern: 'log4j-core:2.15'
+          - pattern: 'log4j-core:2.16'
+          - pattern: 'log4j-core:2.17.0'
+    metadata:
+      category: security
+      cwe: "CWE-502"
+      cve: "CVE-2021-44228"
+      cvss_score: 10.0
+      confidence: HIGH
+      pack: [sca, fast, deep, cve]
+
+  - id: sca-gradle-spring-spring4shell
+    languages: [generic]
+    severity: ERROR
+    message: |
+      spring-beans / spring-webmvc in the affected version range is vulnerable
+      to Spring4Shell (CVE-2022-22965), an RCE via DataBinder when running on
+      JDK 9+ with WAR packaging. Upgrade Spring Framework to >= 5.3.18 / 5.2.20.
+
+      Reference: CVE-2022-22965
+    paths:
+      include:
+        - "build.gradle"
+        - "build.gradle.kts"
+        - "*.gradle"
+        - "pom.xml"
+    patterns:
+      - pattern-either:
+          - pattern: 'spring-beans:5.3.17'
+          - pattern: 'spring-beans:5.3.16'
+          - pattern: 'spring-webmvc:5.3.17'
+          - pattern: 'spring-webmvc:5.3.16'
+          - pattern: 'spring-beans:5.2.19'
+          - pattern: 'spring-beans:5.2.18'
+    metadata:
+      category: security
+      cwe: "CWE-94"
+      cve: "CVE-2022-22965"
+      cvss_score: 9.8
+      confidence: HIGH
+      pack: [sca, fast, deep, cve]

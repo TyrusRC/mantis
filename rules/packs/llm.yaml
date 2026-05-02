@@ -1,0 +1,9 @@
+name: llm
+description: |
+  OWASP LLM Top 10:2025 rules — prompt injection, system prompt leakage,
+  vector / embedding weaknesses, unbounded consumption, and friends.
+filters:
+  paths_under:
+    - rules/llm/
+exclude:
+  rule_id_globs: []

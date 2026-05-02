@@ -33,11 +33,11 @@ rules:
   - id: mastg-ios-http-url-string
     patterns:
       - pattern-either:
-          - pattern: URL(string: "http://...")
-          - pattern: NSURL(string: "http://...")
-          - pattern: URLRequest(url: URL(string: "http://...")!)
-      - pattern-not: URL(string: "http://localhost...")
-      - pattern-not: URL(string: "http://127.0.0.1...")
+          - pattern: 'URL(string: "http://...")'
+          - pattern: 'NSURL(string: "http://...")'
+          - pattern: 'URLRequest(url: URL(string: "http://...")!)'
+      - pattern-not: 'URL(string: "http://localhost...")'
+      - pattern-not: 'URL(string: "http://127.0.0.1...")'
     message: |
       Cleartext HTTP URL detected (MASVS-NETWORK).
       Transmitting data over HTTP exposes it to interception and tampering.

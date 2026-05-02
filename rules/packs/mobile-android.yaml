@@ -1,0 +1,7 @@
+name: mobile-android
+description: Android-only rules + cross-platform rules that target Java / Kotlin.
+filters:
+  languages_any: [java, kotlin, gradle, xml]
+exclude:
+  paths_under:
+    - rules/ios/

@@ -1,0 +1,62 @@
+rules:
+  - id: web-a10-ssrf-requests-with-user-url
+    languages: [python]
+    severity: ERROR
+    message: |
+      HTTP request library called with a URL derived from user input. Validate
+      against an allow-list of hosts, or proxy through a SSRF-safe egress.
+
+      OWASP Top 10:2025 — A10 Server-Side Request Forgery
+    patterns:
+      - pattern-either:
+          - pattern: requests.get($URL, ...)
+          - pattern: requests.post($URL, ...)
+          - pattern: requests.request($M, $URL, ...)
+          - pattern: urllib.request.urlopen($URL, ...)
+          - pattern: httpx.get($URL, ...)
+      - metavariable-pattern:
+          metavariable: $URL
+          patterns:
+            - pattern-either:
+                - pattern: request.args.get(...)
+                - pattern: request.form.get(...)
+                - pattern: request.json[...]
+                - pattern: request.GET.get(...)
+                - pattern: request.POST.get(...)
+                - pattern: $REQ.url
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a10-ssrf-fetch-with-user-url-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      fetch / axios called with a URL derived from req.body / req.query /
+      req.params. Validate against an allow-list of hosts.
+
+      OWASP Top 10:2025 — A10 Server-Side Request Forgery
+    patterns:
+      - pattern-either:
+          - pattern: fetch($URL, ...)
+          - pattern: axios.get($URL, ...)
+          - pattern: axios($URL, ...)
+          - pattern: http.get($URL, ...)
+      - metavariable-pattern:
+          metavariable: $URL
+          patterns:
+            - pattern-either:
+                - pattern: req.body.$X
+                - pattern: req.query.$X
+                - pattern: req.params.$X
+                - pattern: req.body[$X]
+                - pattern: req.query[$X]
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918"
+      confidence: HIGH
+      pack: [web, fast, deep]

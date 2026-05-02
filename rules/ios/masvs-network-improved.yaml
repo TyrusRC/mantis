@@ -16,40 +16,40 @@ rules:
   - id: mastg-ios-http-url-string-improved
     patterns:
       - pattern-either:
-          - pattern: URL(string: "http://...")
-          - pattern: NSURL(string: "http://...")
-          - pattern: URLRequest(url: URL(string: "http://...")!)
+          - pattern: 'URL(string: "http://...")'
+          - pattern: 'NSURL(string: "http://...")'
+          - pattern: 'URLRequest(url: URL(string: "http://...")!)'
 
       # Current exclusions (localhost)
-      - pattern-not: URL(string: "http://localhost...")
-      - pattern-not: URL(string: "http://127.0.0.1...")
+      - pattern-not: 'URL(string: "http://localhost...")'
+      - pattern-not: 'URL(string: "http://127.0.0.1...")'
 
       # ========== EXCLUDE LOCAL NETWORK (RFC 1918) ==========
-      - pattern-not: URL(string: "http://10....")
-      - pattern-not: URL(string: "http://192.168....")
-      - pattern-not: URL(string: "http://172.16....")
-      - pattern-not: URL(string: "http://172.17....")
-      - pattern-not: URL(string: "http://172.18....")
-      - pattern-not: URL(string: "http://172.19....")
-      - pattern-not: URL(string: "http://172.20....")
-      - pattern-not: URL(string: "http://172.21....")
-      - pattern-not: URL(string: "http://172.22....")
-      - pattern-not: URL(string: "http://172.23....")
-      - pattern-not: URL(string: "http://172.24....")
-      - pattern-not: URL(string: "http://172.25....")
-      - pattern-not: URL(string: "http://172.26....")
-      - pattern-not: URL(string: "http://172.27....")
-      - pattern-not: URL(string: "http://172.28....")
-      - pattern-not: URL(string: "http://172.29....")
-      - pattern-not: URL(string: "http://172.30....")
-      - pattern-not: URL(string: "http://172.31....")
+      - pattern-not: 'URL(string: "http://10....")'
+      - pattern-not: 'URL(string: "http://192.168....")'
+      - pattern-not: 'URL(string: "http://172.16....")'
+      - pattern-not: 'URL(string: "http://172.17....")'
+      - pattern-not: 'URL(string: "http://172.18....")'
+      - pattern-not: 'URL(string: "http://172.19....")'
+      - pattern-not: 'URL(string: "http://172.20....")'
+      - pattern-not: 'URL(string: "http://172.21....")'
+      - pattern-not: 'URL(string: "http://172.22....")'
+      - pattern-not: 'URL(string: "http://172.23....")'
+      - pattern-not: 'URL(string: "http://172.24....")'
+      - pattern-not: 'URL(string: "http://172.25....")'
+      - pattern-not: 'URL(string: "http://172.26....")'
+      - pattern-not: 'URL(string: "http://172.27....")'
+      - pattern-not: 'URL(string: "http://172.28....")'
+      - pattern-not: 'URL(string: "http://172.29....")'
+      - pattern-not: 'URL(string: "http://172.30....")'
+      - pattern-not: 'URL(string: "http://172.31....")'
 
       # ========== EXCLUDE TEST DOMAINS ==========
-      - pattern-not: URL(string: "http://example.com...")
-      - pattern-not: URL(string: "http://example.org...")
-      - pattern-not: URL(string: "http://test...")
-      - pattern-not: URL(string: "http://mock...")
-      - pattern-not: URL(string: "http://httpbin.org...")
+      - pattern-not: 'URL(string: "http://example.com...")'
+      - pattern-not: 'URL(string: "http://example.org...")'
+      - pattern-not: 'URL(string: "http://test...")'
+      - pattern-not: 'URL(string: "http://mock...")'
+      - pattern-not: 'URL(string: "http://httpbin.org...")'
 
       # ========== EXCLUDE TEST CODE ==========
       - pattern-not-inside: |
