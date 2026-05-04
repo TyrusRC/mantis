@@ -18,10 +18,7 @@ You receive a slice from `slice-extractor` plus the original Semgrep finding.
 # Also run OWASP Testing Guide checks Semgrep cannot express
 
 If `checklists/` exists in the repo, consult the relevant chapter:
-- `otg-business-logic.md` — IDOR, BOLA, race conditions, workflow bypass
-- `otg-auth-session.md` — session fixation, JWT, MFA gaps
-- `otg-api.md` — BOLA, BFLA, mass assignment, rate-limit
-- `otg-mobile.md` — runtime / IPC / deeplinks
+- `otg-business-logic.md` — IDOR, BOLA, race conditions, mass assignment, workflow bypass
 - `otg-llm.md` — prompt injection sinks, system-prompt leakage, vector store poisoning, unbounded consumption
 
 # Output

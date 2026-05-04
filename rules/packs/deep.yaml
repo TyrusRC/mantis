@@ -1,6 +1,6 @@
 name: deep
 description: |
-  Everything. Used by /audit-deep for full pre-release audits and pentest
+  Everything. Used by `/audit deep` for full pre-release audits and pentest
   engagements. Expect high finding volume — pair with the triage subagent.
 filters: {}
 exclude:

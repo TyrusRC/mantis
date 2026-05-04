@@ -16,7 +16,7 @@ Alpha. Mobile rules are mature (carried over from the prior version of this repo
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.8+ with PyYAML (`pip install pyyaml`)
 - [Semgrep](https://semgrep.dev/) (`pipx install semgrep`)
 - [Claude Code](https://docs.claude.com/claude-code) for the slash command and subagents
 
@@ -76,6 +76,8 @@ Output: `./security-audit-report.md`. With `--fix`, patches are applied in a sib
 8. Fix             patch in worktree, re-run Semgrep        (only with --fix)
 9. Report          write ./security-audit-report.md
 ```
+
+Ten stages, indexed 0–9. Stages 6–8 are conditionally skipped based on mode and flags.
 
 Triage and slicing run in subagents with isolated context. The main thread sees verdicts only.
 

@@ -1,8 +1,8 @@
 name: bugbounty
 description: |
-  Bug-bounty oriented selection — high-severity, high-confidence rules plus
-  every CVE-linked rule. Pair with the bugbounty mode of /audit which gates on
-  reachability.
+  Bug-bounty oriented selection — ERROR-severity rules at HIGH or MEDIUM
+  confidence. Pair with `/audit bugbounty`, which gates findings on entrypoint
+  reachability. For CVE-linked rules specifically, run `/audit cve` alongside.
 filters:
   severity: [ERROR]
   confidence: [HIGH, MEDIUM]

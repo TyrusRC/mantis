@@ -12,7 +12,7 @@ Parse arguments in this order:
 1. **Path** — first positional arg. If absent, use the current working directory. Must be a directory inside the local filesystem; reject anything that looks like a URL or remote host.
 2. **Mode** — second positional arg, one of:
    - `quick` — ERROR-severity, HIGH-confidence rules only. Triage only, no slicing or deep review. ~30 seconds on a normal repo.
-   - `deep` — everything. Slow and expensive — the full 8-stage pipeline.
+   - `deep` — everything. Slow and expensive — every pipeline stage runs.
    - `bugbounty` — ERROR-severity, gates on **entrypoint reachability**, leads with PoC + CVSS. Exploit-first reporting.
    - `cve` — SCA / dependency lockfile scan only. No source-code SAST.
    - `mobile` — mobile rule packs only (iOS / Android / Flutter / RN).
@@ -26,12 +26,12 @@ Parse arguments in this order:
 
 # Pipeline
 
-Dispatch the `sast-orchestrator` subagent. Pass it the parsed `path`, `mode`, and flags. The orchestrator runs the 8-stage pipeline, enforces token budgets, and writes the report.
+Dispatch the `sast-orchestrator` subagent. Pass it the parsed `path`, `mode`, and flags. The orchestrator runs the pipeline below, enforces token budgets, and writes the report.
 
 ```
 0. Inventory       (always)  — stack detection, lockfiles, entrypoints, pack pick
 1. Static wide     (always)  — Semgrep with the chosen pack
-2. SCA             (always)  — lockfile dep-CVE pass
+2. SCA             (skipped if mode=web|llm and no lockfile detected) — lockfile dep-CVE pass
 3. Secrets         (always)  — secrets pack
 4. Deobf gate      (always)  — minified/packed files routed to deobfuscator
 5. Triage (cheap)  (always)  — Haiku per finding, kill FPs

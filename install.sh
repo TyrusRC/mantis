@@ -25,6 +25,12 @@ if [[ ! -e "$TARGET/.claude/sast-rules" ]]; then
   echo "linked rules -> $TARGET/.claude/sast-rules"
 fi
 
+# Link checklists (deep-reviewer consults these for findings Semgrep can't pattern-match)
+if [[ ! -e "$TARGET/.claude/sast-checklists" ]]; then
+  ln -s "$SRC/checklists" "$TARGET/.claude/sast-checklists"
+  echo "linked checklists -> $TARGET/.claude/sast-checklists"
+fi
+
 # Build / refresh the rule manifest
 if command -v python3 >/dev/null 2>&1; then
   echo "building rule manifest..."
