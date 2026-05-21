@@ -36,7 +36,7 @@ rules:
       - https://nvd.nist.gov/vuln/detail/CVE-2018-20200
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -72,7 +72,7 @@ rules:
       - https://github.com/square/retrofit/blob/master/CHANGELOG.md
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -107,7 +107,7 @@ rules:
       - https://nvd.nist.gov/vuln/detail/CVE-2022-25647
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-502: Deserialization of Untrusted Data"
@@ -141,44 +141,13 @@ rules:
       - https://github.com/bumptech/glide/releases
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
       confidence: HIGH
 
-  - id: android-dep-firebase-bom-outdated
-    patterns:
-      - pattern-either:
-          - pattern: |
-              implementation platform('com.google.firebase:firebase-bom:$VERSION')
-          - pattern: |
-              implementation platform("com.google.firebase:firebase-bom:$VERSION")
-      - metavariable-comparison:
-          metavariable: $VERSION
-          comparison: $VERSION < 32.0.0
-    message: |
-      Outdated Firebase BOM version (OWASP M2: Inadequate Supply Chain Security).
-
-      Risk: MEDIUM
-      Impact: Firebase BOM versions < 32.0.0 may include outdated libraries with
-      known vulnerabilities and security patches.
-
-      Remediation:
-      - Update to latest Firebase BOM version
-      - implementation platform('com.google.firebase:firebase-bom:32.8.0')
-
-      References:
-      - https://firebase.google.com/support/release-notes/android
-    severity: WARNING
-    languages:
-      - gradle
-    metadata:
-      category: security
-      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
-      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
-      confidence: MEDIUM
 
   - id: android-dep-androidx-outdated-core
     patterns:
@@ -205,7 +174,7 @@ rules:
       - https://developer.android.com/jetpack/androidx/releases/core
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -238,7 +207,7 @@ rules:
       - https://developers.google.com/android/guides/releases
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -275,7 +244,7 @@ rules:
       - https://developer.android.com/studio/build/dependencies
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -309,7 +278,7 @@ rules:
       - https://developer.android.com/jetpack/androidx/migrate
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -341,7 +310,7 @@ rules:
       - https://developer.android.com/about/versions/marshmallow/android-6.0-changes#behavior-apache-http-client
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -378,7 +347,7 @@ rules:
       - https://developer.android.com/studio/build/dependencies#remote-repositories
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -413,7 +382,7 @@ rules:
       - https://docs.gradle.org/current/userguide/dependency_management.html#sec:declaring-dependency-version
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -446,7 +415,7 @@ rules:
       - https://docs.gradle.org/current/userguide/dependency_locking.html
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -476,7 +445,7 @@ rules:
       - https://docs.gradle.org/current/userguide/dependency_verification.html
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -517,7 +486,7 @@ rules:
       - https://blog.gradle.org/gradle-script-kotlin-security
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -564,7 +533,7 @@ rules:
       }
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -601,7 +570,7 @@ rules:
       - Check for suspicious permissions or behavior
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -630,7 +599,7 @@ rules:
       - https://developer.android.com/studio/build/dependencies
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -668,7 +637,7 @@ rules:
       - https://logging.apache.org/log4j/2.x/security.html
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-502: Deserialization of Untrusted Data"
@@ -708,7 +677,7 @@ rules:
       - https://nvd.nist.gov/vuln/detail/CVE-2020-36518
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-502: Deserialization of Untrusted Data"
@@ -741,7 +710,7 @@ rules:
       - https://kotlinlang.org/docs/releases.html
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -777,7 +746,7 @@ rules:
       - https://www.mongodb.com/docs/realm/sdk/kotlin/
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -812,7 +781,7 @@ rules:
       - https://github.com/facebook/facebook-android-sdk/releases
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -843,7 +812,7 @@ rules:
       - https://developers.google.com/admob/android/rel-notes
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -877,7 +846,7 @@ rules:
       - https://nvd.nist.gov/vuln/detail/CVE-2016-2402
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-295: Improper Certificate Validation"
@@ -913,7 +882,7 @@ rules:
       - https://nvd.nist.gov/vuln/detail/CVE-2018-1000613
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -945,7 +914,7 @@ rules:
       - https://github.com/square/moshi
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -978,7 +947,7 @@ rules:
       - https://github.com/square/picasso
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -1010,7 +979,7 @@ rules:
       - https://github.com/google/conscrypt
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -1048,7 +1017,7 @@ rules:
       - https://developer.android.com/jetpack/androidx/releases/room
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-89: SQL Injection"
@@ -1080,7 +1049,7 @@ rules:
       - https://developer.android.com/jetpack/androidx/releases/work
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -1114,7 +1083,7 @@ rules:
       - https://developer.android.com/guide/topics/media/media3
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -1146,7 +1115,7 @@ rules:
       - https://insert-koin.io
     severity: INFO
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -1178,7 +1147,7 @@ rules:
       - https://github.com/google/dagger/releases
     severity: INFO
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -1215,7 +1184,7 @@ rules:
       - https://github.com/ReactiveX/RxJava
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-209: Generation of Error Message Containing Sensitive Information"
@@ -1250,7 +1219,7 @@ rules:
       - https://github.com/airbnb/lottie-android
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -1293,7 +1262,7 @@ rules:
       - https://owasp.org/www-community/attacks/Typosquatting
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1021: Improper Restriction of Rendered UI Layers or Frames"

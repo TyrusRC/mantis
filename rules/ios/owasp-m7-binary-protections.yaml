@@ -90,7 +90,6 @@ rules:
     severity: INFO
     languages:
       - swift
-      - objc
     metadata:
       category: security
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
@@ -205,7 +204,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-532: Insertion of Sensitive Information into Log File"
@@ -348,7 +346,7 @@ rules:
       Enable PIE in Xcode build settings (enabled by default in modern Xcode).
     severity: INFO
     languages:
-      - txt
+      - generic
     paths:
       include:
         - "**/project.pbxproj"
@@ -367,7 +365,7 @@ rules:
       Remove -fno-stack-protector flag; enable stack protection.
     severity: WARNING
     languages:
-      - txt
+      - generic
     paths:
       include:
         - "**/project.pbxproj"
@@ -389,7 +387,7 @@ rules:
       Consider disabling Bitcode for apps with sensitive IP.
     severity: INFO
     languages:
-      - txt
+      - generic
     paths:
       include:
         - "**/project.pbxproj"
@@ -408,7 +406,7 @@ rules:
       Enable STRIP_INSTALLED_PRODUCT for Release builds.
     severity: WARNING
     languages:
-      - txt
+      - generic
     paths:
       include:
         - "**/project.pbxproj"

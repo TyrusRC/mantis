@@ -3,6 +3,7 @@ name: deobfuscator
 description: Handle minified, packed, encoded, or otherwise obfuscated source files before they enter the audit pipeline. Use when a file fails the deobf gate heuristics (extreme line length, low entropy in identifiers, packed bundles, base64 blobs, native blobs).
 tools: Bash, Read, Write
 model: sonnet
+tier: mid
 ---
 
 You receive a file path flagged as obfuscated by the orchestrator.

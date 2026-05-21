@@ -1,0 +1,163 @@
+rules:
+  - id: java-a03-sql-injection-statement-concat
+    languages: [java]
+    severity: ERROR
+    message: |
+      SQL query built by string concatenation and executed via a JDBC Statement.
+      Use PreparedStatement with positional placeholders (?) and setString/setInt;
+      the database engine then escapes parameters safely.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: $STMT.executeQuery($Q + ...)
+          - pattern: $STMT.executeQuery("..." + $Q + ...)
+          - pattern: $STMT.execute($Q + ...)
+          - pattern: $STMT.executeUpdate($Q + ...)
+          - pattern: $STMT.addBatch($Q + ...)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: java-a03-sql-injection-format-string
+    languages: [java]
+    severity: ERROR
+    message: |
+      SQL query assembled via String.format / String.formatted with a user-controlled
+      value. The formatted string is then executed against a JDBC Statement.
+      Use parameterized PreparedStatement instead.
+    patterns:
+      - pattern-either:
+          - pattern: $STMT.executeQuery(String.format(...))
+          - pattern: $STMT.execute(String.format(...))
+          - pattern: $STMT.executeUpdate(String.format(...))
+          - pattern: $STMT.executeQuery($Q.formatted(...))
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: java-a03-command-injection-runtime-exec
+    languages: [java]
+    severity: ERROR
+    message: |
+      Runtime.exec or ProcessBuilder constructed from concatenated user input.
+      ProcessBuilder with a list-form argument array AND no shell interpretation
+      is the safe pattern; never splice user input into a shell command string.
+    patterns:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec($X + ...)
+          - pattern: Runtime.getRuntime().exec("..." + $Q + ...)
+          - pattern: new ProcessBuilder($X + ...).start()
+          - pattern: new ProcessBuilder("sh", "-c", $X + ...).start()
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: java-a03-xxe-document-builder
+    languages: [java]
+    severity: ERROR
+    message: |
+      DocumentBuilderFactory constructed without disabling external entities.
+      An attacker with control over the XML input can read local files (XXE) or
+      cause server-side request forgery. Always set:
+        f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      or disable XInclude / external-general-entities and external-parameter-entities.
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  DocumentBuilderFactory $F = DocumentBuilderFactory.newInstance();
+                  ...
+                  $F.newDocumentBuilder().parse(...);
+              - pattern-not-inside: |
+                  $F.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                  ...
+          - patterns:
+              - pattern: |
+                  SAXParserFactory $F = SAXParserFactory.newInstance();
+                  ...
+                  $F.newSAXParser().parse(...);
+              - pattern-not-inside: |
+                  $F.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                  ...
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-611: XML External Entity Reference"
+      confidence: MEDIUM
+      pack: [web, fast, deep]
+
+  - id: java-a10-ssrf-url-from-user-input
+    languages: [java]
+    severity: ERROR
+    message: |
+      Outbound HTTP request to a URL derived from user input. Likely SSRF.
+      Validate the host against an explicit allowlist, block private IP ranges
+      (RFC1918 + link-local + 169.254.169.254 metadata endpoint), and disable
+      redirects unless required.
+
+      OWASP Top 10:2025 — A10 Server-Side Request Forgery
+    patterns:
+      - pattern-either:
+          - pattern: new URL($X + ...).openConnection()
+          - pattern: new URL($X + ...).openStream()
+          - pattern: HttpClient.newHttpClient().send(HttpRequest.newBuilder().uri(URI.create($X + ...)).build(), ...)
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      confidence: MEDIUM
+      pack: [web, fast, deep]
+
+  - id: java-a01-path-traversal-file-concat
+    languages: [java]
+    severity: ERROR
+    message: |
+      File path constructed by concatenating user input. Without normalisation
+      and base-path containment, an attacker can supply "../../etc/passwd" or
+      similar to read arbitrary files. Use Paths.resolve + Path.normalize and
+      reject the request if the normalised path is not under the intended root.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern-either:
+          - pattern: new File($BASE + $X)
+          - pattern: new File($BASE, $X)
+          - pattern: Paths.get($BASE + $X)
+          - pattern: new FileInputStream($BASE + $X)
+          - pattern: new FileOutputStream($BASE + $X)
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-22: Path Traversal"
+      confidence: MEDIUM
+      pack: [web, fast, deep]
+
+  - id: java-a02-weak-crypto-md5
+    languages: [java]
+    severity: WARNING
+    message: |
+      MessageDigest.getInstance("MD5") or "SHA-1" — these are not collision-resistant
+      and unsuitable for password hashing, signatures, or integrity checks where
+      adversarial inputs are possible. Use SHA-256 or stronger; for passwords use
+      Argon2id, scrypt, or bcrypt.
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: MessageDigest.getInstance("SHA-1")
+          - pattern: MessageDigest.getInstance("SHA1")
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      pack: [web, fast, deep]

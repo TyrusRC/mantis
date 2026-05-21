@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mantis-sast"
+version = "0.1.0"
+description = "Hybrid SAST + LLM toolkit for local code-security audits."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "mantis contributors" }]
+keywords = ["sast", "security", "audit", "llm", "opengrep", "semgrep", "vulnerability"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Security",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "litellm>=1.50",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+tree-sitter = [
+    "tree-sitter>=0.21",
+    "tree-sitter-language-pack>=0.1",
+]
+
+[project.scripts]
+mantis = "mantis.cli:main"
+
+[tool.setuptools]
+packages = ["mantis"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -4,64 +4,7 @@ rules:
 
   # ============ BIOMETRIC AUTHENTICATION ============
 
-  - id: owasp-m3-biometric-event-based-auth
-    patterns:
-      - pattern-either:
-          - pattern: |
-              override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                ...
-              }
-          - pattern: |
-              public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                ...
-              }
-      - pattern-not-inside: |
-          override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-            val cipher = result.cryptoObject?.cipher
-            ...
-          }
-      - pattern-not-inside: |
-          result.getCryptoObject()
-    message: |
-      Event-based biometric authentication without cryptography (OWASP M3: Insecure Authentication/Authorization).
-      70% of apps with biometric auth can be bypassed. Use BiometricPrompt.CryptoObject
-      and encrypt data with biometric-protected Keystore keys, not just event callbacks.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-287: Improper Authentication"
-      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
-      confidence: HIGH
 
-  - id: owasp-m3-biometric-no-crypto-object
-    patterns:
-      - pattern-either:
-          - pattern: |
-              BiometricPrompt.Builder($CONTEXT)
-                ...
-                .build()
-          - pattern: |
-              BiometricPrompt($EXECUTOR, $CALLBACK)
-      - pattern-not-inside: |
-          $PROMPT.authenticate($PROMPT_INFO, BiometricPrompt.CryptoObject($CIPHER))
-    message: |
-      BiometricPrompt without CryptoObject (OWASP M3: Insecure Authentication/Authorization).
-      Biometric authentication should use cryptographic operations with Keystore-protected keys.
-      Implement BiometricPrompt.CryptoObject for secure authentication.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-287: Improper Authentication"
-      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
-      confidence: HIGH
-
-  # ============ JWT TOKEN VALIDATION ============
 
   - id: owasp-m3-jwt-no-signature-verification
     patterns:
@@ -83,27 +26,6 @@ rules:
       owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
       confidence: HIGH
 
-  - id: owasp-m3-jwt-none-algorithm
-    patterns:
-      - pattern-either:
-          - pattern: Algorithm.none()
-          - pattern: JWT.require(Algorithm.none())
-          - pattern: |
-              "alg": "none"
-    message: |
-      JWT 'none' algorithm used (OWASP M3: Insecure Authentication/Authorization).
-      The 'none' algorithm allows unsigned tokens that bypass verification.
-      Use secure algorithms like RS256, ES256, or HS256.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-      - json
-    metadata:
-      category: security
-      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
-      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
-      confidence: HIGH
 
   - id: owasp-m3-jwt-hardcoded-secret
     patterns:
@@ -273,34 +195,6 @@ rules:
       owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
       confidence: MEDIUM
 
-  - id: owasp-m3-api-call-no-auth-header
-    patterns:
-      - pattern-either:
-          - pattern: |
-              $CLIENT.newCall($REQUEST).execute()
-          - pattern: |
-              Retrofit.Builder()
-                ...
-                .build()
-      - pattern-not-inside: |
-          $REQUEST.addHeader("Authorization", ...)
-      - pattern-not-inside: |
-          .addInterceptor($AUTH_INTERCEPTOR)
-    message: |
-      API call without authentication header (OWASP M3: Insecure Authentication/Authorization).
-      Backend requests without authentication allow unauthorized access.
-      Add Authorization header or use OkHttp interceptor for authentication.
-    severity: WARNING
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-306: Missing Authentication for Critical Function"
-      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
-      confidence: LOW
-
-  # ============ PASSWORD & CREDENTIALS ============
 
   - id: owasp-m3-weak-password-policy
     patterns:

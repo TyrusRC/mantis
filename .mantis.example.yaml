@@ -1,0 +1,56 @@
+# mantis — standalone CLI config (example).
+# Copy to .mantis.yaml in your target project. Edit model names to taste.
+#
+# Model strings are passed verbatim to litellm. No model names are
+# hardcoded anywhere in mantis itself — you choose the provider and
+# the exact model per tier (fast / mid / deep).
+#
+# API keys are read from the provider's standard env var
+# (ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY).
+# Ollama needs no key — set api_base instead.
+#
+# Uncomment ONE of the blocks below.
+
+# --- Anthropic ---
+# provider: anthropic
+# models:
+#   fast: claude-haiku-4-5
+#   mid:  claude-sonnet-4-6
+#   deep: claude-opus-4-7
+
+# --- Google Gemini (free tier available at aistudio.google.com) ---
+provider: google
+models:
+  fast: gemini/gemini-2.5-flash-lite
+  mid:  gemini/gemini-2.5-flash
+  deep: gemini/gemini-2.5-pro
+
+# --- OpenAI ---
+# provider: openai
+# models:
+#   fast: gpt-4o-mini
+#   mid:  gpt-4o
+#   deep: gpt-4o
+
+# --- OpenRouter (one key, many models incl. free DeepSeek / Llama variants) ---
+# provider: openrouter
+# models:
+#   fast: openrouter/anthropic/claude-haiku-4-5
+#   mid:  openrouter/anthropic/claude-sonnet-4-6
+#   deep: openrouter/anthropic/claude-opus-4-7
+
+# --- Ollama (self-hosted; no API key) ---
+# provider: ollama
+# models:
+#   fast: ollama/qwen2.5-coder:7b
+#   mid:  ollama/qwen2.5-coder:14b
+#   deep: ollama/qwen2.5-coder:32b
+# api_base: http://localhost:11434
+
+# Budget caps (apply to every provider).
+budget:
+  max_findings:   200
+  max_deep_calls: 50
+
+# SAST binary preference. `auto` tries opengrep, then semgrep.
+sast_bin: auto

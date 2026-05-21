@@ -53,26 +53,6 @@ rules:
       masvs: "MASVS-NETWORK-1"
       confidence: HIGH
 
-  - id: mastg-ios-http-url-objc
-    patterns:
-      - pattern-either:
-          - pattern: '[NSURL URLWithString:@"http://..."]'
-          - pattern: '[[NSURL alloc] initWithString:@"http://..."]'
-      - pattern-not: '[NSURL URLWithString:@"http://localhost..."]'
-      - pattern-not: '[NSURL URLWithString:@"http://127.0.0.1..."]'
-    message: |
-      Cleartext HTTP URL detected (MASVS-NETWORK).
-      Transmitting data over HTTP exposes it to interception and tampering.
-      Use HTTPS for all network communications.
-    severity: ERROR
-    languages:
-      - objc
-    metadata:
-      category: security
-      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
-      mastg-test: "MASTG-TEST-0065"
-      masvs: "MASVS-NETWORK-1"
-      confidence: HIGH
 
   - id: mastg-ios-disable-certificate-validation
     patterns:

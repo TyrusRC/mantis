@@ -701,7 +701,7 @@ rules:
       Reference: Android Code Obfuscation
     severity: WARNING
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/android/app/build.gradle"
@@ -907,75 +907,3 @@ rules:
   # SECTION 7: SCREENSHOT & SCREEN RECORDING PROTECTION
   # ============================================================================
 
-  - id: flutter-m7-screenshot-protection-missing
-    patterns:
-      - pattern: |
-          class $SCREEN extends StatefulWidget {
-            ...
-          }
-      - metavariable-regex:
-          metavariable: $SCREEN
-          regex: (Payment|Checkout|Card|Banking|Account|Transaction|Wallet).*Screen
-      - pattern-not-inside: |
-          FlutterWindowManager.addFlags
-    message: |
-      Screenshot protection missing on sensitive screen (OWASP M7).
-
-      RECOMMENDATION: Banking/payment screens should prevent screenshots.
-
-      IMPLEMENTATION:
-      ```dart
-      import 'package:flutter_windowmanager/flutter_windowmanager.dart';
-      import 'dart:io';
-
-      class PaymentScreen extends StatefulWidget {
-        @override
-        _PaymentScreenState createState() => _PaymentScreenState();
-      }
-
-      class _PaymentScreenState extends State<PaymentScreen> {
-        @override
-        void initState() {
-          super.initState();
-          _enableScreenshotProtection();
-        }
-
-        Future<void> _enableScreenshotProtection() async {
-          if (Platform.isAndroid) {
-            await FlutterWindowManager.addFlags(
-              FlutterWindowManager.FLAG_SECURE
-            );
-          }
-          // iOS: No direct API, use app switcher blur instead
-        }
-
-        @override
-        void dispose() {
-          _disableScreenshotProtection();
-          super.dispose();
-        }
-
-        Future<void> _disableScreenshotProtection() async {
-          if (Platform.isAndroid) {
-            await FlutterWindowManager.clearFlags(
-              FlutterWindowManager.FLAG_SECURE
-            );
-          }
-        }
-
-        @override
-        Widget build(BuildContext context) {
-          return Scaffold(...);
-        }
-      }
-      ```
-
-      Reference: OWASP Mobile Screen Capture Prevention
-    severity: INFO
-    languages:
-      - dart
-    metadata:
-      category: security
-      owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      confidence: LOW
-      false_positive_likelihood: MEDIUM

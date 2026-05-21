@@ -76,7 +76,7 @@ rules:
       Reference: OWASP M8, MASVS-RESILIENCE-2, CWE-489
     severity: ERROR
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -180,7 +180,7 @@ rules:
       Reference: OWASP M8, CWE-798, Android Signing Best Practices
     severity: ERROR
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -295,7 +295,7 @@ rules:
       Reference: OWASP M8, MASVS-STORAGE-1, CWE-798
     severity: ERROR
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -415,7 +415,7 @@ rules:
       Reference: OWASP M7, M8, MASVS-RESILIENCE-4
     severity: WARNING
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -518,7 +518,7 @@ rules:
       Reference: OWASP M2, M8, Gradle Security, CWE-494
     severity: ERROR
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -632,7 +632,7 @@ rules:
       Reference: OWASP M2, M8, Gradle Dependency Management
     severity: WARNING
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"

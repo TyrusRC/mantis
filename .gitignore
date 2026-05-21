@@ -64,3 +64,10 @@ temp/
 
 # Local docs (generated / scratch)
 docs/
+
+# Local secrets and per-machine config — never commit
+.env
+.env.*
+!.env.example
+.mantis.yaml
+!.mantis.example.yaml

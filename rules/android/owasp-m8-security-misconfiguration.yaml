@@ -4,38 +4,6 @@ rules:
 
   # ============ DEEP LINK VULNERABILITIES ============
 
-  - id: owasp-m8-deeplink-no-validation
-    patterns:
-      - pattern-either:
-          - pattern: |
-              override fun onCreate(savedInstanceState: Bundle?) {
-                ...
-                val data: Uri? = intent?.data
-                ...
-              }
-          - pattern: |
-              public void onCreate(Bundle savedInstanceState) {
-                ...
-                Uri data = getIntent().getData();
-                ...
-              }
-      - pattern-not-inside: |
-          if (data?.scheme == "https" && data?.host == "yourdomain.com") {
-            ...
-          }
-    message: |
-      Deep link without validation (OWASP M8: Security Misconfiguration).
-      Unvalidated deep links enable intent redirection, data theft, and phishing.
-      Validate scheme, host, and parameters before processing deep link data.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-601: URL Redirection to Untrusted Site"
-      owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: HIGH
 
   - id: owasp-m8-custom-scheme-deeplink
     patterns:
@@ -68,30 +36,6 @@ rules:
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: HIGH
 
-  - id: owasp-m8-deeplink-intent-redirection
-    patterns:
-      - pattern-either:
-          - pattern: |
-              val intent = Intent.parseUri($URI, Intent.URI_INTENT_SCHEME)
-              startActivity(intent)
-          - pattern: |
-              Intent intent = Intent.parseUri($URI, Intent.URI_INTENT_SCHEME);
-              startActivity(intent);
-    message: |
-      Intent redirection via deep link (OWASP M8: Security Misconfiguration).
-      Intent.parseUri() with untrusted input allows attackers to launch arbitrary activities.
-      Validate URI source and use explicit intents instead.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-601: URL Redirection to Untrusted Site"
-      owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: HIGH
-
-  # ============ PERMISSION MISCONFIGURATIONS ============
 
   - id: owasp-m8-permission-any
     patterns:
@@ -509,56 +453,4 @@ rules:
 
   # ============ MASTG-TEST-0035: TESTING OVERLAY ATTACKS ============
 
-  - id: mastg-test-0035-overlay-attack-vulnerable
-    patterns:
-      - pattern-either:
-          - pattern: |
-              <activity
-                ...
-              />
-      - pattern-not-inside: |
-          setFilterTouchesWhenObscured(true)
-      - pattern-not-inside: |
-          android:filterTouchesWhenObscured="true"
-    message: |
-      Activity vulnerable to overlay attacks / tapjacking (MASTG-TEST-0035).
-      Malicious apps can overlay transparent views to capture user input.
-      Set android:filterTouchesWhenObscured="true" or call setFilterTouchesWhenObscured(true).
-    severity: WARNING
-    languages:
-      - xml
-      - java
-      - kotlin
-    metadata:
-      category: security
-      mastg-test: "MASTG-TEST-0035"
-      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers"
-      owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: MEDIUM
 
-  - id: mastg-test-0035-flag-secure-missing
-    patterns:
-      - pattern-either:
-          - pattern: |
-              class $ACTIVITY : AppCompatActivity() {
-                ...
-              }
-          - pattern: |
-              public class $ACTIVITY extends AppCompatActivity {
-                ...
-              }
-      - pattern-not-inside: |
-          window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, ...)
-    message: |
-      FLAG_SECURE not set for sensitive activity (MASTG-TEST-0035).
-      Prevents screenshots and screen recording, but also helps against overlay attacks.
-      Use: window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, FLAG_SECURE)
-    severity: INFO
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      mastg-test: "MASTG-TEST-0035"
-      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
-      confidence: LOW

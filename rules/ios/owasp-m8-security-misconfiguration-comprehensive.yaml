@@ -670,92 +670,7 @@ rules:
 
   # ============ BUILD SETTINGS & SCHEMES ============
 
-  - id: m8-ios-bitcode-disabled
-    patterns:
-      - pattern: |
-          ENABLE_BITCODE = NO
-    message: |
-      Bitcode disabled in build settings (OWASP M7/M8 - INFO).
-      Bitcode allows Apple to reoptimize app binaries.
 
-      NOTE: Bitcode is DEPRECATED by Apple as of Xcode 14.
-      This is now informational only.
-
-      BITCODE BENEFITS (Historical):
-      - App size optimization
-      - Future compiler improvements
-      - Architecture-specific optimizations
-
-      MODERN ALTERNATIVE:
-      Since Xcode 14, bitcode is no longer required or supported.
-      Focus on other binary protections instead.
-
-      CURRENT BINARY PROTECTION RECOMMENDATIONS:
-      1. Enable Link-Time Optimization (LTO)
-      2. Use automatic code signing
-      3. Enable Address Sanitizer in debug
-      4. Configure optimization levels
-
-      Reference: Apple Xcode 14 Release Notes
-    severity: INFO
-    languages:
-      - xcconfig
-      - pbxproj
-    metadata:
-      category: security
-      owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      confidence: LOW
-      deprecated: true
-
-  - id: m8-ios-code-signing-development
-    patterns:
-      - pattern-either:
-          - pattern: |
-              CODE_SIGN_IDENTITY = "Apple Development"
-          - pattern: |
-              DEVELOPMENT_TEAM = ""
-    message: |
-      Development code signing in project (OWASP M8).
-      Verify this is not used for production/release builds.
-
-      SECURE CODE SIGNING SETUP:
-
-      Debug Configuration:
-      ```
-      CODE_SIGN_IDENTITY = "Apple Development"
-      CODE_SIGN_STYLE = Automatic
-      DEVELOPMENT_TEAM = YOUR_TEAM_ID
-      PROVISIONING_PROFILE_SPECIFIER = ""
-      ```
-
-      Release Configuration:
-      ```
-      CODE_SIGN_IDENTITY = "Apple Distribution"
-      CODE_SIGN_STYLE = Automatic
-      DEVELOPMENT_TEAM = YOUR_TEAM_ID
-      PROVISIONING_PROFILE_SPECIFIER = "AppStore"
-      ```
-
-      VERIFICATION:
-      ```bash
-      # Check code signature
-      codesign -dv --verbose=4 MyApp.app
-
-      # Verify distribution
-      codesign --verify --deep --strict --verbose=2 MyApp.app
-      ```
-
-      Reference: OWASP M8, Apple Code Signing
-    severity: INFO
-    languages:
-      - xcconfig
-      - pbxproj
-    metadata:
-      category: security
-      owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: LOW
-
-  # ============ SWIFT COMPILER SECURITY SETTINGS ============
 
   - id: m8-ios-swift-optimization-none-release
     patterns:
@@ -806,7 +721,7 @@ rules:
       Reference: OWASP M7, M8, Swift Compiler Optimization
     severity: WARNING
     languages:
-      - xcconfig
+      - generic
     metadata:
       category: security
       owasp-mobile-2024: "M7: Insufficient Binary Protections"

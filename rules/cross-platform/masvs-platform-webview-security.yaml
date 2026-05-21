@@ -155,7 +155,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-94: Improper Control of Generation of Code"
@@ -174,7 +173,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-749: Exposed Dangerous Method or Function"
@@ -195,7 +193,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-477: Use of Obsolete Function"

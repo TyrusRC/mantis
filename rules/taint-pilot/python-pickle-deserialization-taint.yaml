@@ -1,0 +1,46 @@
+rules:
+  - id: taint-python-pickle-untrusted-deserialize
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.data
+              - pattern: $REQ.body
+              - pattern: $REQ.get_data(...)
+              - pattern: $REQ.files[...]
+              - pattern: $REQ.form[...]
+              - pattern: request.data
+              - pattern: request.get_data(...)
+              - pattern: request.body
+              - pattern: $X.read()
+              - pattern: base64.b64decode(...)
+              - pattern: urllib.request.urlopen(...).read()
+              - pattern: urllib.urlopen(...).read()
+              - pattern: requests.get(...).content
+              - pattern: requests.post(...).content
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: pickle.loads($X)
+              - pattern: pickle.load($X)
+              - pattern: cPickle.loads($X)
+              - pattern: cPickle.load($X)
+              - pattern: dill.loads($X)
+              - pattern: dill.load($X)
+              - pattern: shelve.open($PATH)
+              - pattern: yaml.load($X)
+    message: |
+      Tainted bytes flow into pickle/dill/yaml.load deserialization. Untrusted
+      pickle data allows arbitrary code execution via __reduce__. Use a structured
+      format (json) or yaml.safe_load. Never unpickle data from outside trust boundary.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      confidence: HIGH
+      pack: [taint, web, fast, deep, bugbounty]
+      references:
+        - https://cwe.mitre.org/data/definitions/502.html
+        - https://docs.python.org/3/library/pickle.html

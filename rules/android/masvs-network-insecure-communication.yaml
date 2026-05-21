@@ -3,30 +3,6 @@ rules:
   # Based on MASTG-TEST-0019: Testing Data Encryption on the Network
   # Detects cleartext HTTP and insecure TLS/SSL configurations
 
-  - id: mastg-android-cleartext-http-url
-    patterns:
-      - pattern-either:
-          - pattern: new URL("http://...")
-          - pattern: HttpURLConnection $CONN = (HttpURLConnection) new URL("http://...").openConnection()
-          - pattern: URL $URL = new URL("http://...")
-      - pattern-not: new URL("http://localhost...")
-      - pattern-not: new URL("http://127.0.0.1...")
-    message: |
-      Cleartext HTTP URL detected (MASVS-NETWORK).
-      Transmitting data over HTTP exposes it to interception and tampering.
-      Use HTTPS for all network communications. Since Android 9 (API 28),
-      cleartext HTTP is blocked by default.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
-      owasp-mobile: "M3: Insecure Communication"
-      mastg-test: "MASTG-TEST-0019"
-      masvs: "MASVS-NETWORK-1"
-      confidence: HIGH
 
   - id: mastg-android-webview-cleartext-allowed
     patterns:
@@ -107,52 +83,4 @@ rules:
       masvs: "MASVS-NETWORK-1"
       confidence: HIGH
 
-  - id: mastg-android-ssl-error-proceed
-    patterns:
-      - pattern: |
-          public void onReceivedSslError(WebView $VIEW, SslErrorHandler $HANDLER, ...) {
-            ...
-            $HANDLER.proceed()
-            ...
-          }
-    message: |
-      WebView SSL error handler calling proceed() (MASVS-NETWORK).
-      Proceeding despite SSL errors exposes users to man-in-the-middle attacks.
-      Call handler.cancel() to abort insecure connections.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-295: Improper Certificate Validation"
-      mastg-test: "MASTG-TEST-0019"
-      masvs: "MASVS-NETWORK-1"
-      confidence: HIGH
 
-  - id: mastg-android-insecure-socket-factory
-    patterns:
-      - pattern-either:
-          - pattern: |
-              SSLContext $CTX = SSLContext.getInstance("SSL")
-          - pattern: |
-              SSLContext.getInstance("SSLv3")
-          - pattern: |
-              SSLContext.getInstance("TLSv1")
-          - pattern: |
-              SSLContext.getInstance("TLSv1.1")
-    message: |
-      Insecure SSL/TLS protocol version detected (MASVS-NETWORK).
-      SSL, SSLv3, TLSv1, and TLSv1.1 are deprecated and insecure.
-      Use TLSv1.2 or TLSv1.3 instead.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-326: Inadequate Encryption Strength"
-      owasp-mobile: "M3: Insecure Communication"
-      mastg-test: "MASTG-TEST-0019"
-      masvs: "MASVS-NETWORK-1"
-      confidence: HIGH

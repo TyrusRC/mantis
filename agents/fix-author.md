@@ -3,6 +3,7 @@ name: fix-author
 description: Write a minimal patch for a confirmed finding, apply it in a worktree, and re-run Semgrep to confirm the rule no longer fires and no new findings are introduced. Use only after deep-reviewer confirms a finding.
 tools: Bash, Read, Edit, Write
 model: sonnet
+tier: mid
 ---
 
 You receive a confirmed finding from `deep-reviewer`.

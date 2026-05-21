@@ -4,36 +4,6 @@ rules:
 
   # ============ INSECURE DEPENDENCIES ============
 
-  - id: owasp-m2-http-dependency-url
-    patterns:
-      - pattern-either:
-          # Gradle dependencies
-          - pattern: |
-              maven {
-                url "http://..."
-              }
-          - pattern: |
-              maven { url "http://..." }
-          # npm/yarn
-          - pattern: |
-              "repository": "http://..."
-          # CocoaPods
-          - pattern: |
-              source 'http://...'
-    message: |
-      Insecure HTTP URL for dependency repository (OWASP M2: Inadequate Supply Chain Security).
-      Using HTTP for package repositories allows man-in-the-middle attacks to inject
-      malicious code. Always use HTTPS for dependency sources.
-    severity: ERROR
-    languages:
-      - gradle
-      - json
-      - ruby
-    metadata:
-      category: security
-      cwe: "CWE-494: Download of Code Without Integrity Check"
-      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
-      confidence: HIGH
 
   - id: owasp-m2-insecure-gradle-plugin
     patterns:
@@ -62,7 +32,7 @@ rules:
       Use HTTPS for all plugin repositories.
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
@@ -82,7 +52,7 @@ rules:
       Migrate to OkHttp 4.x or newer.
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
@@ -102,7 +72,7 @@ rules:
       Upgrade to version 4.x or use safer alternatives.
     severity: ERROR
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       cwe: "CWE-502: Deserialization of Untrusted Data"
@@ -156,25 +126,6 @@ rules:
 
   # ============ DYNAMIC CODE LOADING ============
 
-  - id: owasp-m2-dexclassloader-usage
-    patterns:
-      - pattern-either:
-          - pattern: new DexClassLoader(...)
-          - pattern: new PathClassLoader(...)
-          - pattern: DexClassLoader $VAR = new DexClassLoader(...)
-    message: |
-      Dynamic code loading via DexClassLoader (OWASP M2: Inadequate Supply Chain Security).
-      Loading DEX files at runtime can introduce malicious code.
-      Ensure loaded code is from trusted sources and verify integrity.
-    severity: WARNING
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: security
-      cwe: "CWE-494: Download of Code Without Integrity Check"
-      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
-      confidence: MEDIUM
 
   - id: owasp-m2-runtime-exec
     patterns:
@@ -254,6 +205,20 @@ rules:
     languages:
       - bash
       - sh
+    paths:
+      include:
+        - "*.sh"
+        - "*.bash"
+        - "*.yarnrc"
+        - ".yarnrc"
+        - "Dockerfile"
+        - "*.dockerfile"
+        - "package.json"
+      exclude:
+        - "**/gradlew"
+        - "**/gradlew.bat"
+        - "**/mvnw"
+        - "**/node_modules/**"
     metadata:
       category: security
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
@@ -348,7 +313,7 @@ rules:
       Audit plugin source code and use from trusted sources only.
     severity: INFO
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"

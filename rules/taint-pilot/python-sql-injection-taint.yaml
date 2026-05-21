@@ -1,0 +1,59 @@
+rules:
+  - id: taint-python-sql-injection-cursor-execute
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.args[...]
+              - pattern: $REQ.args.get(...)
+              - pattern: $REQ.form[...]
+              - pattern: $REQ.form.get(...)
+              - pattern: $REQ.json[...]
+              - pattern: $REQ.json.get(...)
+              - pattern: $REQ.values[...]
+              - pattern: $REQ.GET[...]
+              - pattern: $REQ.POST[...]
+              - pattern: $REQ.cookies[...]
+              - pattern: $REQ.headers[...]
+              - pattern: $REQ.params.get(...)
+              - pattern: request.args[...]
+              - pattern: request.args.get(...)
+              - pattern: request.form[...]
+              - pattern: request.json
+              - pattern: request.values[...]
+              - pattern: request.cookies[...]
+              - pattern: request.headers[...]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $CUR.execute($Q, ...)
+              - pattern: $CUR.executemany($Q, ...)
+              - pattern: $CUR.executescript($Q)
+              - pattern: $ENG.execute($Q, ...)
+              - pattern: $DB.execute($Q, ...)
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern: int($X)
+              - pattern: float($X)
+              - pattern: bool($X)
+              - pattern: $X.isdigit()
+              - pattern: $X.isnumeric()
+              - pattern: re.escape($X)
+              - pattern: sqlalchemy.text(...).bindparams(...)
+    message: |
+      Tainted user input flows into a SQL cursor.execute()-style call without parameterization.
+      Use parameterized queries: pass values as the second argument tuple, e.g.
+      cursor.execute("SELECT * FROM t WHERE id = ?", (uid,)). Never f-string or concatenate
+      user input into the SQL string.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2025 Injection"
+      confidence: HIGH
+      pack: [taint, web, fast, deep, bugbounty]
+      references:
+        - https://owasp.org/Top10/A03_2021-Injection/
+        - https://cwe.mitre.org/data/definitions/89.html

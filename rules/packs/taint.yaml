@@ -1,0 +1,11 @@
+name: taint
+description: |
+  Taint-mode rules. Designed for OpenGrep's --taint-intrafile flag (or
+  Semgrep Pro). Currently scoped to the rules/taint-pilot/ pilot. Add
+  more rules under that directory and re-run build_manifest.py to pick
+  them up.
+filters:
+  paths_under:
+    - rules/taint-pilot/
+exclude:
+  rule_id_globs: []

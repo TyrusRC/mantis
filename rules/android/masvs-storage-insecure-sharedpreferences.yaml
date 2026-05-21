@@ -52,26 +52,3 @@ rules:
       masvs: "MASVS-STORAGE-1"
       confidence: HIGH
 
-  - id: mastg-android-commit-without-apply
-    patterns:
-      - pattern: |
-          $EDITOR = $PREFS.edit()
-          ...
-          $EDITOR.commit()
-      - pattern-not: |
-          $EDITOR = $PREFS.edit()
-          ...
-          $EDITOR.apply()
-    message: |
-      SharedPreferences using commit() instead of apply().
-      While not a direct security issue, commit() is synchronous and can cause
-      performance issues. Use apply() for asynchronous saving.
-    severity: WARNING
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: performance
-      mastg-test: "MASTG-TEST-0001"
-      masvs: "MASVS-STORAGE-1"
-      confidence: MEDIUM

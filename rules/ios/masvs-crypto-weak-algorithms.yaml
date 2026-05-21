@@ -18,7 +18,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -42,7 +41,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -65,7 +63,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -86,7 +83,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -107,7 +103,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
@@ -158,7 +153,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator"
@@ -179,7 +173,6 @@ rules:
     severity: INFO
     languages:
       - swift
-      - objc
     metadata:
       category: security
       mastg-id: "MASTG-CRYPTO"

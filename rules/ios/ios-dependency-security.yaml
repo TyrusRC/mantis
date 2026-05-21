@@ -266,37 +266,6 @@ rules:
 
   # ============ SWIFT PACKAGE MANAGER (SPM) SECURITY ============
 
-  - id: ios-dep-spm-http-url
-    patterns:
-      - pattern-either:
-          - pattern: |
-              .package(url: "http://$URL", $REST)
-          - pattern: |
-              .package(url: 'http://$URL', $REST)
-    message: |
-      Insecure HTTP URL in Swift Package Manager (OWASP M2: Inadequate Supply Chain Security).
-
-      Risk: CRITICAL
-      Impact: Swift packages loaded over HTTP can be intercepted and replaced
-      with malicious code via man-in-the-middle attacks.
-
-      Remediation:
-      - Use HTTPS URLs for all package dependencies
-      - .package(url: "https://github.com/...", ...)
-
-      References:
-      - https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app
-    severity: ERROR
-    languages:
-      - swift
-    paths:
-      include:
-        - "**/Package.swift"
-    metadata:
-      category: security
-      cwe: "CWE-494: Download of Code Without Integrity Check"
-      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
-      confidence: HIGH
 
   - id: ios-dep-spm-branch-dependency
     patterns:
@@ -358,7 +327,7 @@ rules:
       - https://github.com/Carthage/Carthage
     severity: ERROR
     languages:
-      - text
+      - generic
     paths:
       include:
         - "**/Cartfile"
@@ -399,7 +368,7 @@ rules:
       - https://github.com/Carthage/Carthage/blob/master/Documentation/Artifacts.md
     severity: WARNING
     languages:
-      - text
+      - generic
     paths:
       include:
         - "**/Cartfile"
@@ -443,7 +412,7 @@ rules:
       - Review linked libraries for vulnerabilities
     severity: WARNING
     languages:
-      - text
+      - generic
     paths:
       include:
         - "**/*.pbxproj"

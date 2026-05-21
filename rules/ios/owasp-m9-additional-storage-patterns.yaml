@@ -58,62 +58,6 @@ rules:
       confidence: HIGH
       found_in_sample: "sample/ios-app/Info.plist"
 
-  - id: owasp-m9-ios-plist-credentials
-    patterns:
-      - pattern-either:
-          - pattern: |
-              <key>Password</key>
-              <string>$PASSWORD</string>
-          - pattern: |
-              <key>password</key>
-              <string>$PASSWORD</string>
-          - pattern: |
-              <key>Username</key>
-              ...
-              <key>Password</key>
-    message: |
-      Credentials stored in plist file (OWASP M9: Insecure Data Storage).
-      Plist files are not encrypted and credentials are visible in plain text.
-
-      Example vulnerable configuration found in sample (Bandit.plist):
-      ```xml
-      <key>Username</key>
-      <string>Bandit</string>
-      <key>Password</key>
-      <string>payatu</string>
-      ```
-
-      These credentials can be extracted by:
-      1. Unzipping the IPA file
-      2. Reading plist files with any text editor or plistutil
-      3. No jailbreak required
-
-      Secure Fix:
-      ```swift
-      // Store credentials in Keychain
-      let query: [String: Any] = [
-          kSecClass as String: kSecClassGenericPassword,
-          kSecAttrAccount as String: username,
-          kSecValueData as String: password.data(using: .utf8)!,
-          kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-      ]
-      SecItemAdd(query as CFDictionary, nil)
-      ```
-
-      Never store credentials in:
-      - Info.plist
-      - Custom .plist files
-      - UserDefaults
-      - NSUserDefaults
-    severity: ERROR
-    languages:
-      - xml
-    metadata:
-      category: security
-      cwe: "CWE-522: Insufficiently Protected Credentials"
-      owasp-mobile-2024: "M9: Insecure Data Storage"
-      confidence: HIGH
-      found_in_sample: "sample/ios-app/Bandit.plist"
 
   - id: owasp-m9-ios-plist-api-key
     patterns:
@@ -164,110 +108,7 @@ rules:
 
   # ============ USERDEFAULTS PIN/PASSWORD STORAGE ============
 
-  - id: owasp-m9-ios-userdefaults-pin-storage
-    patterns:
-      - pattern-either:
-          - pattern: |
-              func $FUNC(...$PIN...) {
-                ...
-                UserDefaults.standard.set($PIN, forKey: ...)
-                ...
-              }
-          - pattern: |
-              func store$TYPE(...$PASSWORD...) {
-                ...
-                UserDefaults.standard.set($PASSWORD, ...)
-                ...
-              }
-          - pattern: |
-              func save$TYPE(...$CREDENTIAL...) {
-                ...
-                $DEFAULTS.set($CREDENTIAL, ...)
-                ...
-              }
-      - metavariable-regex:
-          metavariable: $FUNC
-          regex: .*(PIN|Password|Credential|Secret|Token).*
-    message: |
-      PIN/Password stored in UserDefaults (OWASP M9: Insecure Data Storage).
-      UserDefaults stores data in plaintext plist files (~Library/Preferences/*.plist).
 
-      Example vulnerable code found in sample:
-      ```swift
-      func storePINInUserDefaults(pin: String) {
-          UserDefaults.standard.set(pin, forKey: "userPIN")
-      }
-      ```
-
-      Why this is dangerous:
-      - Stored in plaintext at: ~/Library/Preferences/[bundle-id].plist
-      - Accessible with iTunes backup (even encrypted backups on old iOS)
-      - Accessible on jailbroken devices
-      - No protection when device is locked
-      - Synced to iCloud by default
-
-      Secure Fix using Keychain:
-      ```swift
-      func storePINInKeychain(pin: String) {
-          let pinData = pin.data(using: .utf8)!
-          let query: [String: Any] = [
-              kSecClass as String: kSecClassGenericPassword,
-              kSecAttrAccount as String: "userPIN",
-              kSecValueData as String: pinData,
-              kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-          ]
-
-          // Delete old value if exists
-          SecItemDelete(query as CFDictionary)
-          // Add new value
-          let status = SecItemAdd(query as CFDictionary, nil)
-
-          if status == errSecSuccess {
-              print("PIN stored securely in Keychain")
-          }
-      }
-      ```
-
-      Key security improvements:
-      - Encrypted by iOS (hardware-backed on newer devices)
-      - Protected by device passcode/biometrics
-      - Not included in backups (with kSecAttrAccessibleWhenUnlockedThisDeviceOnly)
-      - Cannot be accessed when device is locked
-    severity: ERROR
-    languages:
-      - swift
-      - objc
-    metadata:
-      category: security
-      cwe: "CWE-522: Insufficiently Protected Credentials"
-      owasp-mobile-2024: "M9: Insecure Data Storage"
-      confidence: HIGH
-      found_in_sample: "sample/ios-app/storePINInUserDefaults function"
-
-  - id: owasp-m9-ios-userdefaults-password-objc
-    patterns:
-      - pattern-either:
-          - pattern: |
-              [[NSUserDefaults standardUserDefaults] setObject:$PASSWORD forKey:$KEY]
-          - pattern: |
-              [$DEFAULTS setObject:$PASSWORD forKey:$KEY]
-      - metavariable-regex:
-          metavariable: $KEY
-          regex: .*(password|pin|credential|secret|token|auth).*
-    message: |
-      Password/PIN stored in NSUserDefaults (OWASP M9: Insecure Data Storage).
-      NSUserDefaults stores data unencrypted in plist files.
-      Use iOS Keychain API for sensitive data storage.
-    severity: ERROR
-    languages:
-      - objc
-    metadata:
-      category: security
-      cwe: "CWE-522: Insufficiently Protected Credentials"
-      owasp-mobile-2024: "M9: Insecure Data Storage"
-      confidence: HIGH
-
-  # ============ SSRF AND FILE URL SCHEMES ============
 
   - id: owasp-m4-ios-ssrf-file-scheme
     patterns:
@@ -351,7 +192,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
@@ -405,7 +245,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
@@ -482,7 +321,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
@@ -539,7 +377,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-330: Use of Insufficiently Random Values"

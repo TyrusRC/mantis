@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install the audit toolkit into a target project's .claude/ directory.
+# Install mantis (MCP mode) into a target project's .claude/ directory.
+# For standalone CLI installation, use: pipx install <this-repo>
 # Usage: ./install.sh [target_dir]   (default: current directory)
 set -euo pipefail
 
@@ -19,17 +20,24 @@ cp -v "$SRC/agents/"*.md "$TARGET/.claude/agents/"
 echo "installing commands -> $TARGET/.claude/commands/"
 cp -v "$SRC/commands/"*.md "$TARGET/.claude/commands/"
 
-# Link rule packs so updates flow through
-if [[ ! -e "$TARGET/.claude/sast-rules" ]]; then
-  ln -s "$SRC/rules" "$TARGET/.claude/sast-rules"
-  echo "linked rules -> $TARGET/.claude/sast-rules"
-fi
+# Link directories so updates flow through. Falls back to copy on filesystems
+# that don't support symlinks (Windows / WSL crossings / sandboxed runners).
+link_or_copy() {
+  local src="$1" dst="$2" label="$3"
+  if [[ -e "$dst" ]]; then
+    return 0
+  fi
+  if ln -s "$src" "$dst" 2>/dev/null; then
+    echo "linked ${label} -> $dst"
+  else
+    cp -r "$src" "$dst"
+    echo "copied ${label} -> $dst  (symlink unavailable on this filesystem)"
+  fi
+}
 
-# Link checklists (deep-reviewer consults these for findings Semgrep can't pattern-match)
-if [[ ! -e "$TARGET/.claude/sast-checklists" ]]; then
-  ln -s "$SRC/checklists" "$TARGET/.claude/sast-checklists"
-  echo "linked checklists -> $TARGET/.claude/sast-checklists"
-fi
+link_or_copy "$SRC/rules"      "$TARGET/.claude/sast-rules"      "rules"
+link_or_copy "$SRC/checklists" "$TARGET/.claude/sast-checklists" "checklists"
+link_or_copy "$SRC/scripts"    "$TARGET/.claude/sast-scripts"    "scripts"
 
 # Build / refresh the rule manifest
 if command -v python3 >/dev/null 2>&1; then
@@ -39,9 +47,9 @@ fi
 
 cat <<EOF
 
-installed.
+mantis installed (MCP mode). local only.
 
-one command, local only:
+one command:
   /audit                 -- auto-detect stack, hybrid pipeline, write ./security-audit-report.md
   /audit quick           -- fast static + triage, low FP
   /audit deep            -- every rule, full pipeline
@@ -52,6 +60,11 @@ one command, local only:
   /audit --fix           -- apply patches in a local worktree, re-verify
   /audit --lite          -- skip slicing + deep review, token-conservative
 
-semgrep is the only external dependency. install: pipx install semgrep
-optional MCP wiring: claude mcp add semgrep -- semgrep mcp
+SAST binary: opengrep is preferred; semgrep also works. install one:
+  pipx install opengrep        (recommended; ships cross-function intrafile taint)
+  pipx install semgrep         (fallback; both consume the same rule YAML)
+
+for standalone CLI mode (any LLM provider — anthropic, google, openai, ollama):
+  pipx install $(cd "$SRC" && pwd)
+  mantis audit /path/to/target
 EOF

@@ -4,15 +4,23 @@ Project conventions for future Claude sessions in this repo. Read this before ma
 
 ## What this repo is
 
-A hybrid Semgrep + Claude SAST toolkit. Source-of-truth files for the audit pipeline live at the repo root and are installed into a target project's `.claude/` by `install.sh`. The repo itself is not a runnable Claude Code project — it is a distributable toolkit.
+**Mantis** — a hybrid SAST + LLM toolkit for local code-security audits. Source-of-truth files for the audit pipeline live at the repo root.
 
-- `agents/` — six subagent definitions
-- `commands/` — one slash command (`/audit`)
-- `rules/` — Semgrep YAML rules + pack specs + manifest
+Two execution modes, one pipeline:
+
+- **MCP mode** (default in Claude Code): `./install.sh` copies agents and the `/audit` slash command into the target project's `.claude/`. The orchestrator subagent dispatches the pipeline using Claude Code's host session. No API key, no model name configuration.
+- **Standalone CLI mode**: `mantis audit <path>` runs the same pipeline directly, calling a user-configured LLM provider (Anthropic, Google Gemini, OpenAI, OpenRouter, Ollama). The user supplies the API key and chooses which model maps to each tier. No model names are hardcoded.
+
+Layout:
+
+- `agents/` — six subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
+- `commands/` — one slash command (`/audit`), MCP-mode only
+- `rules/` — OpenGrep / Semgrep YAML rules + pack specs + manifest
 - `scripts/` — manifest builder + pack composer
 - `checklists/` — OWASP Testing Guide chapters for the deep-reviewer
+- `mantis/` — standalone CLI Python package (loads agents, runs pipeline, routes to configured provider)
 
-The single user-facing entrypoint is `/audit` after `./install.sh` has copied the agents/commands into the target project.
+The SAST scanner binary is **OpenGrep** by default with **Semgrep** as a transparent fallback (see "SAST binary" below). Rules are written in the Semgrep YAML schema which OpenGrep consumes unchanged.
 
 ## Hard rules
 
@@ -26,6 +34,8 @@ If a future feature request implies CI behavior, push back: this toolkit explici
 
 There is one slash command, `/audit`. Modes (`quick`, `deep`, `bugbounty`, `cve`, `mobile`, `web`, `llm`) and flags (`--fix`, `--lite`, `focus:<area>`) are positional/flag arguments to that one command. Do not split modes back into separate commands.
 
+The standalone CLI additionally exposes `--skip-llm` for SAST-only diagnostic runs (no provider config needed). This is CLI-only — the MCP slash command always runs the full pipeline.
+
 ### No icons / emojis
 
 Do not add emoji or icons to user-facing output, agent definitions, command files, README, or new rule files. Pre-existing rule files (`rules/android/*-improved.yaml`, `rules/cross-platform/*-insecure.yaml`, etc.) contain icons inside their `message:` strings — leave those alone unless explicitly asked to clean them up. Do not propagate that style to new content.
@@ -34,12 +44,20 @@ Do not add emoji or icons to user-facing output, agent definitions, command file
 
 The whole architecture is built around token economy. Preserve it.
 
-- **Triage** runs on Haiku (cheap), reads a +/-40-line window only.
-- **Slice extraction** runs on Sonnet, hard cap of 4000 tokens of code in the slice output.
-- **Deep review** runs on Opus, only on slices, only on REACHABLE survivors.
+- **Triage** runs on the `fast` tier (Haiku in MCP mode; user-configured cheap model in standalone), reads a +/-40-line window only.
+- **Slice extraction** runs on the `mid` tier (Sonnet in MCP mode), hard cap of 4000 tokens of code in the slice output.
+- **Deep review** runs on the `deep` tier (Opus in MCP mode), only on slices, only on REACHABLE survivors.
 - The orchestrator never reads source files end-to-end. It reads inventory only (manifests, lockfiles, top-level dirs) and dispatches subagents for everything else.
 
 When editing agent prompts: do not relax these caps. If the user reports the audit is missing things, the answer is usually a better slice, not a wider read.
+
+### Tier vs model
+
+Agent frontmatter carries both `model: haiku|sonnet|opus` (consumed by Claude Code's subagent system in MCP mode) and `tier: fast|mid|deep` (consumed by the standalone CLI's provider router). Never hardcode a provider's model name (e.g. `gemini-2.5-flash`, `gpt-4o`, `llama3:70b`) inside agent prompts, scripts, or rules. The standalone CLI's config is the only place model strings appear.
+
+### SAST binary
+
+`OpenGrep` is the default scanner; `Semgrep` is accepted as a fallback. The binary is resolved at runtime: `$AUDIT_SAST_BIN` overrides; otherwise `opengrep` is tried, then `semgrep`. Rules are written in the Semgrep YAML schema; both binaries consume the same rule files. Do not split the rule library by binary.
 
 ## File-format conventions
 
@@ -99,20 +117,20 @@ This rewrites `rules/_manifest.yaml`. Commit the manifest with the rule changes 
 
 ### Validating a rule
 
-The repo doesn't ship Semgrep — install separately (`pipx install semgrep`). Validate a rule with:
+The repo doesn't ship the scanner binary. Install OpenGrep (`pipx install opengrep`) or Semgrep (`pipx install semgrep`) separately. Validate a rule with:
 
 ```bash
-semgrep --validate --config rules/<dir>/<file>.yaml
+opengrep --validate --config rules/<dir>/<file>.yaml   # or: semgrep --validate ...
 ```
 
-This catches schema errors the manifest builder doesn't (the builder only checks YAML syntax, not Semgrep semantics).
+This catches schema errors the manifest builder doesn't (the builder only checks YAML syntax, not scanner semantics).
 
 ### Composing a pack
 
 ```bash
 python3 scripts/pack_compose.py rules/packs/<name>.yaml --as-args
 # emits: --config rules/x.yaml --config rules/y.yaml ...
-semgrep $(python3 scripts/pack_compose.py rules/packs/<name>.yaml --as-args) --json <target>
+opengrep $(python3 scripts/pack_compose.py rules/packs/<name>.yaml --as-args) --json <target>
 ```
 
 ### Adding a new mode to /audit
@@ -125,10 +143,11 @@ semgrep $(python3 scripts/pack_compose.py rules/packs/<name>.yaml --as-args) --j
 
 ### Adding a new subagent
 
-1. Write `agents/<name>.md` with `name`, `description`, `tools`, `model` frontmatter.
+1. Write `agents/<name>.md` with `name`, `description`, `tools`, `model` AND `tier` frontmatter. `tier` must be one of `fast` / `mid` / `deep`. Both fields are required: `model` for Claude Code MCP mode, `tier` for the standalone CLI.
 2. Reference it from `sast-orchestrator.md` in the dispatch table.
 3. Update `install.sh` if the install copy step needs to know.
 4. Update `README.md` subagent table.
+5. The standalone CLI auto-discovers agents from `agents/*.md` — no registration needed.
 
 ## Things to avoid
 

@@ -49,43 +49,6 @@ rules:
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
       confidence: MEDIUM
 
-  - id: react-native-dep-http-registry
-    patterns:
-      - pattern-either:
-          - pattern: |
-              "repository": "http://$URL"
-          - pattern: |
-              "publishConfig": {
-                ...
-                "registry": "http://$URL"
-                ...
-              }
-    message: |
-      Insecure HTTP npm registry URL (OWASP M2: Inadequate Supply Chain Security).
-
-      Risk: CRITICAL
-      Impact: npm packages downloaded over HTTP can be intercepted and replaced with
-      malicious code via man-in-the-middle attacks.
-
-      Remediation:
-      - Use HTTPS registry URLs
-      - Default npm registry: https://registry.npmjs.org
-      - For private registries, always use HTTPS
-
-      References:
-      - https://docs.npmjs.com/cli/v9/using-npm/registry
-    severity: ERROR
-    languages:
-      - json
-    paths:
-      include:
-        - "**/package.json"
-        - "**/.npmrc"
-    metadata:
-      category: security
-      cwe: "CWE-494: Download of Code Without Integrity Check"
-      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
-      confidence: HIGH
 
   - id: react-native-dep-git-dependency-no-commit
     patterns:

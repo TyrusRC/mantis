@@ -1,37 +1,4 @@
 rules:
-  - id: llm-llm05-output-passed-to-dynamic-execution
-    languages: [python, javascript, typescript]
-    severity: ERROR
-    message: |
-      LLM output is being passed to a dynamic-execution sink. Treat model
-      output as untrusted user input — never execute it. If the use case is
-      code generation, render the output to a sandbox the LLM cannot escape.
-
-      OWASP LLM Top 10:2025 — LLM05 Improper Output Handling
-    patterns:
-      - pattern-either:
-          - pattern: |
-              $RESP = $CLIENT.messages.create(...)
-              ...
-              exec($RESP.content[0].text)
-          - pattern: |
-              $RESP = openai.chat.completions.create(...)
-              ...
-              exec($RESP.choices[0].message.content)
-          - pattern: |
-              $RESP = await $CLIENT.messages.create(...)
-              ...
-              new Function($RESP.content[0].text)
-          - pattern: |
-              $RESP = await openai.chat.completions.create(...)
-              ...
-              vm.runInNewContext($RESP.choices[0].message.content, ...)
-    metadata:
-      category: security
-      owasp: "LLM05:2025 Improper Output Handling"
-      cwe: "CWE-95"
-      confidence: HIGH
-      pack: [llm, fast, deep]
 
   - id: llm-llm05-output-rendered-as-html-without-escape
     languages: [javascript, typescript]

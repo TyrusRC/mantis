@@ -1,0 +1,48 @@
+rules:
+  - id: taint-js-command-injection-child-process-exec
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.body.$F
+              - pattern: $REQ.query.$F
+              - pattern: $REQ.params.$F
+              - pattern: $REQ.headers.$F
+              - pattern: $REQ.cookies.$F
+              - pattern: req.body
+              - pattern: req.query
+              - pattern: req.params
+              - pattern: process.argv[$N]
+              - pattern: process.env.$F
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: 'child_process.exec($CMD, ...)'
+              - pattern: 'child_process.execSync($CMD, ...)'
+              - pattern: 'cp.exec($CMD, ...)'
+              - pattern: exec($CMD, ...)
+              - pattern: execSync($CMD, ...)
+              - pattern: 'require("child_process").exec($CMD, ...)'
+              - pattern: 'spawn($BIN, $X, { shell: true })'
+              - pattern: 'spawnSync($BIN, $X, { shell: true })'
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern: shellQuote.quote($X)
+              - pattern: shellEscape($X)
+    message: |
+      Tainted user input flows into child_process.exec()/execSync() which spawns a shell.
+      Use child_process.execFile()/spawn() with an args array and shell:false. If shell is
+      required, validate the input strictly against an allowlist; do not rely on string
+      escaping alone.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp: "A03:2025 Injection"
+      confidence: HIGH
+      pack: [taint, web, fast, deep, bugbounty]
+      references:
+        - https://cwe.mitre.org/data/definitions/78.html
+        - https://nodejs.org/api/child_process.html

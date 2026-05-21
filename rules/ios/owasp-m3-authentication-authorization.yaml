@@ -66,64 +66,13 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
       owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
       confidence: HIGH
 
-  - id: owasp-m3-ios-keychain-no-access-control
-    patterns:
-      - pattern-either:
-          - pattern: |
-              var query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                ...
-              ]
-          - pattern: |
-              let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                ...
-              ]
-      - pattern-not-inside: |
-          query[kSecAttrAccessControl as String] = ...
-    message: |
-      Keychain item without access control (OWASP M3: Insecure Authentication/Authorization).
-      Items without SecAccessControl can be accessed without authentication.
-      Use SecAccessControlCreateWithFlags with biometry or passcode requirements.
-    severity: WARNING
-    languages:
-      - swift
-    metadata:
-      category: security
-      cwe: "CWE-287: Improper Authentication"
-      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
-      confidence: MEDIUM
 
-  - id: owasp-m3-ios-keychain-shared-access-group
-    patterns:
-      - pattern-either:
-          - pattern: |
-              kSecAttrAccessGroup as String: "$GROUP"
-      - metavariable-regex:
-          metavariable: $GROUP
-          regex: ^(?!.*\.self$).*$
-    message: |
-      Keychain access group shared with other apps (OWASP M3: Insecure Authentication/Authorization).
-      Shared access groups allow multiple apps to access the same Keychain items.
-      Ensure only trusted apps share Keychain data and validate app signatures.
-    severity: WARNING
-    languages:
-      - swift
-      - objc
-    metadata:
-      category: security
-      cwe: "CWE-200: Exposure of Sensitive Information"
-      owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
-      confidence: MEDIUM
-
-  # ============ JWT & TOKEN VALIDATION ============
 
   - id: owasp-m3-ios-jwt-no-verification
     patterns:
@@ -372,7 +321,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-532: Insertion of Sensitive Information into Log File"

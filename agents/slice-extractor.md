@@ -3,6 +3,7 @@ name: slice-extractor
 description: Extract minimal interprocedural code slice for a NEEDS-DEEP finding using AST + depth-limited callgraph. Use after triage, before deep review. Outputs a token-budgeted slice plus an entrypoint-reachability flag.
 tools: Bash, Read, Grep
 model: sonnet
+tier: mid
 ---
 
 Given a Semgrep finding (file, line, rule_id), build the minimal slice of code that the deep-reviewer needs to reason about dataflow.

@@ -1,0 +1,54 @@
+rules:
+  - id: taint-python-ssrf-requests-user-url
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.args.get(...)
+              - pattern: $REQ.form.get(...)
+              - pattern: $REQ.json.get(...)
+              - pattern: $REQ.args[...]
+              - pattern: $REQ.form[...]
+              - pattern: $REQ.GET[...]
+              - pattern: $REQ.POST[...]
+              - pattern: request.args.get(...)
+              - pattern: request.form.get(...)
+              - pattern: request.json.get(...)
+              - pattern: request.values.get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: requests.get($URL, ...)
+              - pattern: requests.post($URL, ...)
+              - pattern: requests.put($URL, ...)
+              - pattern: requests.delete($URL, ...)
+              - pattern: requests.request($METHOD, $URL, ...)
+              - pattern: requests.head($URL, ...)
+              - pattern: requests.patch($URL, ...)
+              - pattern: httpx.get($URL, ...)
+              - pattern: httpx.post($URL, ...)
+              - pattern: urllib.request.urlopen($URL, ...)
+              - pattern: urllib.urlopen($URL, ...)
+              - pattern: aiohttp.ClientSession(...).get($URL, ...)
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern: urlparse($X).hostname in $ALLOWLIST
+              - pattern: $X.startswith("https://trusted.example.com")
+              - pattern: validate_url($X)
+              - pattern: is_safe_url($X)
+    message: |
+      User-controlled URL flows into an outbound HTTP request — potential SSRF.
+      Validate the host against an explicit allowlist before making the request,
+      block private IP ranges (RFC1918, link-local, loopback, metadata endpoints),
+      and disable redirects unless required.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp: "A10:2025 Server-Side Request Forgery"
+      confidence: HIGH
+      pack: [taint, web, fast, deep, bugbounty]
+      references:
+        - https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/

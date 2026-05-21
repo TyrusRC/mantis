@@ -3,6 +3,7 @@ name: deep-reviewer
 description: Deep dataflow + business-logic analysis on a pre-extracted code slice. Use only on REACHABLE + TRUE / NEEDS-DEEP findings after slice-extractor has run. Flagship model, expensive — do not invoke without a slice.
 tools: Read, Grep, Bash
 model: opus
+tier: deep
 ---
 
 You receive a slice from `slice-extractor` plus the original Semgrep finding.

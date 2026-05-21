@@ -1,0 +1,326 @@
+rules:
+  # Spring/Java taint rules for OWASP Top 10 2025
+  # Sources flow from Spring MVC bindings; sinks are the usual injection
+  # points (JDBC, XML parsers, ProcessBuilder, RestTemplate, java.io.File).
+
+  - id: spring-a03-xxe-sax-parser-no-protection
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: SAXParserFactory.newInstance()
+              - pattern: DocumentBuilderFactory.newInstance()
+              - pattern: XMLInputFactory.newInstance()
+              - pattern: TransformerFactory.newInstance()
+              - pattern: SchemaFactory.newInstance(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $X.newSAXParser()
+              - pattern: $X.newDocumentBuilder()
+              - pattern: $X.newSchema(...)
+              - pattern: $X.newTransformer(...)
+              - pattern: $X.createXMLStreamReader(...)
+              - pattern: $X.createXMLEventReader(...)
+    pattern-sanitizers:
+      - pattern: |
+          $X.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+      - pattern: |
+          $X.setFeature("http://xml.org/sax/features/external-general-entities", false)
+      - pattern: |
+          $X.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+      - pattern: |
+          $X.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "")
+      - pattern: |
+          $X.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
+      - pattern: |
+          $X.setExpandEntityReferences(false)
+    message: |
+      XML parser factory used without DTD / external-entity protections.
+      Untrusted XML may trigger XXE attacks (CWE-611). Disable DOCTYPE / general /
+      parameter entities, or use XMLConstants.FEATURE_SECURE_PROCESSING.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-611: Improper Restriction of XML External Entity Reference"
+      confidence: HIGH
+      pack: [web]
+
+  - id: spring-a03-sql-injection-statement-from-requestparam
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  @RequestParam $X $VAR
+              - pattern: |
+                  @RequestParam(...) $X $VAR
+              - pattern: |
+                  @PathVariable $X $VAR
+              - pattern: |
+                  @PathVariable(...) $X $VAR
+              - pattern: |
+                  @RequestBody $X $VAR
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $STMT.executeQuery($Q)
+              - pattern: $STMT.execute($Q)
+              - pattern: $STMT.executeUpdate($Q)
+              - pattern: $CONN.prepareStatement($Q)
+              - pattern: $CONN.createStatement().executeQuery($Q)
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $ANY.setString(...)
+      - patterns:
+          - pattern: $ANY.setInt(...)
+      - patterns:
+          - pattern: $ANY.setLong(...)
+    message: |
+      Spring controller parameter flows into JDBC query construction without
+      parameter binding. Use prepared statements with `setString` / `setInt`
+      placeholders (CWE-89).
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: spring-a03-cmd-injection-runtime-from-requestparam
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  @RequestParam $X $VAR
+              - pattern: |
+                  @RequestParam(...) $X $VAR
+              - pattern: |
+                  @PathVariable $X $VAR
+              - pattern: |
+                  @RequestBody $X $VAR
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: Runtime.getRuntime().exec($CMD, ...)
+              - pattern: new ProcessBuilder($CMD, ...)
+              - pattern: new ProcessBuilder(...).command($CMD, ...)
+    message: |
+      Spring controller parameter flows into Runtime.exec / ProcessBuilder
+      (CWE-78). Validate against an allowlist or avoid invoking the shell.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: spring-a10-ssrf-resttemplate-from-requestparam
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  @RequestParam $X $VAR
+              - pattern: |
+                  @RequestParam(...) $X $VAR
+              - pattern: |
+                  @PathVariable $X $VAR
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $RT.getForEntity($URL, ...)
+              - pattern: $RT.getForObject($URL, ...)
+              - pattern: $RT.postForEntity($URL, ...)
+              - pattern: $RT.postForObject($URL, ...)
+              - pattern: $RT.exchange($URL, ...)
+              - pattern: new URL($URL).openConnection()
+              - pattern: new URL($URL).openStream()
+    message: |
+      Spring controller parameter flows into an outbound HTTP call without
+      host allowlisting (CWE-918). Validate the URL host against an allowlist
+      to prevent SSRF against internal services.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery"
+      confidence: HIGH
+      pack: [web]
+
+  - id: spring-a01-path-traversal-from-requestparam
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  @RequestParam $X $VAR
+              - pattern: |
+                  @RequestParam(...) $X $VAR
+              - pattern: |
+                  @PathVariable $X $VAR
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: new File($P)
+              - pattern: new File($DIR, $P)
+              - pattern: new FileInputStream($P)
+              - pattern: new FileOutputStream($P)
+              - pattern: Files.newInputStream($P)
+              - pattern: Files.newOutputStream($P)
+              - pattern: Paths.get($P)
+              - pattern: Paths.get($P, ...)
+    pattern-sanitizers:
+      - pattern: $P.replace("..", "")
+      - pattern: FilenameUtils.getName($P)
+    message: |
+      Spring controller parameter flows into a file path without normalization
+      (CWE-22). Resolve against a known base directory and reject `..` segments.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-22: Path Traversal"
+      confidence: HIGH
+      pack: [web]
+
+  - id: spring-a08-deserialization-objectinputstream
+    patterns:
+      - pattern-either:
+          - pattern: new ObjectInputStream($STREAM).readObject()
+          - pattern: $OIS.readObject()
+      - metavariable-pattern:
+          metavariable: $OIS
+          patterns:
+            - pattern: new ObjectInputStream(...)
+    message: |
+      Java native deserialization is used. If the input is attacker-controlled
+      this is a remote-code-execution vector (CWE-502). Replace with a typed
+      format (JSON via Jackson + DefaultTyping disabled).
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      confidence: MEDIUM
+      pack: [web]
+
+  - id: spring-a03-sql-injection-prepared-statement-concat
+    # Catches the call-site anti-pattern even when the tainted value comes
+    # from another method (taint analysis can't follow that hop).
+    patterns:
+      - pattern-either:
+          - pattern: $CONN.prepareStatement("..." + $X + "...")
+          - pattern: $CONN.prepareStatement("..." + $X)
+          - pattern: $CONN.prepareStatement($X + "...")
+          - pattern: $CONN.prepareStatement(String.format(...))
+          - pattern: $STMT.executeQuery("..." + $X + "...")
+          - pattern: $STMT.executeQuery("..." + $X)
+          - pattern: $STMT.executeQuery($X + "...")
+          - pattern: $STMT.executeQuery(String.format(...))
+    message: |
+      JDBC query built by string concatenation / `String.format` rather than
+      parameter binding. Even if the input looks pre-sanitized, prefer
+      `prepareStatement` placeholders + `setString` to eliminate SQL injection
+      (CWE-89).
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: spring-a03-xxe-sax-parser-newinstance-call-site
+    # Sink-detection: any SAXParserFactory.newInstance() / DocumentBuilderFactory.newInstance()
+    # that doesn't have one of the standard protections nearby in the same file.
+    patterns:
+      - pattern-either:
+          - pattern: SAXParserFactory.newInstance()
+          - pattern: DocumentBuilderFactory.newInstance()
+          - pattern: XMLInputFactory.newInstance()
+      - pattern-not-inside: |
+          $X.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+          ...
+      - pattern-not-inside: |
+          $X.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+          ...
+      - pattern-not-inside: |
+          $X.setXIncludeAware(false);
+          ...
+    message: |
+      XML parser factory created without disabling DOCTYPE / external DTD access.
+      Untrusted XML can trigger XXE attacks (CWE-611). Add
+      `setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)`
+      or set `ACCESS_EXTERNAL_DTD = ""`.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-611: XML External Entity Reference"
+      confidence: MEDIUM
+      pack: [web]
+
+  - id: spring-a10-ssrf-url-openconnection-call-site
+    # Sink: any new URL(<dynamic>).openConnection() / openStream() — flags the call site
+    # even when the tainted URL string comes from a service method.
+    patterns:
+      - pattern-either:
+          - pattern: new URL($X).openConnection()
+          - pattern: new URL($X).openStream()
+          - pattern: HttpURLConnection $C = (HttpURLConnection) new URL($X).openConnection();
+      - pattern-not: new URL("...").openConnection()
+      - pattern-not: new URL("...").openStream()
+    message: |
+      Outbound HTTP request issued from a dynamic URL value (CWE-918).
+      If the URL can be influenced by the client, validate the host against
+      an allowlist before opening the connection.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery"
+      confidence: MEDIUM
+      pack: [web]
+
+  - id: spring-a05-debug-mode-enabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              management.endpoint.health.show-details = always
+          - pattern: |
+              management.endpoints.web.exposure.include = *
+          - pattern: |
+              spring.boot.admin.client.enabled = true
+          - pattern: |
+              debug = true
+    paths:
+      include:
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+    message: |
+      Spring debug / actuator endpoints exposed in configuration. These leak
+      heap dumps, environment variables, and runtime state to anyone with
+      network access (CWE-200).
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      confidence: MEDIUM
+      pack: [web]

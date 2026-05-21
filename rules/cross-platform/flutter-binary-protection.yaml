@@ -1088,7 +1088,7 @@ rules:
       Reference: Android NDK Security
     severity: WARNING
     languages:
-      - gradle
+      - generic
     metadata:
       category: security
       owasp-mobile-2024: "M7: Insufficient Binary Protections"

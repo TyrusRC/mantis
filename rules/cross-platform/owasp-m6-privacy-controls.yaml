@@ -101,28 +101,6 @@ rules:
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: HIGH
 
-  - id: owasp-m6-clipboard-monitoring
-    patterns:
-      - pattern-either:
-          - pattern: |
-              $CLIPBOARD.addPrimaryClipChangedListener($LISTENER)
-          - pattern: |
-              clipboardManager.addPrimaryClipChangedListener { ... }
-    message: |
-      Clipboard monitoring detected (OWASP M6: Inadequate Privacy Controls).
-      Monitoring clipboard can capture sensitive user data like passwords.
-      Disclose clipboard access in privacy policy and get user consent.
-    severity: WARNING
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: privacy
-      cwe: "CWE-359: Exposure of Private Information"
-      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
-      confidence: MEDIUM
-
-  # ============ DATA COLLECTION & TRACKING ============
 
   - id: owasp-m6-advertising-id-collection
     patterns:
@@ -191,29 +169,6 @@ rules:
 
   # ============ ANALYTICS & THIRD-PARTY SDKS ============
 
-  - id: owasp-m6-analytics-pii-tracking
-    patterns:
-      - pattern-either:
-          - pattern: |
-              $ANALYTICS.logEvent($EVENT, bundleOf("user_email" to $EMAIL))
-          - pattern: |
-              $ANALYTICS.logEvent($EVENT, bundleOf("user_phone" to $PHONE))
-          - pattern: |
-              $ANALYTICS.setUserProperty("email", $EMAIL)
-    message: |
-      PII sent to analytics (OWASP M6: Inadequate Privacy Controls).
-      Sending emails, phone numbers to analytics violates GDPR/CCPA.
-      Use anonymized user IDs instead of direct PII.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-    metadata:
-      category: privacy
-      cwe: "CWE-359: Exposure of Private Information"
-      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
-      compliance: "GDPR Art. 5, CCPA 1798.140"
-      confidence: HIGH
 
   - id: owasp-m6-crashlytics-pii-logging
     patterns:
@@ -330,7 +285,6 @@ rules:
     severity: INFO
     languages:
       - swift
-      - objc
     metadata:
       category: privacy
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
@@ -361,26 +315,3 @@ rules:
       compliance: "GDPR Art. 13, CCPA 1798.115"
       confidence: MEDIUM
 
-  - id: owasp-m6-children-data-collection
-    patterns:
-      - pattern-either:
-          - pattern: |
-              if ($AGE < 13) {
-                ...
-                $API.registerUser($USER_DATA)
-                ...
-              }
-    message: |
-      Data collection from children under 13 (OWASP M6: Inadequate Privacy Controls).
-      COPPA prohibits collecting data from children under 13 without parental consent.
-      Implement age verification and parental consent mechanisms.
-    severity: ERROR
-    languages:
-      - java
-      - kotlin
-      - swift
-    metadata:
-      category: privacy
-      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
-      compliance: "COPPA, GDPR (children's data), CCPA"
-      confidence: MEDIUM

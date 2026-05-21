@@ -21,7 +21,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: privacy
       cwe: "CWE-200: Exposure of Sensitive Information"
@@ -61,7 +60,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: privacy
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
@@ -107,7 +105,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: privacy
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"

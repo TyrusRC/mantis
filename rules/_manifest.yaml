@@ -3,76 +3,66 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 782
-  total_files: 97
+  total_rules: 613
+  total_files: 89
   by_severity:
-    WARNING: 321
-    ERROR: 367
-    INFO: 94
+    WARNING: 273
+    ERROR: 262
+    INFO: 78
   by_language:
-    java: 196
-    kotlin: 196
-    xml: 121
-    gradle: 59
-    json: 33
-    dart: 63
-    generic: 16
+    java: 114
+    kotlin: 98
+    xml: 117
+    generic: 80
+    dart: 31
     yaml: 25
-    ruby: 33
-    swift: 181
-    objc: 95
-    javascript: 78
-    typescript: 77
-    python: 23
-    go: 3
+    ruby: 30
+    swift: 121
+    javascript: 53
+    typescript: 53
+    python: 19
+    json: 26
     bash: 2
     sh: 1
     html: 1
-    objective-c: 13
-    text: 3
-    c: 10
-    txt: 4
-    xcconfig: 3
-    pbxproj: 2
+    c: 5
   by_category:
-    security: 739
-    performance: 2
-    privacy: 41
+    security: 577
+    privacy: 36
   by_owasp_mobile:
-    'M4: Insufficient Input/Output Validation': 79
-    'M8: Security Misconfiguration': 108
-    'M1: Improper Credential Usage': 19
-    'M6: Inadequate Privacy Controls': 51
-    'M5: Insecure Communication': 24
-    'M2: Inadequate Supply Chain Security': 142
-    'M9: Insecure Data Storage': 53
-    'M7: Insufficient Binary Protections': 95
-    'M3: Insecure Authentication/Authorization': 90
-    'M10: Insufficient Cryptography': 41
-    'M3: Insecure Communication': 14
+    'M4: Insufficient Input/Output Validation': 55
+    'M8: Security Misconfiguration': 96
+    'M1: Improper Credential Usage': 2
+    'M6: Inadequate Privacy Controls': 39
+    'M5: Insecure Communication': 17
+    'M2: Inadequate Supply Chain Security': 133
+    'M9: Insecure Data Storage': 33
+    'M10: Insufficient Cryptography': 26
+    'M3: Insecure Communication': 8
+    'M3: Insecure Authentication/Authorization': 52
     'M2: Inadequate Supply Chain Security, M9: Insecure Data Storage': 1
+    'M7: Insufficient Binary Protections': 77
     'M1: Improper Platform Usage': 10
   by_masvs:
-    MASVS-CODE-4: 13
     MASVS-RESILIENCE-4: 2
-    MASVS-NETWORK-1: 38
+    MASVS-NETWORK-1: 25
     MASVS-NETWORK-2: 2
     MASVS-PLATFORM-1: 7
-    MASVS-CRYPTO-2: 12
-    MASVS-STORAGE-2: 26
-    MASVS-AUTH-2: 2
-    MASVS-CRYPTO-1: 30
-    MASVS-STORAGE-1: 20
+    MASVS-CODE-4: 3
+    MASVS-STORAGE-2: 17
+    MASVS-CRYPTO-2: 7
+    MASVS-CRYPTO-1: 19
+    MASVS-STORAGE-1: 8
     MASVS-RESILIENCE-2: 5
     MASVS-RESILIENCE-3: 2
-    MASVS-PRIVACY-1: 5
-    MASVS-AUTH-3: 3
+    MASVS-PRIVACY-1: 4
     MASVS-PLATFORM-2: 18
+    MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 400
-    MEDIUM: 253
-    LOW: 97
-    VERY_HIGH: 32
+    HIGH: 298
+    MEDIUM: 210
+    LOW: 78
+    VERY_HIGH: 27
   parse_errors: []
 rules:
 - file: rules/android/android-advanced-pentesting-patterns.yaml
@@ -122,60 +112,6 @@ rules:
   owasp_mobile: 'M1: Improper Credential Usage'
   owasp: null
   masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: HackTricks Android Pentesting
-- file: rules/android/android-advanced-pentesting-patterns.yaml
-  id: hacktricks-sql-like-injection-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-89: SQL Injection'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: HackTricks Android Pentesting
-- file: rules/android/android-advanced-pentesting-patterns.yaml
-  id: hacktricks-intent-scheme-url-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-939: Improper Authorization in Handler for Custom URL Scheme'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: HackTricks Android Pentesting
-- file: rules/android/android-advanced-pentesting-patterns.yaml
-  id: hacktricks-pending-intent-mutable-improved
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-94: Improper Control of Generation of Code'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: MASVS-CODE-4
   maswe: null
   cve: []
   cvss: null
@@ -391,7 +327,7 @@ rules:
   id: android-dep-okhttp-vulnerable-versions
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -408,7 +344,7 @@ rules:
   id: android-dep-retrofit-vulnerable
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -425,7 +361,7 @@ rules:
   id: android-dep-gson-vulnerable
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
@@ -442,7 +378,7 @@ rules:
   id: android-dep-glide-vulnerable
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -456,27 +392,10 @@ rules:
   pack: []
   source: null
 - file: rules/android/android-dependency-security.yaml
-  id: android-dep-firebase-bom-outdated
-  severity: WARNING
-  languages:
-  - gradle
-  category: security
-  cwe:
-  - 'CWE-1104: Use of Unmaintained Third Party Components'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/android-dependency-security.yaml
   id: android-dep-androidx-outdated-core
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -493,7 +412,7 @@ rules:
   id: android-dep-play-services-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -510,7 +429,7 @@ rules:
   id: android-dep-jcenter-repository
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -527,7 +446,7 @@ rules:
   id: android-dep-deprecated-support-library
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -544,7 +463,7 @@ rules:
   id: android-dep-apache-httpclient
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -561,7 +480,7 @@ rules:
   id: android-dep-insecure-repository-url
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -578,7 +497,7 @@ rules:
   id: android-dep-wildcard-version
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -595,7 +514,7 @@ rules:
   id: android-dep-dynamic-version-range
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -612,7 +531,7 @@ rules:
   id: android-dep-no-checksum-verification
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -629,7 +548,7 @@ rules:
   id: android-dep-buildscript-arbitrary-code
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -646,7 +565,7 @@ rules:
   id: android-dep-insecure-plugin-resolution
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -663,7 +582,7 @@ rules:
   id: android-dep-aar-binary-dependency
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -680,7 +599,7 @@ rules:
   id: android-dep-jar-binary-dependency
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -697,7 +616,7 @@ rules:
   id: android-dep-log4j-vulnerable
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
@@ -714,7 +633,7 @@ rules:
   id: android-dep-jackson-databind-vulnerable
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
@@ -731,7 +650,7 @@ rules:
   id: android-dep-kotlin-stdlib-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -748,7 +667,7 @@ rules:
   id: android-dep-realm-vulnerable
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -765,7 +684,7 @@ rules:
   id: android-dep-facebook-sdk-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -782,7 +701,7 @@ rules:
   id: android-dep-admob-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -799,7 +718,7 @@ rules:
   id: android-dep-okhttp2-deprecated
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-295: Improper Certificate Validation'
@@ -816,7 +735,7 @@ rules:
   id: android-dep-bouncycastle-vulnerable
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -833,7 +752,7 @@ rules:
   id: android-dep-moshi-vulnerable
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -850,7 +769,7 @@ rules:
   id: android-dep-picasso-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -867,7 +786,7 @@ rules:
   id: android-dep-conscrypt-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -884,7 +803,7 @@ rules:
   id: android-dep-room-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-89: SQL Injection'
@@ -901,7 +820,7 @@ rules:
   id: android-dep-work-manager-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -918,7 +837,7 @@ rules:
   id: android-dep-exoplayer-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -935,7 +854,7 @@ rules:
   id: android-dep-koin-outdated
   severity: INFO
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -952,7 +871,7 @@ rules:
   id: android-dep-dagger-outdated
   severity: INFO
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -969,7 +888,7 @@ rules:
   id: android-dep-rxjava-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-209: Generation of Error Message Containing Sensitive Information'
@@ -986,7 +905,7 @@ rules:
   id: android-dep-lottie-outdated
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -1003,7 +922,7 @@ rules:
   id: android-dep-suspicious-package-name
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1021: Improper Restriction of Rendered UI Layers or Frames'
@@ -1433,24 +1352,6 @@ rules:
   confidence: HIGH
   pack: []
   source: HackTricks Android Pentesting
-- file: rules/android/android-pentesting-patterns.yaml
-  id: hacktricks-permission-check-bypass
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-862: Missing Authorization'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: HackTricks Android Pentesting
 - file: rules/android/cve-binder-exploitation.yaml
   id: cve-2019-2215-bad-binder-uaf
   severity: ERROR
@@ -1489,42 +1390,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/android/cve-binder-exploitation.yaml
-  id: android-binder-missing-permission-check
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-862: Missing Authorization'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/cve-binder-exploitation.yaml
-  id: android-binder-parcel-use-after-recycle
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-416: Use After Free'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/android/cve-hardware-hal.yaml
   id: qualcomm-chipset-vuln-2025-pattern
   severity: WARNING
@@ -1542,43 +1407,6 @@ rules:
   - CVE-2025-21479, CVE-2025-27038
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/cve-input-validation.yaml
-  id: bug-bounty-insecure-deep-link-2024
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: Bug Bounty Programs 2024
-- file: rules/android/cve-memory-corruption.yaml
-  id: cve-2024-53104-oob-write-pattern
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-787: Out-of-bounds Write'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve:
-  - CVE-2024-53104
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/cve-network-communication.yaml
@@ -1675,24 +1503,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/android/cve-ui-social-engineering.yaml
-  id: social-engineering-overlay-attack-2024
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-1021: Improper Restriction of Rendered UI Layers'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: Black Hat Asia 2024 - Appdome Research
 - file: rules/android/cve-webview-browser.yaml
   id: chrome-zero-day-webview-2024-pattern
   severity: WARNING
@@ -1711,42 +1521,6 @@ rules:
   confidence: MEDIUM
   pack: []
   source: null
-- file: rules/android/mastg-random-number-generation-improved.yaml
-  id: mastg-test-0016-insecure-random-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/mastg-random-number-generation-improved.yaml
-  id: mastg-test-0016-securerandom-default-seed
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-337: Predictable Seed in Pseudo-Random Number Generator'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/android/mastg-storage-crypto-tests-improved.yaml
   id: mastg-test-0003-log-sensitive-data-improved
   severity: ERROR
@@ -1759,42 +1533,6 @@ rules:
   owasp_mobile: 'M9: Insecure Data Storage'
   owasp: null
   masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests-improved.yaml
-  id: mastg-test-0011-string-password-in-memory-improved
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-316: Cleartext Storage of Sensitive Information in Memory'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests-improved.yaml
-  id: mastg-test-0016-insecure-random-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-2
   maswe: null
   cve: []
   cvss: null
@@ -1905,60 +1643,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0011-string-password-in-memory
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-316: Cleartext Storage of Sensitive Information in Memory'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0011-password-not-cleared
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-316: Cleartext Storage of Sensitive Information in Memory'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0011-clipboard-sensitive-data
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-200: Exposure of Sensitive Information'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
   id: mastg-test-0016-insecure-random
   severity: ERROR
   languages:
@@ -1967,24 +1651,6 @@ rules:
   category: security
   cwe:
   - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0016-securerandom-default-seed
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-337: Predictable Seed in Pseudo-Random Number Generator'
   owasp_mobile: 'M10: Insufficient Cryptography'
   owasp: null
   masvs: MASVS-CRYPTO-2
@@ -2013,40 +1679,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0017-missing-biometric-fallback
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: MASVS-AUTH-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0017-keyguard-manager-legacy
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: MASVS-AUTH-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
   id: mastg-test-0022-missing-certificate-pinning
   severity: WARNING
   languages:
@@ -2063,151 +1695,8 @@ rules:
   confidence: MEDIUM
   pack: []
   source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0022-certificate-pinner-okhttp
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M5: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0022-trustmanager-accepts-all
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-295: Improper Certificate Validation'
-  owasp_mobile: 'M5: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-weak-hash-md5-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-weak-hash-sha1-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-static-iv-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-329: Generation of Predictable IV with CBC Mode'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-custom-xor-obfuscation-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-weak-cipher-des-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
   id: mastg-android-weak-cipher-rc4-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-ecb-mode-encryption-improved
   severity: ERROR
   languages:
   - java
@@ -2240,24 +1729,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms-improved.yaml
-  id: mastg-android-custom-rc4-implementation-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
   pack: []
   source: null
 - file: rules/android/masvs-crypto-weak-algorithms.yaml
@@ -2351,24 +1822,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/masvs-crypto-weak-algorithms.yaml
-  id: mastg-android-custom-rc4-implementation
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms.yaml
   id: mastg-android-ecb-mode-encryption
   severity: ERROR
   languages:
@@ -2387,24 +1840,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/masvs-crypto-weak-algorithms.yaml
-  id: mastg-android-static-iv
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-329: Generation of Predictable IV with CBC Mode'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/masvs-crypto-weak-algorithms.yaml
   id: mastg-android-weak-key-size
   severity: ERROR
   languages:
@@ -2416,78 +1851,6 @@ rules:
   owasp_mobile: 'M10: Insufficient Cryptography'
   owasp: null
   masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-network-insecure-communication-improved.yaml
-  id: mastg-android-cleartext-http-url-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-network-insecure-communication-improved.yaml
-  id: mastg-android-okhttp-cleartext-http-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-network-insecure-communication-improved.yaml
-  id: mastg-android-retrofit-http-base-url-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-network-insecure-communication.yaml
-  id: mastg-android-cleartext-http-url
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
   maswe: null
   cve: []
   cvss: null
@@ -2548,60 +1911,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/android/masvs-network-insecure-communication.yaml
-  id: mastg-android-ssl-error-proceed
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-295: Improper Certificate Validation'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-network-insecure-communication.yaml
-  id: mastg-android-insecure-socket-factory
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-326: Inadequate Encryption Strength'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-storage-insecure-sharedpreferences-improved.yaml
-  id: mastg-android-insecure-sharedpreferences-sensitive-data-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/android/masvs-storage-insecure-sharedpreferences-improved.yaml
   id: mastg-android-sharedpreferences-world-readable
   severity: ERROR
@@ -2618,23 +1927,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/masvs-storage-insecure-sharedpreferences-improved.yaml
-  id: mastg-android-commit-without-apply
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: performance
-  cwe: []
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
   pack: []
   source: null
 - file: rules/android/masvs-storage-insecure-sharedpreferences.yaml
@@ -2673,84 +1965,12 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/android/masvs-storage-insecure-sharedpreferences.yaml
-  id: mastg-android-commit-without-apply
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: performance
-  cwe: []
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m3-authentication-authorization.yaml
-  id: owasp-m3-biometric-event-based-auth
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m3-authentication-authorization.yaml
-  id: owasp-m3-biometric-no-crypto-object
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/android/owasp-m3-authentication-authorization.yaml
   id: owasp-m3-jwt-no-signature-verification
   severity: ERROR
   languages:
   - java
   - kotlin
-  category: security
-  cwe:
-  - 'CWE-347: Improper Verification of Cryptographic Signature'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m3-authentication-authorization.yaml
-  id: owasp-m3-jwt-none-algorithm
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - json
   category: security
   cwe:
   - 'CWE-347: Improper Verification of Cryptographic Signature'
@@ -2872,24 +2092,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m3-authentication-authorization.yaml
-  id: owasp-m3-api-call-no-auth-header
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-306: Missing Authentication for Critical Function'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/owasp-m3-authentication-authorization.yaml
   id: owasp-m3-weak-password-policy
   severity: WARNING
   languages:
@@ -2981,42 +2183,6 @@ rules:
   source: null
 - file: rules/android/owasp-m4-input-validation.yaml
   id: owasp-m4-sql-string-concatenation
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-89: SQL Injection'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-content-provider-sql-injection
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-89: SQL Injection'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-content-provider-sql-concat
   severity: ERROR
   languages:
   - java
@@ -3142,78 +2308,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-weak-url-validation-contains
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-20: Improper Input Validation'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-intent-injection
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-927: Use of Implicit Intent for Sensitive Communication'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-xxe-vulnerability
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-611: XML External Entity Reference'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-unsafe-deserialization
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-502: Deserialization of Untrusted Data'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
   id: owasp-m4-regex-dos
   severity: WARNING
   languages:
@@ -3229,24 +2323,6 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-input-validation.yaml
-  id: owasp-m4-deeplink-no-validation
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/owasp-m4-input-validation.yaml
@@ -3268,24 +2344,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m4-sql-injection-improved.yaml
-  id: owasp-m4-sql-injection-rawquery-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-89: SQL Injection'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-sql-injection-improved.yaml
   id: owasp-m4-sql-string-concatenation-improved
   severity: ERROR
   languages:
@@ -3301,78 +2359,6 @@ rules:
   cve: []
   cvss: null
   confidence: VERY_HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-sql-injection-improved.yaml
-  id: owasp-m4-sql-injection-room-rawquery-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-89: SQL Injection'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-webview-improved.yaml
-  id: owasp-m4-webview-url-injection-improved
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m4-webview-improved.yaml
-  id: owasp-m4-weak-url-validation-contains-improved
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m5-m9-additional-patterns.yaml
-  id: owasp-m5-unvalidated-sms-intent
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-20: Improper Input Validation'
-  owasp_mobile: 'M5: Insecure Communication'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/owasp-m5-m9-additional-patterns.yaml
@@ -3448,23 +2434,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m5-m9-additional-patterns.yaml
-  id: owasp-m9-fileprovider-root-path
-  severity: ERROR
-  languages:
-  - xml
-  category: security
-  cwe:
-  - 'CWE-732: Incorrect Permission Assignment for Critical Resource'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m5-m9-additional-patterns.yaml
   id: owasp-m8-exported-receiver-no-permission
   severity: ERROR
   languages:
@@ -3479,23 +2448,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-binary-protections-improved.yaml
-  id: owasp-m7-missing-root-detection-improved
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
   pack: []
   source: null
 - file: rules/android/owasp-m7-binary-protections-improved.yaml
@@ -3519,7 +2471,7 @@ rules:
   id: owasp-m7-proguard-disabled
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-656: Reliance on Security Through Obscurity'
@@ -3536,7 +2488,7 @@ rules:
   id: owasp-m7-shrink-resources-disabled
   severity: INFO
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -3602,79 +2554,10 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m7-binary-protections.yaml
-  id: owasp-m7-missing-root-detection
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-binary-protections.yaml
-  id: owasp-m7-missing-signature-check
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-494: Download of Code Without Integrity Check'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-binary-protections.yaml
-  id: owasp-m7-missing-checksum-validation
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-binary-protections.yaml
-  id: owasp-m7-missing-emulator-detection
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-binary-protections.yaml
   id: owasp-m7-stripped-native-libs
   severity: INFO
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -3755,42 +2638,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m7-logging-improved.yaml
-  id: owasp-m7-excessive-logging-improved
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-532: Insertion of Sensitive Information into Log File'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-logging-improved.yaml
-  id: owasp-m7-stack-trace-exposed-improved
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-209: Information Exposure Through Error Message'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m7-logging-improved.yaml
   id: owasp-m7-log-production-enabled
   severity: INFO
   languages:
@@ -3812,7 +2659,7 @@ rules:
   id: m8-android-build-type-debuggable-release
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-489: Active Debug Code'
@@ -3829,7 +2676,7 @@ rules:
   id: m8-android-signing-config-hardcoded-credentials
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-798: Use of Hard-coded Credentials'
@@ -3846,7 +2693,7 @@ rules:
   id: m8-android-build-config-api-keys
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-798: Use of Hard-coded Credentials'
@@ -3863,7 +2710,7 @@ rules:
   id: m8-android-proguard-disabled-release
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -3879,7 +2726,7 @@ rules:
   id: m8-android-insecure-dependency-resolution
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -3896,7 +2743,7 @@ rules:
   id: m8-android-dependency-dynamic-version
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
@@ -4006,24 +2853,6 @@ rules:
   pack: []
   source: null
 - file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
-  id: owasp-m8-deeplink-no-validation
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
   id: owasp-m8-custom-scheme-deeplink
   severity: WARNING
   languages:
@@ -4038,41 +2867,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
-  id: owasp-m8-deeplink-intent-redirection
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
-  id: owasp-m8-permission-any
-  severity: WARNING
-  languages:
-  - xml
-  category: security
-  cwe:
-  - 'CWE-732: Incorrect Permission Assignment for Critical Resource'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
   pack: []
   source: null
 - file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
@@ -4262,59 +3056,6 @@ rules:
   confidence: MEDIUM
   pack: []
   source: null
-- file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
-  id: mastg-test-0024-permission-no-rationale
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: privacy
-  cwe: []
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration-improved.yaml
-  id: mastg-test-0035-flag-secure-missing-sensitive
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-1021: Improper Restriction of Rendered UI Layers'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration.yaml
-  id: owasp-m8-deeplink-no-validation
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/android/owasp-m8-security-misconfiguration.yaml
   id: owasp-m8-custom-scheme-deeplink
   severity: WARNING
@@ -4323,24 +3064,6 @@ rules:
   category: security
   cwe:
   - 'CWE-939: Improper Authorization in Handler for Custom URL Scheme'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration.yaml
-  id: owasp-m8-deeplink-intent-redirection
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-601: URL Redirection to Untrusted Site'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -4621,110 +3344,6 @@ rules:
   confidence: MEDIUM
   pack: []
   source: null
-- file: rules/android/owasp-m8-security-misconfiguration.yaml
-  id: mastg-test-0035-overlay-attack-vulnerable
-  severity: WARNING
-  languages:
-  - xml
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-1021: Improper Restriction of Rendered UI Layers'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/android/owasp-m8-security-misconfiguration.yaml
-  id: mastg-test-0035-flag-secure-missing
-  severity: INFO
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe: []
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-biometric-event-based-no-crypto
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: MASVS-AUTH-3
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-biometric-no-fallback
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-306: Missing Authentication for Critical Function'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-jwt-no-signature-verification
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-347: Improper Verification of Cryptographic Signature'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-jwt-hardcoded-secret
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/cross-platform/flutter-auth-insecure.yaml
   id: flutter-jwt-no-expiration-check
   severity: WARNING
@@ -4740,40 +3359,6 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-oauth-no-pkce
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-940: Improper Verification of Source of a Communication Channel'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-oauth-implicit-flow
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-522: Insufficiently Protected Credentials'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/flutter-auth-insecure.yaml
@@ -4794,40 +3379,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-client-side-auth-check
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-603: Use of Client-Side Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-session-no-timeout
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-613: Insufficient Session Expiration'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
   id: flutter-token-in-url
   severity: ERROR
   languages:
@@ -4835,91 +3386,6 @@ rules:
   category: security
   cwe:
   - 'CWE-598: Use of GET Request Method With Sensitive Query Strings'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-client-side-authorization
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-862: Missing Authorization'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-firebase-auth-no-email-verification
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-firebase-auth-weak-password
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-521: Weak Password Requirements'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-firebase-auth-no-mfa
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-308: Use of Single-factor Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-auth-insecure.yaml
-  id: flutter-firebase-missing-reauthentication
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-306: Missing Authentication for Critical Function'
   owasp_mobile: 'M3: Insecure Authentication/Authorization'
   owasp: null
   masvs: null
@@ -5081,7 +3547,7 @@ rules:
   id: flutter-m7-unprotected-native-code
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -5213,7 +3679,7 @@ rules:
   id: flutter-m7-android-proguard-disabled
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -5276,22 +3742,6 @@ rules:
   source: null
 - file: rules/cross-platform/flutter-binary-protections.yaml
   id: flutter-m7-missing-app-integrity-check
-  severity: INFO
-  languages:
-  - dart
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-binary-protections.yaml
-  id: flutter-m7-screenshot-protection-missing
   severity: INFO
   languages:
   - dart
@@ -5476,23 +3926,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/flutter-crypto-insecure.yaml
-  id: flutter-hardcoded-crypto-key
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-321: Use of Hard-coded Cryptographic Key'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-crypto-insecure.yaml
   id: flutter-weak-encryption-algorithm
   severity: ERROR
   languages:
@@ -5500,23 +3933,6 @@ rules:
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-crypto-insecure.yaml
-  id: flutter-insecure-random
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
   owasp_mobile: 'M10: Insufficient Cryptography'
   owasp: null
   masvs: null
@@ -5917,40 +4333,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/cross-platform/flutter-network-insecure.yaml
-  id: flutter-certificate-validation-bypass
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-295: Improper Certificate Validation'
-  owasp_mobile: 'M5: Insecure Communication'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: VERY_HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-network-insecure.yaml
-  id: flutter-webview-javascript-enabled-untrusted
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-79: Improper Neutralization of Input During Web Page Generation'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/cross-platform/flutter-storage-insecure.yaml
   id: flutter-shared-preferences-sensitive-data
   severity: ERROR
@@ -6176,88 +4558,15 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-api-key-string
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: MASWE-0005
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-aws-credentials
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  - go
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: MASWE-0005
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-password
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  - go
-  category: security
-  cwe:
-  - 'CWE-259: Use of Hard-coded Password'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: MASWE-0005
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
   id: mastg-hardcoded-private-key
   severity: ERROR
   languages:
   - java
   - kotlin
   - swift
-  - objc
   - javascript
   - typescript
   - python
-  - go
   category: security
   cwe:
   - 'CWE-321: Use of Hard-coded Cryptographic Key'
@@ -6265,89 +4574,6 @@ rules:
   owasp: null
   masvs: MASVS-CRYPTO-2
   maswe: MASWE-0013
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-jwt-secret
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-321: Use of Hard-coded Cryptographic Key'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: MASWE-0013
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-database-credentials
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: MASWE-0005
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-encryption-key
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-321: Use of Hard-coded Cryptographic Key'
-  owasp_mobile: 'M10: Insufficient Cryptography'
-  owasp: null
-  masvs: MASVS-CRYPTO-2
-  maswe: MASWE-0013
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/masvs-code-hardcoded-secrets.yaml
-  id: mastg-hardcoded-oauth-secret
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: MASWE-0005
   cve: []
   cvss: null
   confidence: HIGH
@@ -6481,7 +4707,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-94: Improper Control of Generation of Code'
@@ -6499,7 +4724,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-749: Exposed Dangerous Method or Function'
@@ -6517,7 +4741,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-477: Use of Obsolete Function'
@@ -6582,403 +4805,11 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-aws-access-key-id
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-aws-secret-key
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-google-api-key
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-google-oauth-secret
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-firebase-url
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe: []
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-slack-token
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-slack-webhook
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-200: Exposure of Sensitive Information'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-stripe-api-key
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-paypal-token
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-mongodb-connection-string
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  - python
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-redis-password
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-bearer-token
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-basic-auth-header
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-github-token
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-twilio-credentials
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-sendgrid-api-key
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m1-credential-leakage.yaml
-  id: owasp-m1-mailgun-api-key
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  - swift
-  - objc
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M1: Improper Credential Usage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m2-supply-chain-security.yaml
-  id: owasp-m2-http-dependency-url
-  severity: ERROR
-  languages:
-  - gradle
-  - json
-  - ruby
-  category: security
-  cwe:
-  - 'CWE-494: Download of Code Without Integrity Check'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/cross-platform/owasp-m2-supply-chain-security.yaml
   id: owasp-m2-insecure-gradle-plugin
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -6995,7 +4826,7 @@ rules:
   id: owasp-m2-deprecated-library-okhttp2
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -7012,7 +4843,7 @@ rules:
   id: owasp-m2-vulnerable-apache-commons
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
@@ -7051,24 +4882,6 @@ rules:
   category: security
   cwe:
   - 'CWE-829: Inclusion of Functionality from Untrusted Control Sphere'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m2-supply-chain-security.yaml
-  id: owasp-m2-dexclassloader-usage
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: security
-  cwe:
-  - 'CWE-494: Download of Code Without Integrity Check'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -7204,7 +5017,7 @@ rules:
   id: owasp-m2-untrusted-plugin
   severity: INFO
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
@@ -7217,74 +5030,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-biometric-event-based-auth
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: MASVS-AUTH-3
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-biometric-weak-config
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-306: Missing Authentication for Critical Function'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-jwt-no-signature-verification
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-347: Improper Verification of Cryptographic Signature'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-jwt-hardcoded-secret
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
   id: flutter-m3-jwt-no-expiration-check
   severity: WARNING
   languages:
@@ -7292,57 +5037,6 @@ rules:
   category: security
   cwe:
   - 'CWE-613: Insufficient Session Expiration'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-oauth-no-pkce
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-940: Improper Verification of Source of a Communication Channel'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-oauth-implicit-flow
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-522: Insufficiently Protected Credentials'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-oauth-state-missing
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-352: Cross-Site Request Forgery (CSRF)'
   owasp_mobile: 'M3: Insecure Authentication/Authorization'
   owasp: null
   masvs: null
@@ -7370,40 +5064,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-client-side-auth-check
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-603: Use of Client-Side Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-session-no-timeout
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-613: Insufficient Session Expiration'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
   id: flutter-m3-token-in-url
   severity: ERROR
   languages:
@@ -7421,23 +5081,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-client-side-authorization
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-862: Missing Authorization'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
   id: flutter-m3-deeplink-auth-bypass
   severity: ERROR
   languages:
@@ -7452,57 +5095,6 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-social-auth-no-validation
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-api-key-hardcoded
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-798: Use of Hard-coded Credentials'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m3-authentication-authorization.yaml
-  id: flutter-m3-no-auth-header
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-306: Missing Authentication for Critical Function'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m4-flutter-injection-vulnerabilities.yaml
@@ -7530,23 +5122,6 @@ rules:
   category: security
   cwe:
   - 'CWE-89: SQL Injection'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m4-flutter-injection-vulnerabilities.yaml
-  id: owasp-m4-flutter-webview-xss
-  severity: ERROR
-  languages:
-  - dart
-  category: security
-  cwe:
-  - 'CWE-79: Cross-Site Scripting'
   owasp_mobile: 'M4: Insufficient Input/Output Validation'
   owasp: null
   masvs: null
@@ -7746,24 +5321,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m6-privacy-controls.yaml
-  id: owasp-m6-clipboard-monitoring
-  severity: WARNING
-  languages:
-  - java
-  - kotlin
-  category: privacy
-  cwe:
-  - 'CWE-359: Exposure of Private Information'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m6-privacy-controls.yaml
   id: owasp-m6-advertising-id-collection
   severity: WARNING
   languages:
@@ -7812,24 +5369,6 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m6-privacy-controls.yaml
-  id: owasp-m6-analytics-pii-tracking
-  severity: ERROR
-  languages:
-  - java
-  - kotlin
-  category: privacy
-  cwe:
-  - 'CWE-359: Exposure of Private Information'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m6-privacy-controls.yaml
@@ -7904,7 +5443,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: privacy
   cwe: []
   owasp_mobile: 'M6: Inadequate Privacy Controls'
@@ -7919,24 +5457,6 @@ rules:
 - file: rules/cross-platform/owasp-m6-privacy-controls.yaml
   id: owasp-m6-third-party-data-sharing
   severity: WARNING
-  languages:
-  - java
-  - kotlin
-  - swift
-  category: privacy
-  cwe: []
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/owasp-m6-privacy-controls.yaml
-  id: owasp-m6-children-data-collection
-  severity: ERROR
   languages:
   - java
   - kotlin
@@ -8141,7 +5661,7 @@ rules:
   id: flutter-gradle-insecure-repository
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download Without Integrity Check'
@@ -8158,7 +5678,7 @@ rules:
   id: flutter-gradle-allow-insecure-protocol
   severity: ERROR
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M8: Security Misconfiguration'
@@ -8492,23 +6012,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protection.yaml
-  id: react-native-m7-unobfuscated-bundle
-  severity: ERROR
-  languages:
-  - json
-  category: security
-  cwe:
-  - 'CWE-656: Reliance on Security Through Obscurity'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protection.yaml
   id: react-native-m7-dev-mode-in-production
   severity: WARNING
   languages:
@@ -8580,23 +6083,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protection.yaml
-  id: react-native-m7-hermes-disabled
-  severity: WARNING
-  languages:
-  - gradle
-  - ruby
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protection.yaml
   id: react-native-m7-source-maps-in-bundle
   severity: WARNING
   languages:
@@ -8616,7 +6102,7 @@ rules:
   id: react-native-m7-proguard-disabled-android
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -8663,40 +6149,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protections.yaml
-  id: react-native-m7-bundle-not-minified
-  severity: ERROR
-  languages:
-  - json
-  category: security
-  cwe:
-  - 'CWE-656: Reliance on Security Through Obscurity'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: VERY_HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protections.yaml
-  id: react-native-m7-hermes-disabled
-  severity: ERROR
-  languages:
-  - gradle
-  - ruby
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: VERY_HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protections.yaml
   id: react-native-m7-sourcemaps-in-production
   severity: WARNING
   languages:
@@ -8710,24 +6162,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protections.yaml
-  id: react-native-m7-dev-mode-security-bypass
-  severity: ERROR
-  languages:
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-489: Active Debug Code'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: VERY_HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protections.yaml
@@ -8787,7 +6221,7 @@ rules:
   id: react-native-m7-proguard-disabled
   severity: WARNING
   languages:
-  - gradle
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -8874,7 +6308,6 @@ rules:
   languages:
   - javascript
   - typescript
-  - objective-c
   category: security
   cwe:
   - 'CWE-489: Active Debug Code'
@@ -8902,39 +6335,6 @@ rules:
   cve: []
   cvss: null
   confidence: VERY_HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-config-security.yaml
-  id: react-native-insecure-scripts
-  severity: WARNING
-  languages:
-  - json
-  category: security
-  cwe: []
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-config-security.yaml
-  id: react-native-dependency-git-source
-  severity: WARNING
-  languages:
-  - json
-  category: security
-  cwe:
-  - 'CWE-494: Download of Code Without Integrity Check'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-config-security.yaml
@@ -9022,40 +6422,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/cross-platform/react-native-config-security.yaml
-  id: react-native-metro-insecure-config
-  severity: WARNING
-  languages:
-  - javascript
-  category: security
-  cwe: []
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-config-security.yaml
-  id: react-native-sensitive-props-exposure
-  severity: WARNING
-  languages:
-  - javascript
-  - typescript
-  category: privacy
-  cwe:
-  - 'CWE-200: Exposure of Sensitive Information'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: MASVS-PRIVACY-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
 - file: rules/cross-platform/react-native-dependency-security.yaml
   id: react-native-dep-package-lock-missing
   severity: WARNING
@@ -9071,23 +6437,6 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-dependency-security.yaml
-  id: react-native-dep-http-registry
-  severity: ERROR
-  languages:
-  - json
-  category: security
-  cwe:
-  - 'CWE-494: Download of Code Without Integrity Check'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-dependency-security.yaml
@@ -9414,43 +6763,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/cross-platform/react-native-network-insecure.yaml
-  id: react-native-ssl-pinning-disabled
-  severity: ERROR
-  languages:
-  - javascript
-  - typescript
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-295: Improper Certificate Validation'
-  owasp_mobile: 'M5: Insecure Communication'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: VERY_HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-network-insecure.yaml
-  id: react-native-webview-javascript-enabled
-  severity: WARNING
-  languages:
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-79: Improper Neutralization of Input During Web Page Generation'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/cross-platform/react-native-storage-insecure.yaml
   id: react-native-asyncstorage-sensitive-data
   severity: ERROR
@@ -9505,49 +6817,11 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/ios/cve-hardware-accessories.yaml
-  id: physical-access-usb-attack-pattern
-  severity: WARNING
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-1188: Insecure Default Initialization of Resource'
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/cve-imageio-processing.yaml
-  id: cve-2025-43300-imageio-oob-write
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-787: Out-of-bounds Write'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: null
-  cve:
-  - CVE-2025-43300
-  cvss: '8.8'
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/ios/cve-imageio-processing.yaml
   id: cve-2023-41064-blastpass-imageio
   severity: ERROR
   languages:
   - swift
-  - objective-c
   category: security
   cwe:
   - 'CWE-120: Buffer Overflow'
@@ -9566,7 +6840,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objective-c
   category: security
   cwe:
   - 'CWE-400: Uncontrolled Resource Consumption'
@@ -9579,126 +6852,11 @@ rules:
   confidence: MEDIUM
   pack: []
   source: null
-- file: rules/ios/cve-media-processing.yaml
-  id: cve-2025-43300-imageio-oob-write
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-787: Out-of-bounds Write'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve:
-  - CVE-2025-43300
-  cvss: 8.8
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/cve-media-processing.yaml
-  id: cve-2025-31200-coreaudio-memory-corruption
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-119: Improper Restriction of Operations within Memory Buffer Bounds'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve:
-  - CVE-2025-31200
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/cve-media-processing.yaml
-  id: cve-2025-24085-coremedia-uaf
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-416: Use After Free'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve:
-  - CVE-2025-24085
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/cve-memory-pointer-safety.yaml
-  id: cve-2025-31201-rpac-bypass-pattern
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-823: Use of Out-of-range Pointer Offset'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve:
-  - CVE-2025-31201
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/cve-webkit-exploitation.yaml
-  id: cve-2023-32435-webkit-triangulation
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-787: Out-of-bounds Write'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: null
-  cve:
-  - CVE-2023-32435
-  cvss: '8.8'
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/cve-webkit-exploitation.yaml
-  id: cve-2021-30860-forcedentry-coregraphics
-  severity: ERROR
-  languages:
-  - swift
-  - objective-c
-  category: security
-  cwe:
-  - 'CWE-190: Integer Overflow'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: MASVS-CODE-4
-  maswe: null
-  cve:
-  - CVE-2021-30860
-  cvss: '9.8'
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/ios/cve-webkit-exploitation.yaml
   id: ios-webkit-javascript-bridge-unsafe
   severity: WARNING
   languages:
   - swift
-  - objective-c
   category: security
   cwe:
   - 'CWE-20: Improper Input Validation'
@@ -9716,7 +6874,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-311: Missing Encryption of Sensitive Data'
@@ -9734,7 +6891,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-311: Missing Encryption of Sensitive Data'
@@ -9752,7 +6908,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-524: Use of Cache Containing Sensitive Information'
@@ -9770,7 +6925,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-524: Use of Cache Containing Sensitive Information'
@@ -9788,7 +6942,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-359: Exposure of Private Personal Information'
@@ -9806,7 +6959,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-359: Exposure of Private Personal Information'
@@ -9824,7 +6976,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-922: Insecure Storage of Sensitive Information'
@@ -9837,24 +6988,6 @@ rules:
   confidence: MEDIUM
   pack: []
   source: HackTricks, Ivan Sincek
-- file: rules/ios/ios-critical-storage-privacy.yaml
-  id: hacktricks-ios-keyboard-extension-network
-  severity: ERROR
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-359: Exposure of Private Personal Information'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: Ivan Sincek
 - file: rules/ios/ios-dependency-security.yaml
   id: ios-dep-cocoapods-insecure-source
   severity: ERROR
@@ -9975,23 +7108,6 @@ rules:
   pack: []
   source: null
 - file: rules/ios/ios-dependency-security.yaml
-  id: ios-dep-spm-http-url
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-494: Download of Code Without Integrity Check'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/ios-dependency-security.yaml
   id: ios-dep-spm-branch-dependency
   severity: WARNING
   languages:
@@ -10012,7 +7128,7 @@ rules:
   id: ios-dep-carthage-http-url
   severity: ERROR
   languages:
-  - text
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -10029,7 +7145,7 @@ rules:
   id: ios-dep-carthage-no-version
   severity: WARNING
   languages:
-  - text
+  - generic
   category: security
   cwe:
   - 'CWE-1104: Use of Unmaintained Third Party Components'
@@ -10046,7 +7162,7 @@ rules:
   id: ios-dep-embedded-binary-framework
   severity: WARNING
   languages:
-  - text
+  - generic
   category: security
   cwe:
   - 'CWE-494: Download of Code Without Integrity Check'
@@ -10384,7 +7500,6 @@ rules:
   id: hacktricks-ios-unsafe-gets
   severity: ERROR
   languages:
-  - objc
   - c
   category: security
   cwe:
@@ -10402,7 +7517,6 @@ rules:
   id: hacktricks-ios-unsafe-strcpy
   severity: ERROR
   languages:
-  - objc
   - c
   category: security
   cwe:
@@ -10420,7 +7534,6 @@ rules:
   id: hacktricks-ios-malloc-without-free
   severity: WARNING
   languages:
-  - objc
   - c
   category: security
   cwe:
@@ -10452,29 +7565,10 @@ rules:
   pack: []
   source: HackTricks iOS Pentesting
 - file: rules/ios/ios-pentesting-patterns.yaml
-  id: hacktricks-ios-plist-unsafe-deserialization
-  severity: WARNING
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-502: Deserialization of Untrusted Data'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: HackTricks iOS Pentesting
-- file: rules/ios/ios-pentesting-patterns.yaml
   id: hacktricks-ios-sqlite-fmdb-injection
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-89: SQL Injection'
@@ -10505,29 +7599,10 @@ rules:
   pack: []
   source: HackTricks iOS Pentesting
 - file: rules/ios/ios-pentesting-patterns.yaml
-  id: hacktricks-ios-cookies-persistent
-  severity: INFO
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-539: Use of Persistent Cookies Containing Sensitive Information'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: HackTricks iOS Pentesting
-- file: rules/ios/ios-pentesting-patterns.yaml
   id: hacktricks-ios-url-cache-sensitive
   severity: INFO
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-524: Use of Cache Containing Sensitive Information'
@@ -10545,7 +7620,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-200: Exposure of Sensitive Information'
@@ -10597,7 +7671,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -10614,7 +7687,6 @@ rules:
   severity: INFO
   languages:
   - c
-  - objc
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -10631,7 +7703,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   - c
   category: security
   cwe: []
@@ -10649,7 +7720,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: privacy
   cwe: []
   owasp_mobile: 'M6: Inadequate Privacy Controls'
@@ -10666,7 +7736,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: privacy
   cwe: []
   owasp_mobile: 'M6: Inadequate Privacy Controls'
@@ -10679,50 +7748,13 @@ rules:
   pack: []
   source: HackTricks iOS Pentesting
 - file: rules/ios/ios-pentesting-patterns.yaml
-  id: hacktricks-ios-uiwebview-deprecated
-  severity: ERROR
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-477: Use of Obsolete Function'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: HackTricks iOS Pentesting
-- file: rules/ios/ios-pentesting-patterns.yaml
   id: hacktricks-ios-code-signature-validation
   severity: INFO
   languages:
   - swift
-  - objc
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: HackTricks iOS Pentesting
-- file: rules/ios/ios-pentesting-patterns.yaml
-  id: hacktricks-ios-nsurlsession-default
-  severity: INFO
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-295: Improper Certificate Validation'
-  owasp_mobile: 'M5: Insecure Communication'
   owasp: null
   masvs: null
   maswe: null
@@ -10736,7 +7768,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: security
   cwe: []
   owasp_mobile: 'M5: Insecure Communication'
@@ -10748,48 +7779,11 @@ rules:
   confidence: LOW
   pack: []
   source: HackTricks iOS Pentesting
-- file: rules/ios/mastg-logging-improved.yaml
-  id: mastg-test-0053-nslog-sensitive-data-improved
-  severity: ERROR
-  languages:
-  - swift
-  - c
-  category: security
-  cwe:
-  - 'CWE-532: Insertion of Sensitive Information into Log File'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/mastg-logging-improved.yaml
-  id: mastg-test-0053-os-log-no-privacy-improved
-  severity: WARNING
-  languages:
-  - swift
-  - c
-  category: security
-  cwe:
-  - 'CWE-532: Insertion of Sensitive Information into Log File'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
 - file: rules/ios/mastg-storage-crypto-tests.yaml
   id: mastg-test-0053-nslog-sensitive-data
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-532: Insertion of Sensitive Information into Log File'
@@ -10807,7 +7801,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-532: Insertion of Sensitive Information into Log File'
@@ -10855,23 +7848,6 @@ rules:
   pack: []
   source: null
 - file: rules/ios/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0058-userdefaults-in-backup
-  severity: ERROR
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe: []
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/mastg-storage-crypto-tests.yaml
   id: mastg-test-0058-coredata-no-encryption
   severity: WARNING
   languages:
@@ -10909,7 +7885,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-316: Cleartext Storage of Sensitive Information in Memory'
@@ -10923,29 +7898,10 @@ rules:
   pack: []
   source: null
 - file: rules/ios/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0060-pasteboard-sensitive-data
-  severity: ERROR
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-200: Exposure of Sensitive Information'
-  owasp_mobile: 'M6: Inadequate Privacy Controls'
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/mastg-storage-crypto-tests.yaml
   id: mastg-test-0060-secure-text-entry-disabled
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe: []
   owasp_mobile: 'M6: Inadequate Privacy Controls'
@@ -10962,7 +7918,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
@@ -10997,7 +7952,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
@@ -11015,7 +7969,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-337: Predictable Seed in Pseudo-Random Number Generator'
@@ -11033,7 +7986,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-522: Insufficiently Protected Credentials'
@@ -11044,22 +7996,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0062-keychain-no-access-control
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe: []
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
   pack: []
   source: null
 - file: rules/ios/mastg-storage-crypto-tests.yaml
@@ -11079,28 +8015,11 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/ios/mastg-storage-crypto-tests.yaml
-  id: mastg-test-0062-keychain-sharing-enabled
-  severity: INFO
-  languages:
-  - swift
-  category: security
-  cwe: []
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-CRYPTO-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
 - file: rules/ios/masvs-crypto-weak-algorithms.yaml
   id: mastg-ios-weak-hash-md5
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -11118,7 +8037,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -11136,7 +8054,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -11154,7 +8071,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -11172,7 +8088,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
@@ -11207,7 +8122,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator'
@@ -11225,7 +8139,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: security
   cwe: []
   owasp_mobile: null
@@ -11235,40 +8148,6 @@ rules:
   cve: []
   cvss: null
   confidence: LOW
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-http-url-improved.yaml
-  id: mastg-ios-http-url-string-improved
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-http-url-improved.yaml
-  id: mastg-ios-http-url-objc-improved
-  severity: ERROR
-  languages:
-  - c
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/ios/masvs-network-http-url-improved.yaml
@@ -11322,40 +8201,6 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/ios/masvs-network-improved.yaml
-  id: mastg-ios-http-url-string-improved
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M5: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-improved.yaml
-  id: mastg-ios-http-url-objc-improved
-  severity: ERROR
-  languages:
-  - objc
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
 - file: rules/ios/masvs-network-insecure-communication.yaml
   id: mastg-ios-ats-disabled
   severity: ERROR
@@ -11382,23 +8227,6 @@ rules:
   cwe:
   - 'CWE-319: Cleartext Transmission of Sensitive Information'
   owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-insecure-communication.yaml
-  id: mastg-ios-http-url-objc
-  severity: ERROR
-  languages:
-  - objc
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: null
   owasp: null
   masvs: MASVS-NETWORK-1
   maswe: null
@@ -11475,97 +8303,11 @@ rules:
   confidence: HIGH
   pack: []
   source: null
-- file: rules/ios/masvs-storage-improved.yaml
-  id: mastg-ios-nsuserdefaults-sensitive-data-improved
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-improved.yaml
-  id: mastg-ios-nsuserdefaults-sensitive-data-objc-improved
-  severity: ERROR
-  languages:
-  - objc
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-insecure-nsuserdefaults.yaml
-  id: mastg-ios-nsuserdefaults-sensitive-data
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-insecure-nsuserdefaults.yaml
-  id: mastg-ios-nsuserdefaults-sensitive-data-objc
-  severity: ERROR
-  languages:
-  - objc
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-insecure-nsuserdefaults.yaml
-  id: mastg-ios-keychain-missing-access-control
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-732: Incorrect Permission Assignment for Critical Resource'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
 - file: rules/ios/masvs-storage-insecure-nsuserdefaults.yaml
   id: mastg-ios-coredata-unencrypted
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-311: Missing Encryption of Sensitive Data'
@@ -11580,92 +8322,6 @@ rules:
   source: null
 - file: rules/ios/masvs-storage-insecure-nsuserdefaults.yaml
   id: mastg-ios-file-write-without-protection
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-311: Missing Encryption of Sensitive Data'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-nsuserdefaults-improved.yaml
-  id: mastg-ios-nsuserdefaults-sensitive-data-improved
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: 'M2: Inadequate Supply Chain Security'
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-nsuserdefaults-improved.yaml
-  id: mastg-ios-nsuserdefaults-sensitive-data-objc-improved
-  severity: ERROR
-  languages:
-  - c
-  category: security
-  cwe:
-  - 'CWE-312: Cleartext Storage of Sensitive Information'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-nsuserdefaults-improved.yaml
-  id: mastg-ios-keychain-missing-access-control
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-732: Incorrect Permission Assignment for Critical Resource'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-2
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-nsuserdefaults-improved.yaml
-  id: mastg-ios-coredata-unencrypted-improved
-  severity: WARNING
-  languages:
-  - swift
-  - c
-  category: security
-  cwe:
-  - 'CWE-311: Missing Encryption of Sensitive Data'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-STORAGE-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/masvs-storage-nsuserdefaults-improved.yaml
-  id: mastg-ios-file-write-without-protection-improved
   severity: WARNING
   languages:
   - swift
@@ -11719,7 +8375,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-732: Incorrect Permission Assignment for Critical Resource'
@@ -11730,41 +8385,6 @@ rules:
   cve: []
   cvss: null
   confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/owasp-m3-authentication-authorization.yaml
-  id: owasp-m3-ios-keychain-no-access-control
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/owasp-m3-authentication-authorization.yaml
-  id: owasp-m3-ios-keychain-shared-access-group
-  severity: WARNING
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-200: Exposure of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
   pack: []
   source: null
 - file: rules/ios/owasp-m3-authentication-authorization.yaml
@@ -11942,7 +8562,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-532: Insertion of Sensitive Information into Log File'
@@ -11971,45 +8590,11 @@ rules:
   confidence: LOW
   pack: []
   source: null
-- file: rules/ios/owasp-m3-biometric-improved.yaml
-  id: owasp-m3-ios-biometric-no-crypto-improved
-  severity: ERROR
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-287: Improper Authentication'
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/owasp-m3-biometric-improved.yaml
-  id: owasp-m3-ios-biometric-fallback-password
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe: []
-  owasp_mobile: 'M3: Insecure Authentication/Authorization'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
 - file: rules/ios/owasp-m4-input-validation.yaml
   id: owasp-m4-ios-nspredicate-format-injection
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-89: SQL Injection'
@@ -12027,7 +8612,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-89: SQL Injection'
@@ -12215,7 +8799,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-78: OS Command Injection'
@@ -12233,7 +8816,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
@@ -12252,7 +8834,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-20: Improper Input Validation'
   owasp_mobile: 'M4: Insufficient Input/Output Validation'
   owasp: null
   masvs: null
@@ -12267,7 +8850,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-134: Format String Vulnerability'
@@ -12285,27 +8867,9 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-1333: Inefficient Regular Expression Complexity'
-  owasp_mobile: 'M4: Insufficient Input/Output Validation'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/owasp-m4-input-validation.yaml
-  id: owasp-m4-ios-url-components-no-validation
-  severity: WARNING
-  languages:
-  - swift
-  category: security
-  cwe:
-  - 'CWE-20: Improper Input Validation'
   owasp_mobile: 'M4: Insufficient Input/Output Validation'
   owasp: null
   masvs: null
@@ -12320,7 +8884,6 @@ rules:
   severity: ERROR
   languages:
   - swift
-  - objc
   category: privacy
   cwe:
   - 'CWE-200: Exposure of Sensitive Information'
@@ -12354,7 +8917,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: privacy
   cwe: []
   owasp_mobile: 'M6: Inadequate Privacy Controls'
@@ -12387,7 +8949,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: privacy
   cwe: []
   owasp_mobile: 'M6: Inadequate Privacy Controls'
@@ -12698,7 +9259,6 @@ rules:
   severity: INFO
   languages:
   - swift
-  - objc
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -12779,7 +9339,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-532: Insertion of Sensitive Information into Log File'
@@ -12878,7 +9437,7 @@ rules:
   id: owasp-m7-ios-pie-not-enabled
   severity: INFO
   languages:
-  - txt
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -12894,7 +9453,7 @@ rules:
   id: owasp-m7-ios-stack-canary-disabled
   severity: WARNING
   languages:
-  - txt
+  - generic
   category: security
   cwe:
   - 'CWE-121: Stack-based Buffer Overflow'
@@ -12911,7 +9470,7 @@ rules:
   id: owasp-m7-ios-bitcode-enabled
   severity: INFO
   languages:
-  - txt
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -12927,7 +9486,7 @@ rules:
   id: owasp-m7-ios-debug-symbols-not-stripped
   severity: WARNING
   languages:
-  - txt
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -13023,44 +9582,10 @@ rules:
   pack: []
   source: null
 - file: rules/ios/owasp-m8-security-misconfiguration-comprehensive.yaml
-  id: m8-ios-bitcode-disabled
-  severity: INFO
-  languages:
-  - xcconfig
-  - pbxproj
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/ios/owasp-m8-security-misconfiguration-comprehensive.yaml
-  id: m8-ios-code-signing-development
-  severity: INFO
-  languages:
-  - xcconfig
-  - pbxproj
-  category: security
-  cwe: []
-  owasp_mobile: 'M8: Security Misconfiguration'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/ios/owasp-m8-security-misconfiguration-comprehensive.yaml
   id: m8-ios-swift-optimization-none-release
   severity: WARNING
   languages:
-  - xcconfig
+  - generic
   category: security
   cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
@@ -13090,23 +9615,6 @@ rules:
   pack: []
   source: null
 - file: rules/ios/owasp-m9-additional-storage-patterns.yaml
-  id: owasp-m9-ios-plist-credentials
-  severity: ERROR
-  languages:
-  - xml
-  category: security
-  cwe:
-  - 'CWE-522: Insufficiently Protected Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/owasp-m9-additional-storage-patterns.yaml
   id: owasp-m9-ios-plist-api-key
   severity: ERROR
   languages:
@@ -13124,46 +9632,10 @@ rules:
   pack: []
   source: null
 - file: rules/ios/owasp-m9-additional-storage-patterns.yaml
-  id: owasp-m9-ios-userdefaults-pin-storage
-  severity: ERROR
-  languages:
-  - swift
-  - objc
-  category: security
-  cwe:
-  - 'CWE-522: Insufficiently Protected Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/owasp-m9-additional-storage-patterns.yaml
-  id: owasp-m9-ios-userdefaults-password-objc
-  severity: ERROR
-  languages:
-  - objc
-  category: security
-  cwe:
-  - 'CWE-522: Insufficiently Protected Credentials'
-  owasp_mobile: 'M9: Insecure Data Storage'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/owasp-m9-additional-storage-patterns.yaml
   id: owasp-m4-ios-ssrf-file-scheme
   severity: ERROR
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-918: Server-Side Request Forgery (SSRF)'
@@ -13181,7 +9653,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-918: Server-Side Request Forgery (SSRF)'
@@ -13199,7 +9670,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
@@ -13217,7 +9687,6 @@ rules:
   severity: WARNING
   languages:
   - swift
-  - objc
   category: security
   cwe:
   - 'CWE-330: Use of Insufficiently Random Values'
@@ -13270,28 +9739,6 @@ rules:
   confidence: MEDIUM
   pack:
   - llm
-  - deep
-  source: null
-- file: rules/llm/owasp-llm-top10-2025-llm05-improper-output-handling.yaml
-  id: llm-llm05-output-passed-to-dynamic-execution
-  severity: ERROR
-  languages:
-  - python
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - CWE-95
-  owasp_mobile: null
-  owasp: LLM05:2025 Improper Output Handling
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack:
-  - llm
-  - fast
   - deep
   source: null
 - file: rules/llm/owasp-llm-top10-2025-llm05-improper-output-handling.yaml
@@ -13511,6 +9958,117 @@ rules:
   - deep
   - cve
   source: null
+- file: rules/taint-pilot/js-command-injection-child-process-taint.yaml
+  id: taint-js-command-injection-child-process-exec
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/python-command-injection-taint.yaml
+  id: taint-python-command-injection-subprocess
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/python-pickle-deserialization-taint.yaml
+  id: taint-python-pickle-untrusted-deserialize
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-502: Deserialization of Untrusted Data'
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/python-sql-injection-taint.yaml
+  id: taint-python-sql-injection-cursor-execute
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-89: SQL Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/python-ssrf-requests-taint.yaml
+  id: taint-python-ssrf-requests-user-url
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-918: Server-Side Request Forgery (SSRF)'
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a01-broken-access-control.yaml
   id: web-a01-express-route-missing-auth-middleware
   severity: WARNING
@@ -13594,6 +10152,146 @@ rules:
   - fast
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a03-sql-injection-statement-concat
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-89: SQL Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a03-sql-injection-format-string
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-89: SQL Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a03-command-injection-runtime-exec
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a03-xxe-document-builder
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-611: XML External Entity Reference'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a10-ssrf-url-from-user-input
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-918: Server-Side Request Forgery (SSRF)'
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a01-path-traversal-file-concat
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-22: Path Traversal'
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection-java.yaml
+  id: java-a02-weak-crypto-md5
+  severity: WARNING
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+  owasp_mobile: null
+  owasp: A02:2025 Cryptographic Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
 - file: rules/web/owasp-top10-2025-a03-injection.yaml
   id: web-a03-sql-string-concat-python
   severity: ERROR
@@ -13636,10 +10334,29 @@ rules:
   - deep
   source: null
 - file: rules/web/owasp-top10-2025-a03-injection.yaml
-  id: web-a03-shell-command-from-user-input
+  id: web-a03-shell-command-from-user-input-python
   severity: ERROR
   languages:
   - python
+  category: security
+  cwe:
+  - CWE-78
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-injection.yaml
+  id: web-a03-shell-command-from-user-input-node
+  severity: ERROR
+  languages:
   - javascript
   - typescript
   category: security
@@ -13798,4 +10515,184 @@ rules:
   - web
   - fast
   - deep
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a03-xxe-sax-parser-no-protection
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-611: Improper Restriction of XML External Entity Reference'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a03-sql-injection-statement-from-requestparam
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-89: SQL Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a03-cmd-injection-runtime-from-requestparam
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a10-ssrf-resttemplate-from-requestparam
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-918: Server-Side Request Forgery'
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a01-path-traversal-from-requestparam
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-22: Path Traversal'
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a08-deserialization-objectinputstream
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-502: Deserialization of Untrusted Data'
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a03-sql-injection-prepared-statement-concat
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-89: SQL Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a03-xxe-sax-parser-newinstance-call-site
+  severity: WARNING
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-611: XML External Entity Reference'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a10-ssrf-url-openconnection-call-site
+  severity: WARNING
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-918: Server-Side Request Forgery'
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  source: null
+- file: rules/web/spring-java-taint.yaml
+  id: spring-a05-debug-mode-enabled
+  severity: WARNING
+  languages:
+  - generic
+  category: security
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information'
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
   source: null

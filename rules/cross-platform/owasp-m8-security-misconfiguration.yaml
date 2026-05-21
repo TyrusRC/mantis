@@ -734,7 +734,7 @@ rules:
       Reference: OWASP M2, M8, Gradle Security
     severity: ERROR
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -761,7 +761,7 @@ rules:
       Reference: OWASP M8, Gradle 7 Security
     severity: ERROR
     languages:
-      - gradle
+      - generic
     paths:
       include:
         - "**/build.gradle"
@@ -805,6 +805,20 @@ rules:
     severity: WARNING
     languages:
       - bash
+    paths:
+      include:
+        - "*.sh"
+        - "*.bash"
+        - "**/Makefile"
+        - "**/.github/**/*.yml"
+        - "**/.github/**/*.yaml"
+        - "**/fastlane/**"
+        - "**/scripts/**"
+      exclude:
+        - "**/gradlew"
+        - "**/gradlew.bat"
+        - "**/mvnw"
+        - "**/node_modules/**"
     metadata:
       category: security
       owasp-mobile-2024: "M7: Insufficient Binary Protections"

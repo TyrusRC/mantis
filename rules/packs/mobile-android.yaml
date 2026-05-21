@@ -5,3 +5,5 @@ filters:
 exclude:
   paths_under:
     - rules/ios/
+    - rules/web/
+    - rules/llm/

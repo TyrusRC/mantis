@@ -40,23 +40,44 @@ rules:
       confidence: HIGH
       pack: [web, fast, deep]
 
-  - id: web-a03-shell-command-from-user-input
-    languages: [python, javascript, typescript]
+  - id: web-a03-shell-command-from-user-input-python
+    languages: [python]
     severity: ERROR
     message: |
-      Shell command constructed from user input. Use a safe API
-      (subprocess with a list arg, child_process.execFile) and never pass
-      user-controlled strings to a shell.
+      Shell command constructed from user input (Python). Use a list-form
+      subprocess call with shell=False (the default) and never pass user
+      input to os.system / shell=True.
 
       OWASP Top 10:2025 — A03 Injection
     patterns:
       - pattern-either:
           - pattern: os.system($X + ...)
-          - pattern: os.system(f"...{$X}...")
+          - pattern: 'os.system(f"...{$X}...")'
           - pattern: subprocess.run($X, shell=True, ...)
           - pattern: subprocess.Popen($X, shell=True, ...)
-          - pattern: child_process.exec($X)
-          - pattern: require("child_process").exec($X)
+          - pattern: subprocess.call($X, shell=True, ...)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a03-shell-command-from-user-input-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      Shell command constructed from user input (Node). Use child_process.execFile
+      or spawn() with an args array and shell:false. Never pass user-controlled
+      strings to child_process.exec().
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: child_process.exec($X, ...)
+          - pattern: 'require("child_process").exec($X, ...)'
+          - pattern: 'cp.exec($X, ...)'
+          - pattern: exec($X, ...)
     metadata:
       category: security
       owasp: "A03:2025 Injection"

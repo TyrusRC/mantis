@@ -18,7 +18,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-89: SQL Injection"
@@ -43,7 +42,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-89: SQL Injection"
@@ -294,7 +292,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-78: OS Command Injection"
@@ -319,7 +316,6 @@ rules:
     severity: ERROR
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-502: Deserialization of Untrusted Data"
@@ -346,6 +342,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-20: Improper Input Validation"
       owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
       confidence: LOW
 
@@ -367,7 +364,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-134: Format String Vulnerability"
@@ -392,7 +388,6 @@ rules:
     severity: WARNING
     languages:
       - swift
-      - objc
     metadata:
       category: security
       cwe: "CWE-1333: Inefficient Regular Expression Complexity"
@@ -401,23 +396,3 @@ rules:
 
   # ============ CUSTOM SCHEME PARAMETER INJECTION ============
 
-  - id: owasp-m4-ios-url-components-no-validation
-    patterns:
-      - pattern-either:
-          - pattern: |
-              URLComponents(url: $URL, resolvingAgainstBaseURL: true)
-          - pattern: |
-              let components = URLComponents(string: $URL_STRING)
-              let $PARAM = components?.queryItems?.first(where: { $0.name == $NAME })?.value
-    message: |
-      URL parameters extracted without validation (OWASP M4: Insufficient Input/Output Validation).
-      URL parameters can contain malicious payloads (XSS, SQLi, path traversal).
-      Validate and sanitize all URL parameter values.
-    severity: WARNING
-    languages:
-      - swift
-    metadata:
-      category: security
-      cwe: "CWE-20: Improper Input Validation"
-      owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
-      confidence: MEDIUM
