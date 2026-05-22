@@ -21,19 +21,34 @@ sast_bin: auto
 """)
 
 
-def test_check_command_smoke(tmp_path, monkeypatch, capsys):
+def test_doctor_command_smoke(tmp_path, monkeypatch, capsys):
     _write_min_config(tmp_path)
-    # Pretend opengrep is installed.
+    # Pretend opengrep is installed everywhere it's looked up.
     monkeypatch.setattr("mantis.sast.shutil.which",
+                        lambda n: "/usr/bin/opengrep" if n == "opengrep" else None)
+    monkeypatch.setattr("mantis.doctor.shutil.which",
                         lambda n: "/usr/bin/opengrep" if n == "opengrep" else None)
     monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
 
-    code = main(["check", str(tmp_path)])
+    code = main(["doctor", str(tmp_path)])
     out = capsys.readouterr().out
     assert code == 0
-    assert "mantis" in out
-    assert "tier mapping:" in out
-    assert "agents discovered: 7" in out
+    assert "mantis doctor" in out
+    assert "opengrep" in out
+    assert "7 agent" in out
+
+
+def test_check_alias_warns(tmp_path, monkeypatch, capsys):
+    _write_min_config(tmp_path)
+    monkeypatch.setattr("mantis.sast.shutil.which",
+                        lambda n: "/usr/bin/opengrep" if n == "opengrep" else None)
+    monkeypatch.setattr("mantis.doctor.shutil.which",
+                        lambda n: "/usr/bin/opengrep" if n == "opengrep" else None)
+    monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
+    code = main(["check", str(tmp_path)])
+    err = capsys.readouterr().err
+    assert code == 0
+    assert "deprecated" in err
 
 
 def test_audit_help_lists_modes(capsys):

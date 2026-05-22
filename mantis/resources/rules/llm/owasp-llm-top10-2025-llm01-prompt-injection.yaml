@@ -1,0 +1,37 @@
+rules:
+  - id: llm-llm01-user-input-concatenated-to-prompt
+    languages: [python]
+    severity: ERROR
+    message: |
+      User-controlled input concatenated into an LLM prompt without a
+      structured boundary. The model can be steered by adversarial input to
+      ignore prior instructions, leak the system prompt, or invoke tools the
+      caller did not intend.
+
+      OWASP LLM Top 10:2025 — LLM01 Prompt Injection
+      Mitigations:
+        - Send user input as a separate message role (user) — never inline
+          into the system prompt.
+        - For RAG, escape / fence retrieved content (XML tags, hashed
+          delimiters) and instruct the model not to follow instructions in it.
+        - Validate / classify input before it reaches the model.
+        - Apply output-side guardrails (function-call schemas, allow-list of
+          tools).
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PROMPT = "..." + $USER_INPUT + "..."
+              ...
+              $CLIENT.messages.create(..., system=$PROMPT, ...)
+          - pattern: |
+              $PROMPT = f"...{$USER_INPUT}..."
+              ...
+              $CLIENT.messages.create(..., system=$PROMPT, ...)
+          - pattern: |
+              $CLIENT.messages.create(..., system=f"...{$USER_INPUT}...", ...)
+    metadata:
+      category: security
+      owasp: "LLM01:2025 Prompt Injection"
+      cwe: "CWE-77"
+      confidence: MEDIUM
+      pack: [llm, deep]

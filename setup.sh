@@ -23,8 +23,11 @@ usage: ./setup.sh [--reinstall] [--no-opengrep] [--no-mantis]
 Installs:
   - OpenGrep \$OPENGREP_VERSION binary into ~/.local/bin
   - mantis (this repo) via pipx (creates an isolated venv with deps)
-  - Symlink ~/.local/share/mantis -> this repo so the installed CLI can
-    find agents/, rules/, checklists/, scripts/.
+
+The pipx-installed CLI finds agents/rules/checklists inside its own venv
+(packaged under mantis/resources/); a host-level symlink is no longer
+required. For dev installs where you edit the source tree, the CLI will
+also pick up mantis/resources/ under the repo automatically.
 
 Run ./doctor.sh afterward to verify.
 EOF
@@ -119,21 +122,13 @@ if [[ "$SKIP_MANTIS" != "1" ]]; then
     ok "mantis installed ($(mantis --version 2>&1))"
   fi
 
-  # Symlink the share dir so the installed CLI finds agents/, rules/, etc.
+  # Resources ship inside the wheel under mantis/resources/ — no share-dir
+  # symlink needed. We keep a back-compat symlink only if one already exists
+  # so older installs don't break; point it at the package resources.
   SHARE_LINK="$HOME/.local/share/mantis"
   if [[ -L "$SHARE_LINK" ]]; then
-    CURRENT_TARGET="$(readlink "$SHARE_LINK")"
-    if [[ "$CURRENT_TARGET" != "$REPO" ]]; then
-      ln -sfn "$REPO" "$SHARE_LINK"
-      ok "updated symlink $SHARE_LINK -> $REPO"
-    else
-      ok "share link OK: $SHARE_LINK -> $REPO"
-    fi
-  elif [[ -e "$SHARE_LINK" ]]; then
-    warn "$SHARE_LINK exists and is not a symlink; leaving it alone"
-  else
-    ln -s "$REPO" "$SHARE_LINK"
-    ok "linked $SHARE_LINK -> $REPO"
+    ln -sfn "$REPO/mantis/resources" "$SHARE_LINK"
+    ok "updated legacy share link $SHARE_LINK -> $REPO/mantis/resources"
   fi
 else
   warn "skipping mantis (--no-mantis)"

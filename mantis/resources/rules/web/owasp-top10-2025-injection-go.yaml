@@ -1,0 +1,133 @@
+rules:
+  # Go server-side rules for OWASP Top 10 2025
+
+  - id: go-a03-sql-injection-string-concat
+    patterns:
+      - pattern-either:
+          - pattern: $DB.Query("..." + $X + "...")
+          - pattern: $DB.Query("..." + $X)
+          - pattern: $DB.QueryContext($CTX, "..." + $X + "...")
+          - pattern: $DB.QueryContext($CTX, "..." + $X)
+          - pattern: $DB.Exec("..." + $X + "...")
+          - pattern: $DB.Exec("..." + $X)
+          - pattern: $DB.Query(fmt.Sprintf(...))
+          - pattern: $DB.QueryContext($CTX, fmt.Sprintf(...))
+          - pattern: $DB.Exec(fmt.Sprintf(...))
+    message: |
+      SQL query built by string concatenation or fmt.Sprintf. Use
+      parameter placeholders ($1, $2 / ?) with database/sql, gorm, or sqlx
+      to prevent SQL injection (CWE-89).
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: go-a03-cmd-injection-exec
+    patterns:
+      - pattern-either:
+          - pattern: exec.Command("sh", "-c", $X)
+          - pattern: exec.Command("bash", "-c", $X)
+          - pattern: exec.CommandContext($CTX, "sh", "-c", $X)
+      - pattern-not: exec.Command("sh", "-c", "...")
+      - pattern-not: exec.Command("bash", "-c", "...")
+    message: |
+      Dynamic shell invocation via exec.Command("sh"/"bash", "-c", ...).
+      If the third arg is user-influenced this is RCE (CWE-78). Use
+      exec.Command(binary, arg1, arg2, ...) without invoking a shell.
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: go-a10-ssrf-http-from-request
+    patterns:
+      - pattern-either:
+          - pattern: http.Get($URL)
+          - pattern: http.Post($URL, ...)
+          - pattern: http.NewRequest($METHOD, $URL, ...)
+          - pattern: http.NewRequestWithContext($CTX, $METHOD, $URL, ...)
+      - pattern-not: http.Get("http://...")
+      - pattern-not: http.Get("https://...")
+      - pattern-not: http.NewRequest($METHOD, "http://...", ...)
+      - pattern-not: http.NewRequest($METHOD, "https://...", ...)
+    message: |
+      Outbound HTTP call to a dynamic URL. If the URL can be influenced
+      by the client this is SSRF (CWE-918). Validate the host against
+      an allowlist before issuing the request.
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery"
+      confidence: MEDIUM
+      pack: [web]
+
+  - id: go-a02-weak-crypto-md5-sha1
+    patterns:
+      - pattern-either:
+          - pattern: md5.New()
+          - pattern: md5.Sum(...)
+          - pattern: sha1.New()
+          - pattern: sha1.Sum(...)
+    message: |
+      MD5 / SHA-1 used. Both are broken for password hashing and signatures.
+      Use bcrypt/argon2 for passwords, SHA-256+ for integrity (CWE-327).
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      pack: [web]
+
+  - id: go-a01-path-traversal-os-open
+    patterns:
+      - pattern-either:
+          - pattern: os.Open($P)
+          - pattern: os.OpenFile($P, ...)
+          - pattern: ioutil.ReadFile($P)
+          - pattern: os.ReadFile($P)
+      - pattern-not: os.Open("...")
+      - pattern-not: os.OpenFile("...", ...)
+      - pattern-not: ioutil.ReadFile("...")
+      - pattern-not: os.ReadFile("...")
+    message: |
+      File opened from a dynamic path. If the path is user-controlled,
+      this is path traversal (CWE-22). Resolve under a known base directory
+      with filepath.Clean and reject results containing `..`.
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-22: Path Traversal"
+      confidence: MEDIUM
+      pack: [web]
+
+  - id: go-a08-yaml-unmarshal-untrusted
+    patterns:
+      - pattern-either:
+          - pattern: yaml.Unmarshal($DATA, $OUT)
+          - pattern: yaml.UnmarshalStrict($DATA, $OUT)
+    message: |
+      YAML decoded from untrusted input. Use a typed schema and avoid
+      yaml.v2 / yaml.v3 with `interface{}` targets — YAML deserialization
+      can trigger code execution in some libraries (CWE-502).
+    languages: [go]
+    severity: INFO
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      confidence: LOW
+      pack: [web]

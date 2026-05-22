@@ -67,6 +67,20 @@ def _scan_package_json(path: Path) -> tuple[bool, bool]:
     return (rn, llm)
 
 
+def _is_electron(target: Path) -> bool:
+    pkg = target / "package.json"
+    if not pkg.is_file():
+        return False
+    try:
+        data = json.loads(pkg.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    deps = {}
+    for k in ("dependencies", "devDependencies", "peerDependencies"):
+        deps.update(data.get(k) or {})
+    return "electron" in deps or "electron-builder" in deps
+
+
 _LLM_PY_DISTS = {
     "openai", "anthropic", "google-generativeai", "google-genai",
     "langchain", "langchain-core", "langchain-community",
@@ -108,12 +122,12 @@ def _scan_python_requirements(target: Path) -> bool:
             text = pyproject.read_text(encoding="utf-8", errors="replace")
         except OSError:
             text = ""
-        # Cheap match: a quoted dep name on its own. Avoids substring hits
-        # in URLs / comments / descriptions.
-        if re.search(
-            r'["\']\s*(' + "|".join(re.escape(n) for n in _LLM_PY_DISTS) + r')\s*[\[<=>~!,"\']',
-            text, re.IGNORECASE,
-        ):
+        alt = "|".join(re.escape(n) for n in _LLM_PY_DISTS)
+        # PEP 621 list form: dependencies = ["openai>=1.0", ...]
+        if re.search(rf'["\']\s*({alt})\s*[\[<=>~!,"\']', text, re.IGNORECASE):
+            return True
+        # Poetry table form: anthropic = "^0.20"  (unquoted key)
+        if re.search(rf'(?m)^\s*({alt})\s*=', text, re.IGNORECASE):
             return True
     return False
 
@@ -179,6 +193,12 @@ def take_inventory(target: Path) -> Inventory:
             stack.has_llm_sdk = True
     if (target / "go.mod").is_file():
         stack.detected.add("go")
+    if _glob_any(target, ["*.csproj", "*.fsproj", "*.sln"]):
+        stack.detected.add("dotnet")
+    if (target / "composer.json").is_file():
+        stack.detected.add("php")
+    if _is_electron(target):
+        stack.detected.add("electron")
     if _has_infra_signals(target):
         stack.detected.add("infra")
 
@@ -202,9 +222,14 @@ def take_inventory(target: Path) -> Inventory:
         rationale.append("cross-platform mobile -> mobile pack")
 
     if "js-web" in stack.detected or "python" in stack.detected or \
-       "go" in stack.detected or "jvm" in stack.detected:
+       "go" in stack.detected or "jvm" in stack.detected or \
+       "dotnet" in stack.detected or "php" in stack.detected:
         packs.append("web")
         rationale.append("server-side stack -> web pack")
+
+    if "electron" in stack.detected:
+        packs.append("desktop")
+        rationale.append("electron app detected -> desktop pack")
 
     if stack.has_llm_sdk:
         packs.append("llm")
@@ -234,6 +259,7 @@ MODE_TO_PACKS: dict[str, list[str]] = {
     "cve": ["cve", "sca"],
     "mobile": ["mobile"],
     "web": ["web"],
+    "desktop": ["desktop"],
     "llm": ["llm"],
     "taint": ["taint"],
 }

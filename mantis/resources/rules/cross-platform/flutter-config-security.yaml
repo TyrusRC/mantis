@@ -1,0 +1,604 @@
+rules:
+  # Flutter OWASP M8: Security Misconfiguration Detection Rules
+  # Covers Android Manifest, iOS Info.plist, pubspec.yaml, and build configurations
+  # Sources: OWASP Mobile Top 10 2024, Flutter Security Best Practices
+  # Focus: Platform-specific security misconfigurations in Flutter applications
+
+  # ============ ANDROID MANIFEST MISCONFIGURATIONS ============
+
+  - id: flutter-ios-ats-disabled
+    patterns:
+      - pattern: |
+          <key>NSAppTransportSecurity</key>
+          <dict>
+            <key>NSAllowsArbitraryLoads</key>
+            <true/>
+          </dict>
+    message: |
+      App Transport Security disabled globally in Flutter iOS app (OWASP M8).
+      Disabling ATS allows insecure HTTP connections and weak TLS.
+
+      SECURITY IMPACT:
+      - HTTP connections permitted
+      - Weak TLS versions accepted
+      - Insecure cipher suites allowed
+      - Man-in-the-middle attacks enabled
+      - App Store rejection risk
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- Info.plist - INSECURE -->
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSAllowsArbitraryLoads</key>
+          <true/>
+      </dict>
+      ```
+
+      SECURE FIX - Remove ATS Exception:
+      ```xml
+      <!-- Info.plist - No ATS configuration = secure defaults -->
+      <!-- ATS enabled by default on iOS 9+ -->
+      ```
+
+      SECURE FIX - Specific Domain Exception (if needed):
+      ```xml
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <!-- Keep NSAllowsArbitraryLoads as false (or omit) -->
+          <key>NSExceptionDomains</key>
+          <dict>
+              <key>legacy-api.example.com</key>
+              <dict>
+                  <key>NSExceptionRequiresForwardSecrecy</key>
+                  <false/>
+                  <key>NSExceptionMinimumTLSVersion</key>
+                  <string>TLSv1.2</string>
+                  <key>NSIncludesSubdomains</key>
+                  <false/>
+              </dict>
+          </dict>
+      </dict>
+      ```
+
+      FLUTTER HTTPS ENFORCEMENT:
+      ```dart
+      import 'package:http/http.dart' as http;
+
+      class SecureIOSClient {
+        static Future<http.Response> get(String url) async {
+          final uri = Uri.parse(url);
+
+          // Enforce HTTPS
+          if (uri.scheme != 'https') {
+            throw SecurityException(
+              'HTTP not allowed on iOS - ATS enforced'
+            );
+          }
+
+          return await http.get(uri);
+        }
+      }
+      ```
+
+      ATS REQUIREMENTS:
+      - TLS 1.2 or higher
+      - Forward secrecy cipher suites
+      - Certificates signed by trusted CA
+      - At least 2048-bit RSA or 256-bit ECC keys
+
+      DEVELOPMENT EXCEPTION (Localhost only):
+      ```xml
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSExceptionDomains</key>
+          <dict>
+              <key>localhost</key>
+              <dict>
+                  <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                  <true/>
+              </dict>
+          </dict>
+      </dict>
+      ```
+
+      Reference: OWASP M8, MASVS-NETWORK-1, Apple ATS
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: VERY_HIGH
+      platform: ios
+
+  - id: flutter-ios-url-scheme-no-validation
+    patterns:
+      - pattern: |
+          <key>CFBundleURLTypes</key>
+          <array>
+            <dict>
+              ...
+              <key>CFBundleURLSchemes</key>
+              <array>
+                <string>$SCHEME</string>
+              </array>
+              ...
+            </dict>
+          </array>
+      - metavariable-regex:
+          metavariable: $SCHEME
+          regex: ^(?!https?).*$
+    message: |
+      Custom URL scheme without Universal Links (OWASP M8).
+      Custom schemes are vulnerable to hijacking on iOS.
+
+      SECURITY RISKS:
+      - Multiple apps can register same scheme
+      - No ownership verification
+      - Phishing attacks
+      - Data interception
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- Info.plist - Custom scheme -->
+      <key>CFBundleURLTypes</key>
+      <array>
+          <dict>
+              <key>CFBundleURLSchemes</key>
+              <array>
+                  <string>myapp</string>
+              </array>
+          </dict>
+      </array>
+      ```
+
+      SECURE FIX - Use Universal Links:
+      ```xml
+      <!-- Info.plist - Associated Domains -->
+      <key>com.apple.developer.associated-domains</key>
+      <array>
+          <string>applinks:example.com</string>
+          <string>applinks:www.example.com</string>
+      </array>
+      ```
+
+      APPLE APP SITE ASSOCIATION:
+      ```json
+      // https://example.com/.well-known/apple-app-site-association
+      {
+        "applinks": {
+          "apps": [],
+          "details": [
+            {
+              "appID": "TEAMID.com.example.app",
+              "paths": ["/app/*", "/login/*"]
+            }
+          ]
+        }
+      }
+      ```
+
+      FLUTTER IMPLEMENTATION:
+      ```dart
+      import 'package:uni_links/uni_links.dart';
+
+      class IOSDeepLinkHandler {
+        static const List<String> _trustedDomains = [
+          'example.com',
+          'www.example.com',
+        ];
+
+        Future<void> handleUniversalLink(Uri? uri) async {
+          if (uri == null) return;
+
+          // Validate HTTPS
+          if (uri.scheme != 'https') {
+            throw SecurityException('Only HTTPS universal links allowed');
+          }
+
+          // Validate domain
+          if (!_trustedDomains.contains(uri.host)) {
+            throw SecurityException('Untrusted domain: ${uri.host}');
+          }
+
+          // Validate path
+          final validPaths = ['/app/', '/login/', '/payment/'];
+          if (!validPaths.any((path) => uri.path.startsWith(path))) {
+            throw SecurityException('Invalid path: ${uri.path}');
+          }
+
+          _processLink(uri);
+        }
+
+        void _processLink(Uri uri) {
+          // Handle validated universal link
+        }
+      }
+
+      // AppDelegate.swift
+      func application(_ application: UIApplication,
+                      continue userActivity: NSUserActivity,
+                      restorationHandler: @escaping ([Any]?) -> Void) -> Bool {
+
+        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+              let url = userActivity.webpageURL else {
+          return false
+        }
+
+        // Validate URL
+        guard url.scheme == "https",
+              let host = url.host,
+              ["example.com", "www.example.com"].contains(host) else {
+          return false
+        }
+
+        // Pass to Flutter
+        FlutterMethodChannel.invokeMethod("handleUniversalLink", arguments: url.absoluteString)
+        return true
+      }
+      ```
+
+      Reference: OWASP M8, MASVS-PLATFORM-2, Apple Universal Links
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-939: Improper Authorization in Handler for Custom URL Scheme"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
+      platform: ios
+
+  - id: flutter-ios-insecure-permissions
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSCameraUsageDescription</key>
+              <string>$DESC</string>
+          - pattern: |
+              <key>NSLocationAlwaysUsageDescription</key>
+              <string>$DESC</string>
+          - pattern: |
+              <key>NSPhotoLibraryUsageDescription</key>
+              <string>$DESC</string>
+      - metavariable-regex:
+          metavariable: $DESC
+          regex: ^.{0,20}$
+    message: |
+      Insufficient privacy permission description (OWASP M6/M8).
+      iOS requires clear, detailed permission descriptions.
+
+      PRIVACY RISKS:
+      - App Store rejection
+      - User distrust
+      - Privacy violation
+      - Regulatory non-compliance (GDPR, CCPA)
+
+      VULNERABLE CONFIGURATION:
+      ```xml
+      <!-- Info.plist - Vague description -->
+      <key>NSCameraUsageDescription</key>
+      <string>Camera access</string>
+
+      <key>NSLocationAlwaysUsageDescription</key>
+      <string>Location needed</string>
+      ```
+
+      SECURE FIX:
+      ```xml
+      <!-- Info.plist - Clear, specific descriptions -->
+      <key>NSCameraUsageDescription</key>
+      <string>Camera access is required to scan QR codes for payment verification and take photos for your profile picture.</string>
+
+      <key>NSLocationWhenInUseUsageDescription</key>
+      <string>Location access is needed to show nearby stores and provide accurate delivery estimates.</string>
+
+      <key>NSLocationAlwaysUsageDescription</key>
+      <string>Background location is used to provide real-time delivery tracking and send notifications when your order arrives.</string>
+
+      <key>NSPhotoLibraryUsageDescription</key>
+      <string>Photo library access allows you to select images for your profile and share product photos.</string>
+
+      <key>NSMicrophoneUsageDescription</key>
+      <string>Microphone access is required for voice messages and video calls with customer support.</string>
+
+      <key>NSContactsUsageDescription</key>
+      <string>Access to contacts allows you to quickly invite friends and share referral codes.</string>
+      ```
+
+      FLUTTER PERMISSION HANDLING:
+      ```dart
+      import 'package:permission_handler/permission_handler.dart';
+
+      class PermissionManager {
+        static Future<bool> requestCamera() async {
+          final status = await Permission.camera.request();
+
+          if (status.isDenied) {
+            _showPermissionDeniedDialog(
+              'Camera access is required to scan QR codes. '
+              'Please enable it in Settings.'
+            );
+            return false;
+          }
+
+          if (status.isPermanentlyDenied) {
+            _showOpenSettingsDialog();
+            return false;
+          }
+
+          return status.isGranted;
+        }
+
+        static Future<bool> requestLocation() async {
+          // Request when-in-use first
+          var status = await Permission.locationWhenInUse.request();
+
+          if (!status.isGranted) return false;
+
+          // Only request always if absolutely needed
+          if (_needsBackgroundLocation()) {
+            _showLocationUpgradeRationale();
+            status = await Permission.locationAlways.request();
+          }
+
+          return status.isGranted;
+        }
+
+        static bool _needsBackgroundLocation() {
+          // Check if feature requires background location
+          return false; // Most apps don't need this
+        }
+      }
+      ```
+
+      BEST PRACTICES:
+      - Explain WHAT permission is needed
+      - Explain WHY it's needed
+      - Explain HOW it will be used
+      - Be specific and honest
+      - Use user-friendly language
+      - 30+ characters recommended
+      - Match actual app functionality
+
+      APP STORE REQUIREMENTS:
+      - Clear, specific purpose
+      - No generic descriptions
+      - Match app functionality
+      - Updated for new features
+
+      Reference: OWASP M6, M8, Apple Privacy Guidelines, MASVS-PRIVACY-1
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      masvs: "MASVS-PRIVACY-1"
+      confidence: MEDIUM
+      platform: ios
+      compliance: "GDPR, CCPA, Apple App Store"
+
+  # ============ PUBSPEC.YAML SECURITY ISSUES ============
+
+  - id: flutter-pubspec-outdated-sdk
+    patterns:
+      - pattern: |
+          environment:
+            sdk: "$VERSION"
+      - metavariable-regex:
+          metavariable: $VERSION
+          regex: ^['"]?[<>=^~]*[0-2]\.\d+\.\d+
+    message: |
+      Outdated Dart SDK version in pubspec.yaml (OWASP M8).
+      Old SDK versions lack security patches and modern protections.
+
+      SECURITY RISKS:
+      - Missing security patches
+      - Vulnerable to known exploits
+      - Lack of modern security features
+      - Compatibility issues
+
+      VULNERABLE CONFIGURATION:
+      ```yaml
+      # pubspec.yaml - Outdated SDK
+      environment:
+        sdk: ">=2.12.0 <3.0.0"
+      ```
+
+      SECURE FIX:
+      ```yaml
+      # pubspec.yaml - Current SDK
+      environment:
+        sdk: ">=3.2.0 <4.0.0"
+      ```
+
+      UPDATE PROCESS:
+      ```bash
+      # Check Flutter version
+      flutter --version
+
+      # Update Flutter and Dart
+      flutter upgrade
+
+      # Update pubspec.yaml
+      # Update dependencies
+      flutter pub upgrade
+
+      # Test thoroughly
+      flutter test
+      flutter build apk --release
+      flutter build ios --release
+      ```
+
+      SECURITY IMPROVEMENTS IN DART 3+:
+      - Sound null safety (enforced)
+      - Better type system
+      - Improved memory safety
+      - Enhanced security features
+      - FFI security improvements
+
+      Reference: OWASP M8, Flutter Security
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+
+  - id: flutter-pubspec-insecure-dependency
+    patterns:
+      - pattern-either:
+          - pattern: |
+              dependencies:
+                ...
+                $PKG:
+                  git: $URL
+                ...
+          - pattern: |
+              dependencies:
+                ...
+                $PKG:
+                  path: $PATH
+                ...
+    message: |
+      Insecure dependency source in pubspec.yaml (OWASP M2/M8).
+      Git and path dependencies bypass pub.dev security and can be compromised.
+
+      SECURITY RISKS:
+      - No security scanning
+      - No version verification
+      - Mutable dependencies
+      - Supply chain attacks
+      - Malicious code injection
+
+      VULNERABLE CONFIGURATION:
+      ```yaml
+      # pubspec.yaml - Insecure sources
+      dependencies:
+        # Git dependency - mutable, unverified
+        custom_package:
+          git:
+            url: https://github.com/user/package.git
+            ref: main
+
+        # Path dependency - no integrity check
+        local_package:
+          path: ../local_package
+      ```
+
+      SECURE FIX:
+      ```yaml
+      # pubspec.yaml - Use pub.dev
+      dependencies:
+        # Verified package from pub.dev
+        custom_package: ^1.2.3
+
+        # With specific version for stability
+        http: 1.1.0
+
+        # Version range for updates
+        provider: ">=6.0.0 <7.0.0"
+      ```
+
+      WHEN GIT DEPENDENCIES ARE NECESSARY:
+      ```yaml
+      dependencies:
+        # Pin to specific commit (immutable)
+        custom_package:
+          git:
+            url: https://github.com/user/package.git
+            ref: a1b2c3d4e5f6  # Specific commit SHA
+      ```
+
+      DEPENDENCY VERIFICATION:
+      ```bash
+      # Check package on pub.dev
+      flutter pub deps
+
+      # Analyze for security issues
+      flutter pub outdated
+
+      # Audit dependencies
+      dart pub global activate pana
+      pana --no-warning .
+
+      # Check for known vulnerabilities
+      # Use tools like:
+      # - dependabot
+      # - snyk
+      # - osv.dev scanner
+      ```
+
+      SECURE DEPENDENCY PRACTICES:
+      ```yaml
+      # pubspec.yaml - Best practices
+      dependencies:
+        # Use caret syntax for compatible updates
+        http: ^1.1.0
+
+        # Or explicit ranges
+        dio: ">=5.0.0 <6.0.0"
+
+        # Pin critical packages
+        flutter_secure_storage: 9.0.0
+
+      dependency_overrides:
+        # Only in emergency security patches
+        # Remove after dependency updates
+        vulnerable_package: 2.0.1
+      ```
+
+      FLUTTER SECURITY CHECKS:
+      ```dart
+      // Verify package integrity at runtime (for critical packages)
+      import 'package:crypto/crypto.dart';
+      import 'package:flutter/services.dart';
+
+      class PackageVerifier {
+        static const Map<String, String> _packageHashes = {
+          'flutter_secure_storage': 'expected-sha256-hash',
+        };
+
+        static Future<bool> verifyPackages() async {
+          // Check critical package integrity
+          for (var entry in _packageHashes.entries) {
+            if (!await _verifyPackage(entry.key, entry.value)) {
+              return false;
+            }
+          }
+          return true;
+        }
+      }
+      ```
+
+      Reference: OWASP M2, M8, SLSA Supply Chain
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH

@@ -1,0 +1,214 @@
+rules:
+  # Electron desktop-app security rules.
+  # Electron uses Chromium; misconfigured BrowserWindow / webContents settings
+  # turn renderer XSS into local RCE.
+
+  - id: electron-node-integration-enabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              new BrowserWindow({
+                ...,
+                webPreferences: { ..., nodeIntegration: true, ... }
+              })
+          - pattern: |
+              new BrowserWindow({
+                ...,
+                webPreferences: { ..., nodeIntegrationInWorker: true, ... }
+              })
+          - pattern: |
+              new BrowserWindow({
+                ...,
+                webPreferences: { ..., nodeIntegrationInSubFrames: true, ... }
+              })
+    paths:
+      include:
+        - "**/main.js"
+        - "**/main.ts"
+        - "**/electron.js"
+        - "**/electron.ts"
+        - "**/src/**/*.js"
+        - "**/src/**/*.ts"
+        - "**/app/**/*.js"
+        - "**/app/**/*.ts"
+      exclude:
+        - "**/node_modules/**"
+        - "**/dist/**"
+        - "**/build/**"
+    message: |
+      Electron BrowserWindow has nodeIntegration: true. Renderer XSS becomes
+      local code execution because the renderer can `require('child_process')`
+      (CWE-94). Set nodeIntegration: false and use a preload script with
+      contextBridge for the API surface you actually need.
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      confidence: HIGH
+      pack: [desktop]
+
+  - id: electron-context-isolation-disabled
+    patterns:
+      - pattern: |
+          new BrowserWindow({
+            ...,
+            webPreferences: { ..., contextIsolation: false, ... }
+          })
+    paths:
+      include:
+        - "**/main.js"
+        - "**/main.ts"
+        - "**/electron.js"
+        - "**/electron.ts"
+        - "**/src/**/*.js"
+        - "**/src/**/*.ts"
+        - "**/app/**/*.js"
+        - "**/app/**/*.ts"
+      exclude:
+        - "**/node_modules/**"
+        - "**/dist/**"
+        - "**/build/**"
+    message: |
+      contextIsolation: false lets web content access the preload script's
+      JS context, defeating the security boundary. Set contextIsolation: true
+      (the default since Electron 12).
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-668: Exposure of Resource to Wrong Sphere"
+      confidence: HIGH
+      pack: [desktop]
+
+  - id: electron-web-security-disabled
+    patterns:
+      - pattern: |
+          new BrowserWindow({
+            ...,
+            webPreferences: { ..., webSecurity: false, ... }
+          })
+    paths:
+      include:
+        - "**/main.js"
+        - "**/main.ts"
+        - "**/electron.js"
+        - "**/electron.ts"
+        - "**/src/**/*.js"
+        - "**/src/**/*.ts"
+        - "**/app/**/*.js"
+        - "**/app/**/*.ts"
+      exclude:
+        - "**/node_modules/**"
+        - "**/dist/**"
+        - "**/build/**"
+    message: |
+      webSecurity: false disables same-origin policy in the renderer.
+      Any compromised page can read cross-origin resources (CWE-346).
+      Leave webSecurity at its default (true).
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-346: Origin Validation Error"
+      confidence: HIGH
+      pack: [desktop]
+
+  - id: electron-allow-running-insecure-content
+    patterns:
+      - pattern: |
+          new BrowserWindow({
+            ...,
+            webPreferences: { ..., allowRunningInsecureContent: true, ... }
+          })
+    paths:
+      include:
+        - "**/main.js"
+        - "**/main.ts"
+        - "**/electron.js"
+        - "**/electron.ts"
+        - "**/src/**/*.js"
+        - "**/src/**/*.ts"
+        - "**/app/**/*.js"
+        - "**/app/**/*.ts"
+      exclude:
+        - "**/node_modules/**"
+        - "**/dist/**"
+        - "**/build/**"
+    message: |
+      allowRunningInsecureContent: true permits HTTP scripts to load inside
+      HTTPS pages, opening a TLS-stripping vector. Keep at default (false).
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+      confidence: HIGH
+      pack: [desktop]
+
+  - id: electron-experimental-features-enabled
+    patterns:
+      - pattern-either:
+          - pattern: |
+              new BrowserWindow({
+                ...,
+                webPreferences: { ..., experimentalFeatures: true, ... }
+              })
+          - pattern: |
+              new BrowserWindow({
+                ...,
+                webPreferences: { ..., experimentalCanvasFeatures: true, ... }
+              })
+    paths:
+      include:
+        - "**/main.js"
+        - "**/main.ts"
+        - "**/electron.js"
+        - "**/electron.ts"
+        - "**/src/**/*.js"
+        - "**/src/**/*.ts"
+        - "**/app/**/*.js"
+        - "**/app/**/*.ts"
+      exclude:
+        - "**/node_modules/**"
+        - "**/dist/**"
+        - "**/build/**"
+    message: |
+      Chromium experimental features may have unfixed CVEs. Keep
+      experimentalFeatures off in production builds.
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
+      confidence: MEDIUM
+      pack: [desktop]
+
+  - id: electron-shell-openexternal-dynamic
+    patterns:
+      - pattern: shell.openExternal($URL)
+      - pattern-not: shell.openExternal("https://...")
+      - pattern-not: shell.openExternal("http://...")
+    paths:
+      include:
+        - "**/main.js"
+        - "**/main.ts"
+        - "**/electron.js"
+        - "**/electron.ts"
+        - "**/src/**/*.js"
+        - "**/src/**/*.ts"
+        - "**/preload.js"
+        - "**/preload.ts"
+      exclude:
+        - "**/node_modules/**"
+    message: |
+      shell.openExternal with a dynamic URL can launch arbitrary URI
+      handlers (file://, javascript:, jar:) — local code execution on
+      some platforms. Validate the scheme against http(s) only.
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input"
+      confidence: MEDIUM
+      pack: [desktop]

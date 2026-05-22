@@ -1,0 +1,136 @@
+rules:
+  # PHP rules for OWASP Top 10 2025 (raw PHP + Laravel / Symfony shapes)
+
+  - id: php-a03-sql-injection-mysqli-concat
+    patterns:
+      - pattern-either:
+          - pattern: mysqli_query($CONN, "..." . $X . "...")
+          - pattern: mysqli_query($CONN, "..." . $X)
+          - pattern: $CONN->query("..." . $X . "...")
+          - pattern: $CONN->query("..." . $X)
+          - pattern: $PDO->query("..." . $X . "...")
+          - pattern: $PDO->query("..." . $X)
+          - pattern: DB::select("..." . $X . "...")
+          - pattern: DB::statement("..." . $X . "...")
+    message: |
+      SQL query built by concatenation. Use prepared statements with
+      bound parameters (PDO::prepare + bindValue, mysqli_prepare,
+      Laravel DB::select with bindings) to eliminate SQL injection (CWE-89).
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: php-a03-cmd-injection-shell-exec
+    patterns:
+      - pattern-either:
+          - pattern: shell_exec($X)
+          - pattern: exec($X)
+          - pattern: system($X)
+          - pattern: passthru($X)
+          - pattern: 'popen($X, ...)'
+          - pattern: proc_open($X, ...)
+      - pattern-not: shell_exec("...")
+      - pattern-not: exec("...")
+      - pattern-not: system("...")
+      - pattern-not: passthru("...")
+    message: |
+      Shell command from a dynamic string. If `$X` is influenced by the
+      user (`$_GET`, `$_POST`, `Input::get`) this is RCE (CWE-78).
+      Use escapeshellarg on each individual argument, or avoid invoking
+      the shell entirely.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: php-a03-eval-from-user-input
+    patterns:
+      - pattern-either:
+          - pattern: eval($X)
+          - pattern: assert($X)
+      - pattern-not: eval("...")
+    message: |
+      eval() / assert() with a dynamic string is direct code injection
+      (CWE-95). Refactor to use a switch / match or remove entirely.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+      confidence: HIGH
+      pack: [web]
+
+  - id: php-a01-include-from-user-input
+    patterns:
+      - pattern-either:
+          - pattern: include $X
+          - pattern: include_once $X
+          - pattern: require $X
+          - pattern: require_once $X
+      - pattern-not: include "..."
+      - pattern-not: include_once "..."
+      - pattern-not: require "..."
+      - pattern-not: require_once "..."
+    message: |
+      include / require with a dynamic value risks LFI/RFI (CWE-98).
+      Use a static allowlist of safe filenames.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-98: Improper Control of Filename for Include/Require"
+      confidence: HIGH
+      pack: [web]
+
+  - id: php-a02-weak-crypto-md5-sha1
+    patterns:
+      - pattern-either:
+          - pattern: md5($X)
+          - pattern: sha1($X)
+          - pattern: hash("md5", $X)
+          - pattern: hash("sha1", $X)
+    message: |
+      MD5 / SHA-1 used. Not suitable for passwords (use password_hash with
+      PASSWORD_BCRYPT or PASSWORD_ARGON2ID) and not collision-resistant
+      for signatures (CWE-327).
+    languages: [php]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      pack: [web]
+
+  - id: php-a08-unserialize-untrusted
+    patterns:
+      - pattern-either:
+          - pattern: unserialize($_GET[$K])
+          - pattern: unserialize($_POST[$K])
+          - pattern: unserialize($_COOKIE[$K])
+          - pattern: unserialize($_REQUEST[$K])
+          - pattern: unserialize($X)
+      - pattern-not: 'unserialize($X, ["allowed_classes" => false])'
+      - pattern-not: 'unserialize($X, ["allowed_classes" => [...]])'
+    message: |
+      unserialize on untrusted input can execute gadget chains (CWE-502).
+      Pass `["allowed_classes" => false]` or prefer json_decode.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      confidence: HIGH
+      pack: [web]

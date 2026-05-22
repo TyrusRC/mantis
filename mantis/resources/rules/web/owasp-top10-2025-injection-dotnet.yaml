@@ -1,0 +1,144 @@
+rules:
+  # ASP.NET Core / .NET rules for OWASP Top 10 2025
+
+  - id: dotnet-a03-sql-injection-string-concat
+    patterns:
+      - pattern-either:
+          - pattern: 'new SqlCommand("..." + $X + "...", ...)'
+          - pattern: 'new SqlCommand("..." + $X, ...)'
+          - pattern: 'new SqlCommand($"...{$X}...", ...)'
+          - pattern: 'new MySqlCommand("..." + $X + "...", ...)'
+          - pattern: 'new NpgsqlCommand("..." + $X + "...", ...)'
+          - pattern: $CTX.Database.ExecuteSqlRaw("..." + $X + "...")
+          - pattern: $CTX.Database.ExecuteSqlRaw($"...{$X}...")
+          - pattern: $CTX.Database.ExecuteSqlRawAsync("..." + $X + "...")
+          - pattern: $CTX.$T.FromSqlRaw("..." + $X + "...")
+          - pattern: $CTX.$T.FromSqlRaw($"...{$X}...")
+    message: |
+      SQL command built by string concatenation or interpolation. Use
+      parameterized queries (SqlParameter, FromSqlInterpolated) — never
+      concatenate user input into the SQL text (CWE-89).
+    languages: [csharp]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: dotnet-a03-cmd-injection-process-start
+    patterns:
+      - pattern-either:
+          - pattern: 'Process.Start("cmd.exe", $X)'
+          - pattern: 'Process.Start("/bin/sh", $X)'
+          - pattern: 'Process.Start("/bin/bash", $X)'
+          - pattern: 'Process.Start(new ProcessStartInfo("cmd.exe", $X))'
+          - pattern: 'Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $X })'
+    message: |
+      Process.Start invokes a shell with dynamic arguments. If the args are
+      user-influenced this is RCE (CWE-78). Use a non-shell binary with
+      explicit argument list.
+    languages: [csharp]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      pack: [web]
+
+  - id: dotnet-a08-binaryformatter-deserialize
+    patterns:
+      - pattern-either:
+          - pattern: $BF.Deserialize(...)
+          - pattern: new BinaryFormatter().Deserialize(...)
+          - pattern: 'new SoapFormatter().Deserialize(...)'
+          - pattern: NetDataContractSerializer.ReadObject(...)
+          - pattern: new LosFormatter().Deserialize(...)
+          - pattern: 'JavaScriptSerializer.Deserialize<$T>(..., new SimpleTypeResolver())'
+    message: |
+      Unsafe deserializer (BinaryFormatter / SoapFormatter / LosFormatter /
+      NetDataContractSerializer). Microsoft has deprecated these because they
+      enable RCE when fed attacker-controlled input (CWE-502). Use
+      System.Text.Json or DataContractJsonSerializer with a known type.
+    languages: [csharp]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      confidence: HIGH
+      pack: [web]
+
+  - id: dotnet-a10-ssrf-httpclient-dynamic-url
+    patterns:
+      - pattern-either:
+          - pattern: $HC.GetAsync($URL)
+          - pattern: $HC.GetStringAsync($URL)
+          - pattern: $HC.PostAsync($URL, ...)
+          - pattern: $HC.SendAsync(new HttpRequestMessage($M, $URL))
+          - pattern: WebRequest.Create($URL)
+      - pattern-not: $HC.GetAsync("http://...")
+      - pattern-not: $HC.GetAsync("https://...")
+      - pattern-not: WebRequest.Create("http://...")
+      - pattern-not: WebRequest.Create("https://...")
+    message: |
+      HttpClient / WebRequest issued to a dynamic URL. If the URL can be
+      influenced by the client this is SSRF (CWE-918). Validate the host
+      against an allowlist.
+    languages: [csharp]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery"
+      confidence: MEDIUM
+      pack: [web]
+
+  - id: dotnet-a02-weak-crypto-md5-sha1
+    patterns:
+      - pattern-either:
+          - pattern: MD5.Create()
+          - pattern: System.Security.Cryptography.MD5.Create()
+          - pattern: 'new MD5CryptoServiceProvider()'
+          - pattern: 'new System.Security.Cryptography.MD5CryptoServiceProvider()'
+          - pattern: SHA1.Create()
+          - pattern: System.Security.Cryptography.SHA1.Create()
+          - pattern: 'new SHA1CryptoServiceProvider()'
+          - pattern: 'new System.Security.Cryptography.SHA1CryptoServiceProvider()'
+          - pattern: HashAlgorithm.Create("MD5")
+          - pattern: HashAlgorithm.Create("SHA1")
+          - pattern: HashAlgorithm.Create("SHA-1")
+    message: |
+      MD5 / SHA-1 used. Both are unsuitable for password hashing or
+      signature verification (CWE-327). Use SHA-256+ for integrity,
+      PBKDF2 / Argon2 for passwords.
+    languages: [csharp]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      pack: [web]
+
+  - id: dotnet-a05-xml-resolver-enabled
+    patterns:
+      - pattern-either:
+          - pattern: 'new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse }'
+          - pattern: 'new XmlReaderSettings { XmlResolver = new XmlUrlResolver() }'
+          - pattern: 'new XmlDocument { XmlResolver = new XmlUrlResolver() }'
+          - pattern: 'new XmlDocument { XmlResolver = $R }'
+    message: |
+      XML reader configured with an external resolver / DTD processing enabled.
+      Untrusted XML may trigger XXE attacks (CWE-611). Set XmlResolver=null and
+      DtdProcessing=Prohibit.
+    languages: [csharp]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-611: XML External Entity Reference"
+      confidence: MEDIUM
+      pack: [web]

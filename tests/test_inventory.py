@@ -107,3 +107,64 @@ def test_mode_none_returns_inventory_packs(tmp_path):
     (tmp_path / "Podfile").write_text("a\n")
     inv = take_inventory(tmp_path)
     assert packs_for(None, inv) == inv.packs
+
+
+def test_csproj_picks_dotnet_web(tmp_path):
+    (tmp_path / "App.csproj").write_text(
+        '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+        '<TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>\n'
+    )
+    inv = take_inventory(tmp_path)
+    assert "dotnet" in inv.stack.detected
+    assert "web" in inv.packs
+
+
+def test_composer_json_picks_php_web(tmp_path):
+    (tmp_path / "composer.json").write_text('{"name":"x/y","require":{"php":">=8.0"}}\n')
+    inv = take_inventory(tmp_path)
+    assert "php" in inv.stack.detected
+    assert "web" in inv.packs
+
+
+def test_electron_dep_picks_desktop(tmp_path):
+    (tmp_path / "package.json").write_text(
+        '{"name":"app","dependencies":{"electron":"28.0.0"}}\n'
+    )
+    inv = take_inventory(tmp_path)
+    assert "electron" in inv.stack.detected
+    assert "desktop" in inv.packs
+
+
+def test_react_native_in_package_json_still_picks_mobile_not_desktop(tmp_path):
+    (tmp_path / "package.json").write_text(
+        '{"name":"a","dependencies":{"react-native":"0.79.0"}}\n'
+    )
+    inv = take_inventory(tmp_path)
+    assert "react-native" in inv.stack.detected
+    assert "mobile" in inv.packs
+    assert "desktop" not in inv.packs
+
+
+def test_pyproject_poetry_unquoted_llm_dep_detected(tmp_path):
+    (tmp_path / "pyproject.toml").write_text(
+        "[tool.poetry.dependencies]\n"
+        "python = \"^3.11\"\n"
+        "anthropic = \"^0.20\"\n"
+    )
+    inv = take_inventory(tmp_path)
+    assert "python" in inv.stack.detected
+    assert inv.stack.has_llm_sdk is True
+    assert "llm" in inv.packs
+
+
+def test_pyproject_pep621_list_llm_dep_detected(tmp_path):
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname = \"x\"\ndependencies = [\"openai>=1.0\", \"fastapi\"]\n"
+    )
+    inv = take_inventory(tmp_path)
+    assert inv.stack.has_llm_sdk is True
+
+
+def test_desktop_mode_maps_to_desktop_pack(tmp_path):
+    inv = take_inventory(tmp_path)
+    assert packs_for("desktop", inv) == ["desktop"]

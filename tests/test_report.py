@@ -106,3 +106,28 @@ def test_report_buckets_by_severity(tmp_path):
     assert "Low" in text
     # FALSE finding goes into "Triaged out" section, not findings
     assert "Triaged out" in text
+
+
+def test_report_dedupes_multiple_rules_on_same_line(tmp_path):
+    f1 = Finding(rule_id="android-backup", severity="ERROR", confidence="HIGH",
+                 path="AndroidManifest.xml", start_line=5, end_line=5,
+                 message="backup enabled", metadata={"cwe": "CWE-922"})
+    f2 = Finding(rule_id="mastg-backup-no-exclusions", severity="ERROR", confidence="HIGH",
+                 path="AndroidManifest.xml", start_line=5, end_line=5,
+                 message="backup enabled", metadata={"cwe": "CWE-922"})
+    f3 = Finding(rule_id="android-cleartext", severity="ERROR", confidence="HIGH",
+                 path="AndroidManifest.xml", start_line=5, end_line=5,
+                 message="cleartext traffic", metadata={"cwe": "CWE-319"})
+    findings = [f1, f2, f3]
+    triage = [_triage(f, "NEEDS-DEEP", "no provider") for f in findings]
+    meta = RunMeta(target=tmp_path, mode="quick", packs=["mobile"],
+                   sast_bin="opengrep", provider=None,
+                   duration_seconds=1.0, tokens_in=0, tokens_out=0)
+    out = write_report(tmp_path / "report.md", meta, findings, triage)
+    text = out.read_text()
+    grouped_line = [ln for ln in text.splitlines()
+                    if "AndroidManifest.xml:5" in ln and "3 rules" in ln]
+    assert grouped_line, "expected grouped line with `3 rules:` summary"
+    assert "android-backup" in text
+    assert "android-cleartext" in text
+    assert "mastg-backup-no-exclusions" in text

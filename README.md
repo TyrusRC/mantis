@@ -15,18 +15,41 @@ CLI against any litellm-supported provider. Local only.
 
 ## Install
 
+From PyPI (recommended):
+
+```bash
+pipx install mantis-sast        # the CLI binary is `mantis`
+pipx install opengrep           # or: pipx install semgrep
+mantis --version
+```
+
+From source (for hacking on rules/agents):
+
 ```bash
 git clone https://github.com/TyrusRC/automated-code-examination-mcp.git mantis
 cd mantis
-./setup.sh           # installs opengrep + the `mantis` CLI via pipx
-./doctor.sh          # verifies the install
+./setup.sh                      # installs opengrep + mantis via pipx
+./doctor.sh                     # verifies the install
 ```
 
-For MCP mode, copy agents and the slash command into a target project:
+For MCP mode (Claude Code), copy agents and the slash command into a target project:
 
 ```bash
 ./install.sh /path/to/target/project
 ```
+
+## Updating
+
+`mantis` checks PyPI once per 24h on startup and prints a one-line nudge
+if a newer release exists. To check explicitly or upgrade in place:
+
+```bash
+mantis update --check           # query PyPI, bypass the 24h cache
+mantis update                   # upgrade via the same installer used (pipx or pip)
+```
+
+Disable the passive check by setting `MANTIS_NO_UPDATE_CHECK=1`. Editable
+installs are skipped (you maintain them via git).
 
 ## Usage
 
@@ -54,14 +77,32 @@ For MCP mode, copy agents and the slash command into a target project:
 ### Standalone CLI
 
 ```
-mantis audit [path] [--mode MODE] [--fix] [--lite] [--focus AREA] [--config PATH] [--skip-llm]
-mantis check [path]
+mantis init [path]                    # scaffold .mantis.yaml + .env.example
+mantis doctor [path]                  # probe install, scanner, agents, keys, config
+mantis audit [path] [mode] [focus:<area>] [options]
+mantis history [path]                 # list past runs
+mantis show [ref] [--path .]          # print a past report (ref: id, prefix, latest, -N)
+mantis diff [a] [b] [--path .]        # unified diff between two runs
+mantis update [--check]               # query PyPI, upgrade in place
 ```
 
-`--skip-llm` runs the SAST + slice stages only; no provider needed.
+`audit` options worth knowing:
 
-Output: `./security-audit-report.md`. With `--fix`, patches are applied in
-`../<repo>.audit-fix-<short>/`; the working tree is never modified.
+| Flag | Effect |
+|---|---|
+| `--since <ref>` | scan only files changed vs. a git ref (`main`, `HEAD~1`, `uncommitted`, `staged`) |
+| `--format md\|json\|sarif\|all` | write structured output alongside the markdown report |
+| `--no-cache` | bypass the per-file SAST result cache |
+| `--skip-llm` | SAST + inventory only; no provider needed |
+| `--lite` | skip slicing + deep review |
+| `--fix` | apply patches in a worktree, re-verify |
+
+`audit` mode is positional and matches the MCP slash form:
+`mantis audit quick`, `mantis audit deep focus:auth`, `mantis audit . web --since main`.
+
+Reports land under `<target>/.mantis/runs/<ts>-<sha>.md` with stable pointers at
+`<target>/.mantis/latest.md` and `<target>/security-audit-report.md`. With `--fix`,
+patches are applied in `../<repo>.audit-fix-<short>/`; the working tree is never modified.
 
 ## Configuration (standalone)
 
@@ -103,7 +144,7 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
 6  slice          depth-limited callgraph, entrypoint reachability
 7  deep review    deep tier on reachable TRUE / NEEDS-DEEP slices
 8  fix            patch in worktree, re-run scanner   (only with --fix)
-9  report         write ./security-audit-report.md
+9  report         write <target>/.mantis/runs/<ts>-<sha>.md (+ latest.md symlink)
 ```
 
 Stages 6–8 are conditionally skipped based on mode and flags. Triage and
@@ -112,17 +153,21 @@ slicing run in isolated contexts to keep the orchestrator's window small.
 ## Repository layout
 
 ```
-agents/        subagent definitions (markdown, model: + tier: frontmatter)
-commands/      slash command for MCP mode
-rules/         opengrep/semgrep YAML rules + pack specs + manifest
-scripts/       build_manifest.py, pack_compose.py
-checklists/    OWASP Testing Guide chapters for the deep-reviewer
-mantis/        standalone CLI Python package
-install.sh     install agents/commands into a target (MCP mode)
-setup.sh       install opengrep + mantis CLI
-doctor.sh      verify install
-CLAUDE.md      conventions for future contributors / Claude sessions
+mantis/                       standalone CLI Python package
+mantis/resources/agents/      subagent definitions (model: + tier: frontmatter)
+mantis/resources/commands/    slash command for MCP mode
+mantis/resources/rules/       opengrep/semgrep YAML rules + pack specs + manifest
+mantis/resources/scripts/     build_manifest.py, pack_compose.py
+mantis/resources/checklists/  OWASP Testing Guide chapters for the deep-reviewer
+install.sh                    install agents/commands into a target (MCP mode)
+setup.sh                      install opengrep + mantis CLI
+doctor.sh                     verify install
+CLAUDE.md                     conventions for future contributors / Claude sessions
 ```
+
+Resources live under `mantis/` so they ship inside the wheel published to
+PyPI. The CLI resolves them via `Path(__file__).parent/'resources'` and
+falls back to a top-level layout for legacy installs.
 
 ### Subagents
 
@@ -150,16 +195,16 @@ CLAUDE.md      conventions for future contributors / Claude sessions
 Compose a pack:
 
 ```bash
-python3 scripts/pack_compose.py rules/packs/fast.yaml --as-args
-opengrep $(python3 scripts/pack_compose.py rules/packs/fast.yaml --as-args) --json <target>
+python3 mantis/resources/scripts/pack_compose.py mantis/resources/rules/packs/fast.yaml --as-args
+opengrep $(python3 mantis/resources/scripts/pack_compose.py mantis/resources/rules/packs/fast.yaml --as-args) --json <target>
 ```
 
 ## Local-only
 
-No CI integration, no forge API calls, no telemetry. `--fix` writes to a
-sibling git worktree, never the working tree. The only artifact a run
-produces is `./security-audit-report.md` (and, with `--fix`, patches inside
-the worktree).
+No CI integration, no forge API calls, no telemetry of findings. `--fix`
+writes to a sibling git worktree, never the working tree. Audit reports
+live under `<target>/.mantis/runs/`; the only outbound network call is the
+once-per-day PyPI version check (set `MANTIS_NO_UPDATE_CHECK=1` to disable).
 
 ## Contributing
 
@@ -170,10 +215,37 @@ hooks, remote upload, hardcoded model names).
 After editing rules, rebuild the manifest:
 
 ```bash
-python3 scripts/build_manifest.py
+python3 mantis/resources/scripts/build_manifest.py
 ```
 
-Commit the updated `rules/_manifest.yaml` alongside the rule change.
+Commit the updated `mantis/resources/rules/_manifest.yaml` alongside the rule change.
+
+### Releasing to PyPI
+
+```bash
+# 1. bump version in pyproject.toml
+# 2. clean + build
+rm -rf dist build mantis_sast.egg-info
+pipx run build
+
+# 3. inspect the wheel and metadata
+pipx run twine check dist/*
+unzip -l dist/mantis_sast-*.whl | tail -5      # confirm resources/ shipped
+
+# 4. upload to TestPyPI first
+pipx run twine upload --repository testpypi dist/*
+pipx install --index-url https://test.pypi.org/simple/ \
+             --pip-args "--extra-index-url https://pypi.org/simple" \
+             mantis-sast
+mantis --version
+
+# 5. tag and upload to PyPI
+git tag v0.1.0 && git push origin v0.1.0
+pipx run twine upload dist/*
+```
+
+Use an API token (`__token__` as the username, the token as the password) stored in
+`~/.pypirc` or `TWINE_PASSWORD` — never commit it.
 
 ## License
 
@@ -181,6 +253,6 @@ Commit the updated `rules/_manifest.yaml` alongside the rule change.
 
 ## Acknowledgments
 
-Architecture: [AGHAST](https://www.bouncesecurity.com/blog/2026/04/14/introducing-aghast), [Slice](https://noperator.dev/posts/slice/), [Vulnhuntr](https://github.com/protectai/vulnhuntr), [Tree-of-AST (Black Hat USA 2025)](https://ruik.ai/).
-Tooling: [OpenGrep](https://github.com/opengrep/opengrep), [Semgrep](https://github.com/semgrep/semgrep), [litellm](https://github.com/BerriAI/litellm).
-Standards: [OWASP MASVS](https://mas.owasp.org/MASVS/), [MASTG](https://mas.owasp.org/MASTG/), [OWASP Top 10:2025](https://owasp.org/Top10/), [LLM Top 10:2025](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/).
+- **Architecture**: [AGHAST](https://www.bouncesecurity.com/blog/2026/04/14/introducing-aghast), [Slice](https://noperator.dev/posts/slice/), [Vulnhuntr](https://github.com/protectai/vulnhuntr), [Tree-of-AST (Black Hat USA 2025)](https://ruik.ai/)
+- **Tooling**: [OpenGrep](https://github.com/opengrep/opengrep), [Semgrep](https://github.com/semgrep/semgrep), [litellm](https://github.com/BerriAI/litellm)
+- **Standards**: [OWASP MASVS](https://mas.owasp.org/MASVS/), [MASTG](https://mas.owasp.org/MASTG/), [OWASP Top 10:2025](https://owasp.org/Top10/), [LLM Top 10:2025](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/)

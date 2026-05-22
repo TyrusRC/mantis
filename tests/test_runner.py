@@ -15,7 +15,7 @@ from mantis.config import Config
 from mantis.runner import Pipeline
 
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parent.parent / "mantis" / "resources"
 
 
 @pytest.fixture

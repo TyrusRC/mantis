@@ -4,7 +4,7 @@ Project conventions for future Claude sessions in this repo. Read this before ma
 
 ## What this repo is
 
-**Mantis** — a hybrid SAST + LLM toolkit for local code-security audits. Source-of-truth files for the audit pipeline live at the repo root.
+**Mantis** — a hybrid SAST + LLM toolkit for local code-security audits. Distributed on PyPI as `mantis-sast`; the CLI binary is `mantis`. Source-of-truth files for the audit pipeline live under `mantis/resources/` so they ship inside the published wheel.
 
 Two execution modes, one pipeline:
 
@@ -13,12 +13,14 @@ Two execution modes, one pipeline:
 
 Layout:
 
-- `agents/` — six subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
-- `commands/` — one slash command (`/audit`), MCP-mode only
-- `rules/` — OpenGrep / Semgrep YAML rules + pack specs + manifest
-- `scripts/` — manifest builder + pack composer
-- `checklists/` — OWASP Testing Guide chapters for the deep-reviewer
 - `mantis/` — standalone CLI Python package (loads agents, runs pipeline, routes to configured provider)
+- `mantis/resources/agents/` — subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
+- `mantis/resources/commands/` — one slash command (`/audit`), MCP-mode only
+- `mantis/resources/rules/` — OpenGrep / Semgrep YAML rules + pack specs + manifest
+- `mantis/resources/scripts/` — manifest builder + pack composer
+- `mantis/resources/checklists/` — OWASP Testing Guide chapters for the deep-reviewer
+
+The CLI resolves resources via `Path(__file__).parent/'resources'` first (the canonical location for pipx/pip installs and editable source checkouts), then `$MANTIS_HOME`, then a top-level fallback for legacy layouts.
 
 The SAST scanner binary is **OpenGrep** by default with **Semgrep** as a transparent fallback (see "SAST binary" below). Rules are written in the Semgrep YAML schema which OpenGrep consumes unchanged.
 
@@ -32,7 +34,9 @@ If a future feature request implies CI behavior, push back: this toolkit explici
 
 ### One command
 
-There is one slash command, `/audit`. Modes (`quick`, `deep`, `bugbounty`, `cve`, `mobile`, `web`, `llm`) and flags (`--fix`, `--lite`, `focus:<area>`) are positional/flag arguments to that one command. Do not split modes back into separate commands.
+There is one slash command, `/audit`. Modes (`quick`, `deep`, `bugbounty`, `cve`, `mobile`, `web`, `desktop`, `llm`) and flags (`--fix`, `--lite`, `focus:<area>`) are positional/flag arguments to that one command. Do not split modes back into separate commands.
+
+The `web` pack covers Java/Spring, Node.js, Python (Django/Flask/FastAPI), Go, .NET (C#), and PHP. The `desktop` pack covers Electron. Mobile (`mobile`, `mobile-ios`, `mobile-android`) covers native iOS / Android plus cross-platform Flutter and React Native.
 
 The standalone CLI additionally exposes `--skip-llm` for SAST-only diagnostic runs (no provider config needed). This is CLI-only — the MCP slash command always runs the full pipeline.
 
@@ -82,6 +86,19 @@ PyYAML (and Semgrep's own loader on some versions) misparses pattern values that
 ```
 
 If you add a rule with `setValue(..., forHTTPHeaderField: ...)`-style Swift, `__html: ...`-style JSX, or anything with a colon-space inside a function call, single-quote it. The script that fixed this historically lives at the inline Python in past commits — re-run the same idea if a new file has the same issue.
+
+### paths.include / exclude
+
+Semgrep `paths.include` accepts fnmatch globs (`*`, `**`, `?`, `[...]`) — **not** brace expansion. `"**/main.{js,ts}"` silently matches nothing. Use separate entries:
+
+```yaml
+paths:
+  include:
+    - "**/main.js"
+    - "**/main.ts"
+```
+
+Scope cross-platform rules with `paths.include` to project-typical paths so a rule named `react-native-*` doesn't fire on a Spring template `.js` file. Always pair with an `exclude` for `node_modules`, `build`, `dist`, `target`, `vendor`.
 
 ### Pack specs
 

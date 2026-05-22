@@ -127,12 +127,26 @@ def _findings_section(results: list[TriageResult]) -> str:
         if not items:
             continue
         out.append(sev_to_header[sev])
+        groups: dict[tuple[str, int], list[TriageResult]] = {}
+        order: list[tuple[str, int]] = []
         for r in items:
-            f = r.finding
-            verdict_tag = " (NEEDS-DEEP)" if r.verdict == "NEEDS-DEEP" else ""
-            out.append(f"- **{f.rule_id}** — `{f.path}:{f.start_line}`{verdict_tag}")
+            key = (r.finding.path, r.finding.start_line)
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append(r)
+        for key in order:
+            group = groups[key]
+            head = group[0]
+            f = head.finding
+            verdict_tag = " (NEEDS-DEEP)" if head.verdict == "NEEDS-DEEP" else ""
+            if len(group) == 1:
+                out.append(f"- **{f.rule_id}** — `{f.path}:{f.start_line}`{verdict_tag}")
+            else:
+                ids = ", ".join(sorted({r.finding.rule_id for r in group}))
+                out.append(f"- **{f.path}:{f.start_line}**{verdict_tag} — {len(group)} rules: {ids}")
             out.append(f"  - {f.message.splitlines()[0] if f.message else '(no message)'}")
-            out.append(f"  - **Triage:** {r.reason}")
+            out.append(f"  - **Triage:** {head.reason}")
             out.append(f"  - **Mapping:** {_format_metadata_inline(f.metadata or {})}")
         out.append("")
     return "\n".join(out)

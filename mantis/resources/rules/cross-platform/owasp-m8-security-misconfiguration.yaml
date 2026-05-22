@@ -1,0 +1,468 @@
+rules:
+  # Flutter OWASP M8: Security Misconfiguration Detection Rules
+  # Comprehensive coverage of Flutter Android/iOS configuration issues
+  # Sources: OWASP Mobile Top 10 2024, Flutter Security Best Practices, MASVS
+  # Focus: Build configurations, manifest/plist issues, permission misconfigurations
+
+  # ============ ANDROID BUILD CONFIGURATION ============
+
+  - id: flutter-ios-ats-disabled-globally
+    patterns:
+      - pattern: |
+          <key>NSAppTransportSecurity</key>
+          <dict>
+            <key>NSAllowsArbitraryLoads</key>
+            <true/>
+          </dict>
+    message: |
+      App Transport Security disabled globally in Flutter iOS (OWASP M8).
+      Disabling ATS allows insecure HTTP and weak TLS for all connections.
+
+      SECURITY IMPACT:
+      - Flutter http/dio calls over HTTP
+      - Weak TLS versions accepted
+      - Man-in-the-middle attacks
+      - App Store rejection risk
+
+      SECURE FIX:
+      ```xml
+      <!-- Remove global ATS exception -->
+      <!-- ATS enabled by default on iOS 9+ -->
+
+      <!-- If legacy API needed, use specific domain -->
+      <key>NSAppTransportSecurity</key>
+      <dict>
+          <key>NSExceptionDomains</key>
+          <dict>
+              <key>legacy-api.example.com</key>
+              <dict>
+                  <key>NSExceptionMinimumTLSVersion</key>
+                  <string>TLSv1.2</string>
+              </dict>
+          </dict>
+      </dict>
+      ```
+
+      FLUTTER ENFORCEMENT:
+      ```dart
+      import 'package:http/http.dart' as http;
+
+      class SecureIOSClient {
+        static Future<http.Response> get(String url) async {
+          if (!url.startsWith('https://')) {
+            throw SecurityException('iOS ATS requires HTTPS');
+          }
+          return await http.get(Uri.parse(url));
+        }
+      }
+      ```
+
+      Reference: OWASP M8, MASVS-NETWORK-1, Apple ATS
+    severity: ERROR
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-319: Cleartext Transmission"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-NETWORK-1"
+      confidence: VERY_HIGH
+      platform: ios
+
+  - id: flutter-ios-custom-url-scheme-insecure
+    patterns:
+      - pattern: |
+          <key>CFBundleURLTypes</key>
+          <array>
+            <dict>
+              ...
+              <key>CFBundleURLSchemes</key>
+              <array>
+                <string>$SCHEME</string>
+              </array>
+              ...
+            </dict>
+          </array>
+      - metavariable-regex:
+          metavariable: $SCHEME
+          regex: ^(?!https?).*$
+    message: |
+      Flutter iOS custom URL scheme without Universal Links (OWASP M8).
+      Custom schemes are vulnerable to hijacking on iOS.
+
+      SECURITY RISKS:
+      - Multiple apps can register same scheme
+      - No ownership verification
+      - Phishing attacks on Flutter screens
+      - Data interception
+
+      SECURE FIX - Universal Links:
+      ```xml
+      <key>com.apple.developer.associated-domains</key>
+      <array>
+          <string>applinks:example.com</string>
+      </array>
+      ```
+
+      FLUTTER DEEP LINKING:
+      ```dart
+      import 'package:uni_links/uni_links.dart';
+
+      class UniversalLinkHandler {
+        Future<void> handleLink(Uri? uri) async {
+          if (uri == null) return;
+
+          if (uri.scheme != 'https') {
+            throw SecurityException('Only HTTPS universal links');
+          }
+
+          if (!['example.com'].contains(uri.host)) {
+            throw SecurityException('Untrusted domain');
+          }
+
+          _navigate(uri);
+        }
+      }
+      ```
+
+      Reference: OWASP M8, MASVS-PLATFORM-2, Apple Universal Links
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: security
+      cwe: "CWE-939: Improper Authorization in URL Scheme Handler"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      masvs: "MASVS-PLATFORM-2"
+      confidence: HIGH
+      platform: ios
+
+  - id: flutter-ios-privacy-description-insufficient
+    patterns:
+      - pattern-either:
+          - pattern: |
+              <key>NSCameraUsageDescription</key>
+              <string>$DESC</string>
+          - pattern: |
+              <key>NSLocationAlwaysUsageDescription</key>
+              <string>$DESC</string>
+          - pattern: |
+              <key>NSPhotoLibraryUsageDescription</key>
+              <string>$DESC</string>
+      - metavariable-regex:
+          metavariable: $DESC
+          regex: ^.{0,25}$
+    message: |
+      Insufficient privacy permission description in Flutter iOS (OWASP M6/M8).
+      iOS requires clear, detailed permission descriptions.
+
+      PRIVACY RISKS:
+      - App Store rejection
+      - User distrust
+      - GDPR/CCPA non-compliance
+
+      SECURE FIX:
+      ```xml
+      <key>NSCameraUsageDescription</key>
+      <string>Camera access is required to scan QR codes for payments and capture profile photos.</string>
+
+      <key>NSLocationWhenInUseUsageDescription</key>
+      <string>Location is needed to show nearby stores and provide delivery estimates.</string>
+
+      <key>NSPhotoLibraryUsageDescription</key>
+      <string>Photo library access allows selecting images for your profile and sharing product photos.</string>
+      ```
+
+      FLUTTER PERMISSION HANDLING:
+      ```dart
+      import 'package:permission_handler/permission_handler.dart';
+
+      Future<bool> requestCamera() async {
+        final status = await Permission.camera.request();
+        if (status.isDenied) {
+          // Show explanation matching Info.plist description
+          _showPermissionDialog();
+        }
+        return status.isGranted;
+      }
+      ```
+
+      Reference: OWASP M6, M8, Apple Privacy Guidelines, MASVS-PRIVACY-1
+    severity: WARNING
+    languages:
+      - xml
+    paths:
+      include:
+        - "**/Info.plist"
+    metadata:
+      category: privacy
+      owasp-mobile-2024: "M6: Inadequate Privacy Controls"
+      masvs: "MASVS-PRIVACY-1"
+      confidence: MEDIUM
+      platform: ios
+      compliance: "GDPR, CCPA, App Store"
+
+  # ============ FLUTTER PUBSPEC.YAML CONFIGURATION ============
+
+  - id: flutter-pubspec-outdated-dart-sdk
+    patterns:
+      - pattern: |
+          environment:
+            sdk: "$VERSION"
+      - metavariable-regex:
+          metavariable: $VERSION
+          regex: ^['"]?[<>=^~]*[0-2]\.\d+\.\d+
+    message: |
+      Outdated Dart SDK version in Flutter pubspec.yaml (OWASP M8).
+      Old SDK versions lack security patches and modern protections.
+
+      SECURITY RISKS:
+      - Missing security patches
+      - Vulnerable to known exploits
+      - Lack of null safety (Dart 2.12+)
+      - Missing modern security features
+
+      SECURE FIX:
+      ```yaml
+      environment:
+        sdk: ">=3.2.0 <4.0.0"
+        flutter: ">=3.16.0"
+      ```
+
+      UPDATE PROCESS:
+      ```bash
+      flutter upgrade
+      flutter pub upgrade
+      flutter test
+      flutter build apk --release
+      ```
+
+      Reference: OWASP M8, Flutter Security, CWE-1104
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Components"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: MEDIUM
+
+  - id: flutter-pubspec-git-dependency
+    patterns:
+      - pattern: |
+          dependencies:
+            ...
+            $PKG:
+              git: $URL
+            ...
+    message: |
+      Git-based dependency in Flutter pubspec.yaml (OWASP M2/M8).
+      Git dependencies bypass pub.dev security and can be compromised.
+
+      SECURITY RISKS:
+      - No pub.dev security scanning
+      - No version verification
+      - Mutable dependencies
+      - Supply chain attacks
+
+      SECURE FIX:
+      ```yaml
+      dependencies:
+        # Use pub.dev verified packages
+        http: ^1.1.0
+        dio: ^5.4.0
+
+        # If git needed, pin to commit
+        custom_package:
+          git:
+            url: https://github.com/user/package.git
+            ref: a1b2c3d4  # Specific commit SHA
+      ```
+
+      DEPENDENCY VERIFICATION:
+      ```bash
+      flutter pub deps
+      flutter pub outdated
+      dart pub global activate pana
+      pana --no-warning .
+      ```
+
+      Reference: OWASP M2, M8, SLSA Supply Chain
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - "**/pubspec.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: flutter-gradle-insecure-repository
+    patterns:
+      - pattern-either:
+          - pattern: |
+              repositories {
+                ...
+                maven { url "http://$URL" }
+                ...
+              }
+          - pattern: |
+              maven { url 'http://$URL' }
+    message: |
+      Insecure HTTP Maven repository in Flutter Gradle (OWASP M8).
+      HTTP repositories allow dependency poisoning attacks.
+
+      SECURITY IMPACT:
+      - Dependencies downloaded over HTTP
+      - Man-in-the-middle attacks
+      - Malicious dependency injection
+      - Build compromise
+
+      SECURE FIX:
+      ```gradle
+      repositories {
+          google()
+          mavenCentral()
+          // Use HTTPS for custom repositories
+          maven { url "https://secure-repo.example.com" }
+      }
+      ```
+
+      Reference: OWASP M2, M8, Gradle Security
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - "**/build.gradle"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download Without Integrity Check"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: VERY_HIGH
+
+  - id: flutter-gradle-allow-insecure-protocol
+    patterns:
+      - pattern: |
+          repositories {
+            ...
+            allowInsecureProtocol = true
+            ...
+          }
+    message: |
+      Insecure protocol explicitly allowed in Gradle (OWASP M8).
+      Gradle 7+ requires HTTPS by default - this bypasses security.
+
+      REMOVE THIS SETTING - Use HTTPS repositories only.
+
+      Reference: OWASP M8, Gradle 7 Security
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - "**/build.gradle"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: VERY_HIGH
+
+  # ============ FLUTTER BUILD CONFIGURATION ============
+
+  - id: flutter-obfuscation-disabled
+    patterns:
+      - pattern: |
+          flutter build $PLATFORM --release
+      - pattern-not: |
+          flutter build $PLATFORM --release --obfuscate --split-debug-info=$PATH
+    message: |
+      Flutter obfuscation not enabled in build (OWASP M7/M8).
+      Without obfuscation, Dart code is easily reverse-engineered.
+
+      SECURITY BENEFITS OF OBFUSCATION:
+      - Symbol names mangled
+      - Stack traces anonymized
+      - Reverse engineering harder
+      - Business logic protected
+
+      SECURE BUILD:
+      ```bash
+      # Android
+      flutter build apk --release \
+        --obfuscate \
+        --split-debug-info=build/app/outputs/symbols
+
+      # iOS
+      flutter build ios --release \
+        --obfuscate \
+        --split-debug-info=build/ios/symbols
+      ```
+
+      Reference: OWASP M7, M8, Flutter Obfuscation
+    severity: WARNING
+    languages:
+      - bash
+    paths:
+      include:
+        - "*.sh"
+        - "*.bash"
+        - "**/Makefile"
+        - "**/.github/**/*.yml"
+        - "**/.github/**/*.yaml"
+        - "**/fastlane/**"
+        - "**/scripts/**"
+      exclude:
+        - "**/gradlew"
+        - "**/gradlew.bat"
+        - "**/mvnw"
+        - "**/node_modules/**"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7: Insufficient Binary Protections"
+      confidence: MEDIUM
+
+  - id: flutter-web-insecure-headers
+    patterns:
+      - pattern: |
+          <meta http-equiv="Content-Security-Policy" content="$CSP">
+      - metavariable-regex:
+          metavariable: $CSP
+          regex: (?i).*unsafe-inline.*
+    message: |
+      Flutter Web with unsafe CSP (OWASP M8).
+      'unsafe-inline' in Content-Security-Policy allows XSS attacks.
+
+      SECURE CSP FOR FLUTTER WEB:
+      ```html
+      <meta http-equiv="Content-Security-Policy"
+            content="default-src 'self';
+                     script-src 'self';
+                     style-src 'self' 'nonce-{random}';
+                     img-src 'self' data: https:;
+                     connect-src 'self' https://api.example.com;">
+      ```
+
+      Reference: OWASP M8, Flutter Web Security
+    severity: WARNING
+    languages:
+      - html
+    paths:
+      include:
+        - "**/web/index.html"
+    metadata:
+      category: security
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers"
+      owasp-mobile-2024: "M8: Security Misconfiguration"
+      confidence: HIGH

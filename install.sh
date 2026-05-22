@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 # Install mantis (MCP mode) into a target project's .claude/ directory.
-# For standalone CLI installation, use: pipx install <this-repo>
+# For standalone CLI installation, use: pipx install mantis-sast
 # Usage: ./install.sh [target_dir]   (default: current directory)
 set -euo pipefail
 
 TARGET="${1:-$PWD}"
 SRC="$(cd "$(dirname "$0")" && pwd)"
+RES="$SRC/mantis/resources"
 
 if [[ ! -d "$TARGET" ]]; then
   echo "target not found: $TARGET" >&2
+  exit 1
+fi
+if [[ ! -d "$RES/agents" ]]; then
+  echo "resources not found at $RES; expected mantis/resources/agents/" >&2
   exit 1
 fi
 
 mkdir -p "$TARGET/.claude/agents" "$TARGET/.claude/commands"
 
 echo "installing agents -> $TARGET/.claude/agents/"
-cp -v "$SRC/agents/"*.md "$TARGET/.claude/agents/"
+cp -v "$RES/agents/"*.md "$TARGET/.claude/agents/"
 
 echo "installing commands -> $TARGET/.claude/commands/"
-cp -v "$SRC/commands/"*.md "$TARGET/.claude/commands/"
+cp -v "$RES/commands/"*.md "$TARGET/.claude/commands/"
 
 # Link directories so updates flow through. Falls back to copy on filesystems
 # that don't support symlinks (Windows / WSL crossings / sandboxed runners).
@@ -35,14 +40,14 @@ link_or_copy() {
   fi
 }
 
-link_or_copy "$SRC/rules"      "$TARGET/.claude/sast-rules"      "rules"
-link_or_copy "$SRC/checklists" "$TARGET/.claude/sast-checklists" "checklists"
-link_or_copy "$SRC/scripts"    "$TARGET/.claude/sast-scripts"    "scripts"
+link_or_copy "$RES/rules"      "$TARGET/.claude/sast-rules"      "rules"
+link_or_copy "$RES/checklists" "$TARGET/.claude/sast-checklists" "checklists"
+link_or_copy "$RES/scripts"    "$TARGET/.claude/sast-scripts"    "scripts"
 
 # Build / refresh the rule manifest
 if command -v python3 >/dev/null 2>&1; then
   echo "building rule manifest..."
-  python3 "$SRC/scripts/build_manifest.py" || echo "  (manifest build failed, continuing)"
+  python3 "$RES/scripts/build_manifest.py" || echo "  (manifest build failed, continuing)"
 fi
 
 cat <<EOF
@@ -65,6 +70,6 @@ SAST binary: opengrep is preferred; semgrep also works. install one:
   pipx install semgrep         (fallback; both consume the same rule YAML)
 
 for standalone CLI mode (any LLM provider — anthropic, google, openai, ollama):
-  pipx install $(cd "$SRC" && pwd)
+  pipx install mantis-sast
   mantis audit /path/to/target
 EOF

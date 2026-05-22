@@ -68,6 +68,9 @@ class Pipeline:
     focus: Optional[str] = None
     experimental_toast: bool = False
     skip_llm: bool = False
+    since: Optional[str] = None
+    output_format: str = "md"
+    no_cache: bool = False
 
     def run(self) -> int:
         t0 = time.monotonic()
@@ -79,7 +82,11 @@ class Pipeline:
         print(f"[mantis] target  = {self.target}")
         print(f"[mantis] mode    = {mode_label}")
         print(f"[mantis] sast    = {self.sast_bin}")
-        print(f"[mantis] provider= {self.config.provider or '(unspecified)'}")
+        if self.skip_llm:
+            prov_banner = "(skipped via --skip-llm)"
+        else:
+            prov_banner = self.config.provider or "(unspecified)"
+        print(f"[mantis] provider= {prov_banner}")
         if self.lite:
             print("[mantis] --lite: stages 6/7/8 will be skipped")
 
@@ -116,7 +123,27 @@ class Pipeline:
             if not valid_rules:
                 print("[mantis] no valid rule files in pack; aborting")
                 return 2
-            scan_out = run_scan(self.target, valid_rules, self.sast_bin)
+            scoped_paths = None
+            if self.since:
+                from mantis.since import resolve_since, SinceError
+                try:
+                    scoped_paths = resolve_since(self.target, self.since)
+                except SinceError as e:
+                    print(f"[mantis] --since failed: {e}")
+                    return 2
+                print(f"[mantis] --since {self.since}: scoped to "
+                      f"{len(scoped_paths)} changed file(s)")
+                if not scoped_paths:
+                    print("[mantis] nothing to scan; exiting cleanly")
+                    notes.append(f"--since {self.since} matched no files")
+            from mantis.sast_cache import run_scan_cached
+            scan_out, cache_stats = run_scan_cached(
+                self.target, valid_rules, self.sast_bin,
+                paths=scoped_paths, use_cache=not self.no_cache,
+            )
+            if not self.no_cache and cache_stats["files"]:
+                print(f"[mantis] sast cache: {cache_stats['hits']} hit / "
+                      f"{cache_stats['misses']} miss / {cache_stats['files']} files")
         except ScanError as e:
             print(f"[mantis] scan failed: {e}")
             return 2
@@ -182,7 +209,7 @@ class Pipeline:
         fix_results: list[FixResult] = []
         fix_worktree: Optional[Path] = None
 
-        skip_deep = self.lite or m == "quick"
+        skip_deep = self.lite or m == "quick" or self.skip_llm
 
         # Stage 6 + 7: slice and deep review
         if slice_input and not skip_deep:
@@ -322,11 +349,32 @@ class Pipeline:
             status=status,
             notes=notes,
         )
-        out_path = self.target / "security-audit-report.md"
+        from mantis.history import (
+            new_run_id, report_path_for, update_pointers, runs_dir,
+        )
+        run_id = new_run_id(self.target)
+        runs_dir(self.target).mkdir(parents=True, exist_ok=True)
+        out_path = report_path_for(self.target, run_id)
         write_report(
             out_path, meta, raw_findings, triage_results,
             slices=slices, deep_results=deep_results,
             fix_results=fix_results, fix_worktree=fix_worktree,
             toast_results=toast_results,
         )
+        update_pointers(self.target, out_path)
         print(f"[mantis] stage 9: wrote {out_path}")
+        print(f"[mantis]          latest: {self.target}/.mantis/latest.md "
+              f"(also {self.target}/security-audit-report.md)")
+
+        want_json = self.output_format in ("json", "all")
+        want_sarif = self.output_format in ("sarif", "all")
+        if want_json or want_sarif:
+            from mantis.exporters import write_json, write_sarif
+            if want_json:
+                jpath = out_path.with_suffix(".json")
+                write_json(jpath, meta, triage_results, raw_findings)
+                print(f"[mantis]          wrote {jpath}")
+            if want_sarif:
+                spath = out_path.with_suffix(".sarif")
+                write_sarif(spath, meta, triage_results)
+                print(f"[mantis]          wrote {spath}")

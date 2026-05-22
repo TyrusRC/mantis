@@ -1,0 +1,824 @@
+rules:
+  # OWASP Mobile Top 10 - M2: Inadequate Supply Chain Security
+  # React Native Dependency & npm Package Vulnerability Detection
+  # Comprehensive detection for npm packages, React Native libraries, and native modules
+
+  # ============ NPM PACKAGE SECURITY ============
+
+  - id: react-native-dep-package-lock-missing
+    patterns:
+      - pattern-either:
+          - pattern: |
+              {
+                "name": "$NAME",
+                ...
+              }
+      - pattern-not-inside: |
+          {
+            "lockfileVersion": $VERSION,
+            ...
+          }
+    message: |
+      package-lock.json or yarn.lock missing (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Without a lockfile, different installations may get different dependency
+      versions, leading to non-reproducible builds and potential security inconsistencies.
+
+      Remediation:
+      - Generate and commit package-lock.json: npm install
+      - Or use yarn.lock: yarn install
+      - Always commit lockfiles to version control
+
+      Benefits:
+      - Reproducible builds across environments
+      - Protection against malicious package updates
+      - Faster installation times
+
+      References:
+      - https://docs.npmjs.com/cli/v9/configuring-npm/package-lock-json
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+
+  - id: react-native-dep-git-dependency-no-commit
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "$PKG": "git+http://$URL"
+          - pattern: |
+              "$PKG": "git+https://$URL"
+          - pattern: |
+              "$PKG": "github:$USER/$REPO"
+      - pattern-not: |
+          "$PKG": "$PROTOCOL#$COMMIT"
+    message: |
+      Git dependency without commit hash (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Git dependencies without commit hashes can change unexpectedly,
+      introducing vulnerabilities or breaking changes.
+
+      Remediation:
+      - Pin to specific commit SHA
+      - "package": "git+https://github.com/user/repo.git#abc123def"
+      - Or use npm published versions when available
+
+      References:
+      - https://docs.npmjs.com/cli/v9/configuring-npm/package-json#git-urls-as-dependencies
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ VULNERABLE REACT NATIVE PACKAGES ============
+
+  - id: react-native-dep-react-native-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native": "0.$MINOR.$PATCH"
+          - pattern: |
+              "react-native": "^0.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 72
+    message: |
+      Outdated React Native version (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: React Native versions < 0.72 may have security vulnerabilities,
+      missing security patches, and deprecated APIs.
+
+      Remediation:
+      - Update to React Native 0.73+ or newer
+      - "react-native": "^0.73.0"
+      - Review migration guide for breaking changes
+
+      Benefits of newer versions:
+      - Security patches and bug fixes
+      - Improved performance
+      - Better TypeScript support
+      - New architecture support
+
+      References:
+      - https://reactnative.dev/blog
+      - https://github.com/react-native-community/upgrade-helper
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: react-native-dep-axios-vulnerable
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "axios": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "axios": "^$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR == 0
+    message: |
+      Vulnerable axios HTTP client (OWASP M2: Inadequate Supply Chain Security).
+
+      Vulnerability: axios versions < 1.0 have multiple security vulnerabilities
+      including improper origin validation and potential SSRF issues.
+
+      Risk: HIGH
+      CVE: CVE-2024-57965 (axios < 1.7.8), CVE-2025-27152, CVE-2025-29774, CVE-2025-29775
+
+      Remediation:
+      - Update to axios 1.7.8 or newer
+      - "axios": "^1.7.8"
+
+      Vulnerabilities:
+      - Improper origin validation in isURLSameOrigin.js
+      - Server-Side Request Forgery potential
+      - Cross-origin redirect header exposure
+
+      References:
+      - https://github.com/axios/axios/security/advisories
+      - https://nvd.nist.gov/vuln/detail/CVE-2024-57965
+    severity: ERROR
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+      cvss: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+
+  - id: react-native-dep-async-storage-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "@react-native-async-storage/async-storage": "^1.$MINOR.$PATCH"
+          - pattern: |
+              "@react-native-community/async-storage": "$ANY"
+      - metavariable-comparison:
+          metavariable: $MINOR
+          comparison: $MINOR < 18
+    message: |
+      Outdated React Native AsyncStorage (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: AsyncStorage versions < 1.18 may have security issues with data persistence
+      and lack encryption features.
+
+      Remediation:
+      - Update to AsyncStorage 1.23.0 or newer
+      - "@react-native-async-storage/async-storage": "^1.23.0"
+      - Migrate from deprecated @react-native-community package
+
+      Security considerations:
+      - AsyncStorage is NOT encrypted by default
+      - Use react-native-keychain for sensitive data
+      - Never store authentication tokens in AsyncStorage
+      - Consider using encrypted storage alternatives
+
+      References:
+      - https://github.com/react-native-async-storage/async-storage
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: react-native-dep-netinfo-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "@react-native-community/netinfo": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "@react-native-community/netinfo": "^$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 9
+    message: |
+      Outdated React Native NetInfo (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: NetInfo versions < 9.0 may have issues with network state detection
+      and security-related network checks.
+
+      Remediation:
+      - Update to NetInfo 11.0.0 or newer
+      - "@react-native-community/netinfo": "^11.3.0"
+
+      References:
+      - https://github.com/react-native-netinfo/react-native-netinfo
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  - id: react-native-dep-webview-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native-webview": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "react-native-webview": "^$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 13
+    message: |
+      Outdated react-native-webview (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: react-native-webview versions < 13.0 may have WebView security
+      vulnerabilities, JavaScript injection issues, and improper content security.
+
+      Remediation:
+      - Update to react-native-webview 13.0.0 or newer
+      - "react-native-webview": "^13.6.0"
+
+      Security best practices:
+      - Disable JavaScript if not needed: javaScriptEnabled={false}
+      - Validate URLs before loading
+      - Implement Content Security Policy
+      - Use onShouldStartLoadWithRequest to filter URLs
+      - Never load user input directly into WebView
+
+      References:
+      - https://github.com/react-native-webview/react-native-webview
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-site Scripting (XSS)"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  - id: react-native-dep-firebase-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "@react-native-firebase/app": "^$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "react-native-firebase": "$ANY"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 18
+    message: |
+      Outdated React Native Firebase (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Firebase SDK versions < 18.0 may lack important security patches
+      and privacy features. The old "react-native-firebase" package is deprecated.
+
+      Remediation:
+      - Update to @react-native-firebase 20.0.0 or newer
+      - "@react-native-firebase/app": "^20.0.0"
+      - Migrate from deprecated react-native-firebase v5
+
+      Migration notes:
+      - v6+ requires different initialization
+      - Update all Firebase modules together
+      - Review breaking changes in migration guide
+
+      References:
+      - https://rnfirebase.io
+      - https://firebase.google.com/support/release-notes/android
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ NAVIGATION & ROUTING ============
+
+  - id: react-native-dep-navigation-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "@react-navigation/native": "^$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "react-navigation": "$ANY"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 6
+    message: |
+      Outdated React Navigation (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: React Navigation versions < 6.0 may have deep linking vulnerabilities
+      and improper URL handling. The old "react-navigation" package is deprecated.
+
+      Remediation:
+      - Update to React Navigation 6.x or newer
+      - "@react-navigation/native": "^6.1.0"
+      - Migrate from deprecated react-navigation v4
+
+      Security considerations:
+      - Validate deep link URLs before navigation
+      - Implement proper URL scheme validation
+      - Sanitize navigation parameters
+      - Use Linking.getInitialURL() carefully
+
+      References:
+      - https://reactnavigation.org
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ DEPRECATED NPM PACKAGES ============
+
+  - id: react-native-dep-deprecated-packages
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native-cli": "$ANY"
+          - pattern: |
+              "react-native-vector-icons": "$ANY"
+          - pattern: |
+              "@react-native-community/async-storage": "$ANY"
+          - pattern: |
+              "react-native-gesture-handler": "^1.$MINOR.$PATCH"
+    message: |
+      Deprecated or outdated React Native package detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Some React Native packages have been deprecated or replaced with
+      better alternatives.
+
+      Replacements:
+      - react-native-cli → @react-native-community/cli (bundled with RN)
+      - @react-native-community/async-storage → @react-native-async-storage/async-storage
+      - react-native-gesture-handler v1 → v2+ (significant improvements)
+
+      Remediation:
+      - Migrate to recommended alternatives
+      - Check package documentation for migration guides
+      - Update to latest versions
+
+      References:
+      - https://reactnative.dev/docs/libraries
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ NPM SCRIPTS SECURITY ============
+
+  - id: react-native-dep-postinstall-script
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "scripts": {
+                ...,
+                "postinstall": "$CMD",
+                ...
+              }
+          - pattern: |
+              "scripts": {
+                ...,
+                "preinstall": "$CMD",
+                ...
+              }
+    message: |
+      Pre/postinstall script detected (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Pre/postinstall scripts execute arbitrary commands during npm install.
+      Malicious packages can abuse these scripts to run harmful code.
+
+      Security considerations:
+      - Review script contents carefully
+      - Audit third-party packages before installation
+      - Consider using --ignore-scripts for untrusted packages
+      - Monitor script execution during installation
+
+      Legitimate use cases:
+      - Linking native modules
+      - Applying patches
+      - Building native dependencies
+
+      Remediation:
+      - Document why the script is necessary
+      - Minimize script complexity
+      - Use npm audit regularly
+      - Enable script scanning in CI/CD
+
+      References:
+      - https://docs.npmjs.com/cli/v9/using-npm/scripts
+    severity: INFO
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ CRYPTO & SECURITY LIBRARIES ============
+
+  - id: react-native-dep-crypto-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native-crypto": "$ANY"
+          - pattern: |
+              "crypto-js": "^$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 4
+    message: |
+      Outdated cryptography library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Older crypto libraries may have vulnerabilities or use deprecated
+      algorithms.
+
+      Remediation:
+      - Update to crypto-js 4.x or newer
+      - "crypto-js": "^4.2.0"
+      - Consider using react-native-quick-crypto for better performance
+
+      Security best practices:
+      - Use AES-256 for encryption
+      - Never hardcode encryption keys
+      - Use proper key derivation (PBKDF2)
+      - Generate secure random IVs
+
+      References:
+      - https://github.com/brix/crypto-js
+      - https://github.com/margelo/react-native-quick-crypto
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ NATIVE MODULE SECURITY ============
+
+  - id: react-native-dep-native-module-unverified
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native-$MODULE": "file:$PATH"
+          - pattern: |
+              "react-native-$MODULE": "link:$PATH"
+    message: |
+      Local/linked native module dependency (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Local or linked native modules may not be consistent across
+      development environments and CI/CD pipelines.
+
+      Remediation:
+      - For development: Keep in dev dependencies
+      - For production: Publish to npm or use Git dependency
+      - Document the module's purpose and security review
+
+      Security considerations:
+      - Audit native code for vulnerabilities
+      - Check for memory safety issues
+      - Verify permissions requested by native modules
+      - Review bridge communication security
+
+      References:
+      - https://reactnative.dev/docs/native-modules-intro
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ BUILD & TOOLING ============
+
+  - id: react-native-dep-metro-bundler-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "metro": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "metro-react-native-babel-preset": "$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 0.75
+    message: |
+      Outdated Metro bundler (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Older Metro versions may have build security issues and
+      lack important bundle optimization features.
+
+      Remediation:
+      - Update to Metro 0.80.0 or newer
+      - "metro": "^0.80.0"
+      - Update React Native to compatible version
+
+      References:
+      - https://facebook.github.io/metro/
+    severity: INFO
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  # ============ TYPOSQUATTING DETECTION ============
+
+  - id: react-native-dep-suspicious-package-name
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "$PKG": "$VERSION"
+      - metavariable-regex:
+          metavariable: $PKG
+          regex: ^(react-nativ|reactnative|react_native|reactt-native|reactnativee|react-natiive|axois|axioss|fiebase|fierbase|firrebase|asyncstorag|asynstorage|reduxx|redu-x)$
+    message: |
+      Suspicious package name - possible typosquatting (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: CRITICAL
+      Impact: Package name contains common typos that may indicate a malicious
+      typosquatting attack.
+
+      Common typosquats:
+      - react-nativ/reactnative/react_native → react-native
+      - reactt-native → react-native
+      - axois → axios
+      - fiebase → firebase
+      - asyncstorage → async-storage
+
+      Remediation:
+      - Verify package name spelling carefully
+      - Check npm registry for correct package name
+      - Review package publisher and download statistics
+      - Check package GitHub repository
+
+      References:
+      - https://www.npmjs.com
+      - https://owasp.org/www-community/attacks/Typosquatting
+    severity: ERROR
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers or Frames"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH
+
+  # ============ REACT & CORE DEPENDENCIES ============
+
+  - id: react-native-dep-react-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "react": "^$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 18
+    message: |
+      Outdated React version (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: React versions < 18 may have security vulnerabilities and
+      lack important features and performance improvements.
+
+      Remediation:
+      - Update to React 18.2.0 or newer
+      - "react": "^18.2.0"
+      - Ensure React Native compatibility
+
+      Benefits:
+      - Automatic batching for better performance
+      - Concurrent features
+      - Security patches
+
+      References:
+      - https://react.dev/blog
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ STATE MANAGEMENT ============
+
+  - id: react-native-dep-redux-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "redux": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "react-redux": "$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 8
+    message: |
+      Outdated Redux state management (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: LOW
+      Impact: Older Redux versions may have issues with state security and
+      lack modern features like Redux Toolkit.
+
+      Remediation:
+      - Update to Redux 8+ and React-Redux 8+
+      - "redux": "^5.0.0"
+      - "react-redux": "^9.0.0"
+      - Consider migrating to @reduxjs/toolkit
+
+      Security considerations:
+      - Never store sensitive data in Redux state
+      - Implement proper state sanitization
+      - Use Redux DevTools carefully in production
+
+      References:
+      - https://redux.js.org
+      - https://redux-toolkit.js.org
+    severity: INFO
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: LOW
+
+  # ============ IMAGE LOADING LIBRARIES ============
+
+  - id: react-native-dep-fast-image-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native-fast-image": "$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 8
+    message: |
+      Outdated react-native-fast-image (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: MEDIUM
+      Impact: Older versions may have image loading vulnerabilities or
+      cache security issues.
+
+      Remediation:
+      - Update to react-native-fast-image 8.x or newer
+      - "react-native-fast-image": "^8.6.0"
+
+      Security considerations:
+      - Validate image URLs before loading
+      - Use HTTPS for image sources
+      - Implement proper cache eviction
+      - Consider using Image prefetch carefully
+
+      References:
+      - https://github.com/DylanVann/react-native-fast-image
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-494: Download of Code Without Integrity Check"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: MEDIUM
+
+  # ============ OAUTH & AUTHENTICATION ============
+
+  - id: react-native-dep-oauth-outdated
+    patterns:
+      - pattern-either:
+          - pattern: |
+              "react-native-app-auth": "$MAJOR.$MINOR.$PATCH"
+          - pattern: |
+              "react-native-auth0": "$MAJOR.$MINOR.$PATCH"
+      - metavariable-comparison:
+          metavariable: $MAJOR
+          comparison: $MAJOR < 7
+    message: |
+      Outdated OAuth/Auth library (OWASP M2: Inadequate Supply Chain Security).
+
+      Risk: HIGH
+      Impact: Older authentication libraries may have OAuth vulnerabilities,
+      PKCE implementation issues, or token handling problems.
+
+      Remediation:
+      - Update to latest versions
+      - "react-native-app-auth": "^7.1.0"
+      - "react-native-auth0": "^3.0.0"
+
+      Security best practices:
+      - Always use PKCE for OAuth flows
+      - Implement proper token refresh
+      - Store tokens securely (use Keychain/Keystore)
+      - Never log authentication tokens
+
+      References:
+      - https://github.com/FormidableLabs/react-native-app-auth
+      - https://auth0.com/docs/quickstart/native/react-native
+    severity: WARNING
+    languages:
+      - json
+    paths:
+      include:
+        - "**/package.json"
+    metadata:
+      category: security
+      cwe: "CWE-287: Improper Authentication"
+      owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
+      confidence: HIGH

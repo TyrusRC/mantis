@@ -7,7 +7,7 @@ import pytest
 from mantis.agents import AgentParseError, discover_agents, parse_agent
 
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parent.parent / "mantis" / "resources"
 
 
 def test_discover_real_agents_dir():

@@ -12,12 +12,21 @@ requires-python = ">=3.10"
 authors = [{ name = "mantis contributors" }]
 keywords = ["sast", "security", "audit", "llm", "opengrep", "semgrep", "vulnerability"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = [
     "pyyaml>=6.0",
@@ -27,17 +36,39 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "build>=1.0",
+    "twine>=5.0",
 ]
 tree-sitter = [
     "tree-sitter>=0.21",
     "tree-sitter-language-pack>=0.1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/TyrusRC/automated-code-examination-mcp"
+Source = "https://github.com/TyrusRC/automated-code-examination-mcp"
+Issues = "https://github.com/TyrusRC/automated-code-examination-mcp/issues"
+
 [project.scripts]
 mantis = "mantis.cli:main"
 
 [tool.setuptools]
-packages = ["mantis"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["mantis*"]
+exclude = ["tests*", "build*"]
+
+[tool.setuptools.package-data]
+mantis = [
+    "resources/agents/*.md",
+    "resources/commands/*.md",
+    "resources/checklists/**/*",
+    "resources/scripts/*.py",
+    "resources/rules/_manifest.yaml",
+    "resources/rules/**/*.yaml",
+    "resources/rules/**/*.yml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -127,9 +127,19 @@ def run_scan(
     sast_bin: str,
     severities: tuple[str, ...] = ("ERROR", "WARNING"),
     timeout_seconds: int = 1800,
+    paths: list[Path] | None = None,
 ) -> ScanOutput:
+    """Run a SAST scan.
+
+    If `paths` is given, scan exactly those files (relative or absolute) instead
+    of walking `target`. Empty `paths` is treated as "no work to do" and returns
+    an empty ScanOutput.
+    """
     if not rule_files:
         raise ScanError("no rule files; pack composition produced empty result")
+
+    if paths is not None and not paths:
+        return ScanOutput()
 
     cmd: list[str] = [sast_bin, "--quiet"]
     for f in rule_files:
@@ -137,7 +147,11 @@ def run_scan(
     cmd.append("--json")
     for sev in severities:
         cmd.extend(["--severity", sev])
-    cmd.append(str(target))
+    if paths is not None:
+        for p in paths:
+            cmd.append(str(p))
+    else:
+        cmd.append(str(target))
 
     try:
         result = subprocess.run(

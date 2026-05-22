@@ -1,0 +1,7 @@
+name: desktop
+description: Desktop application rules (Electron / packaged web stack).
+filters:
+  paths_under:
+    - rules/desktop/
+exclude:
+  rule_id_globs: []
