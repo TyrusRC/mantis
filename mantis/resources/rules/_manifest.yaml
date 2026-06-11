@@ -3,36 +3,36 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 676
-  total_files: 100
+  total_rules: 699
+  total_files: 104
   by_severity:
-    WARNING: 297
-    ERROR: 301
+    WARNING: 304
+    ERROR: 317
     INFO: 78
   by_language:
     java: 108
     kotlin: 92
     xml: 84
     generic: 99
-    python: 36
-    javascript: 64
-    typescript: 64
+    python: 40
+    javascript: 72
+    typescript: 72
     dart: 30
     yaml: 33
-    ruby: 30
+    ruby: 37
     swift: 121
     json: 26
     bash: 2
     sh: 1
     html: 1
     dockerfile: 5
-    hcl: 24
+    hcl: 28
     c: 5
     csharp: 6
     go: 6
     php: 6
   by_category:
-    security: 644
+    security: 667
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -64,9 +64,9 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 352
-    MEDIUM: 224
-    LOW: 82
+    HIGH: 370
+    MEDIUM: 228
+    LOW: 83
     VERY_HIGH: 18
   parse_errors: []
 rules:
@@ -7042,6 +7042,82 @@ rules:
   - deep
   source: null
 - file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-s3-missing-public-access-block
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-s3-missing-versioning
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-693
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-s3-missing-logging
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-778
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-s3-missing-encryption
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
   id: iac-tf-aws-cloudtrail-missing-log-validation
   severity: WARNING
   languages:
@@ -11068,6 +11144,71 @@ rules:
   - fast
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a02-jwt-misuse.yaml
+  id: web-a02-jwt-none-algorithm-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-347
+  owasp_mobile: null
+  owasp: A02:2025 Cryptographic Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a02-jwt-misuse.yaml
+  id: web-a02-jwt-none-algorithm-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-347
+  owasp_mobile: null
+  owasp: A02:2025 Cryptographic Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a02-jwt-misuse.yaml
+  id: web-a02-jwt-hardcoded-secret-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A02:2025 Cryptographic Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a03-injection-java.yaml
   id: java-a03-sql-injection-statement-concat
   severity: ERROR
@@ -11290,6 +11431,93 @@ rules:
   - fast
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a03-nosql-and-pathtraversal.yaml
+  id: web-a03-nosql-injection-mongoose
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-943
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-nosql-and-pathtraversal.yaml
+  id: web-a03-path-traversal-fs-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-22
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-nosql-and-pathtraversal.yaml
+  id: web-a03-path-traversal-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-22
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-nosql-and-pathtraversal.yaml
+  id: web-a08-prototype-pollution-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-1321
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a03-ssti-flask.yaml
   id: web-a03-ssti-flask-render-template-string
   severity: ERROR
@@ -11326,6 +11554,107 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
+  id: web-a05-cors-allow-origin-wildcard-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-942
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
+  id: web-a05-cors-allow-origin-wildcard-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-942
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
+  id: web-a05-csrf-disabled-express
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-352
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
+  id: web-a05-cookie-insecure-express
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-1004
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
+  id: web-a05-cookie-insecure-flask
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-1004
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
   pack:
   - web
   - deep
@@ -11856,6 +12185,150 @@ rules:
   confidence: HIGH
   pack:
   - web
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a03-sql-injection-rails-raw
+  severity: ERROR
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-89
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a03-command-injection-ruby
+  severity: ERROR
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-78
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a03-command-injection-ruby-backtick
+  severity: ERROR
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-78
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a08-deserialization-ruby
+  severity: ERROR
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-502
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a05-rails-mass-assignment
+  severity: WARNING
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-915
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a01-rails-skip-csrf
+  severity: WARNING
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-352
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-injection-ruby.yaml
+  id: web-a10-ssrf-ruby-net-http
+  severity: ERROR
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-918
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
   source: null
 - file: rules/web/spring-java-taint.yaml
   id: spring-a03-xxe-sax-parser-no-protection

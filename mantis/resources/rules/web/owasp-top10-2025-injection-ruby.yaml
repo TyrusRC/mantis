@@ -1,0 +1,153 @@
+rules:
+  - id: web-a03-sql-injection-rails-raw
+    languages: [ruby]
+    severity: ERROR
+    message: |
+      ActiveRecord raw-SQL fragment interpolated with `params[...]` or
+      string concatenation. Use parameterised queries:
+      `User.where("name = ?", params[:name])`.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-regex: '\.(where|find_by_sql|order|group|select|having|joins)\s*\(\s*"[^"]*#\{[^}]*params\[[^\]]+\][^}]*\}[^"]*"'
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-command-injection-ruby
+    languages: [ruby]
+    severity: ERROR
+    message: |
+      Shell command built from user input — `system`, backticks,
+      `Kernel.exec`, `IO.popen`, `Open3.*` with interpolated params.
+      Use array form: `system("cmd", arg1, arg2)`.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-regex: '(\bsystem|\bexec|\bKernel\.exec|IO\.popen|Open3\.(capture[23]|popen[23])|Process\.spawn)\s*\(\s*"[^"]*#\{[^}]*params\[[^\]]+\][^}]*\}[^"]*"'
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-command-injection-ruby-backtick
+    languages: [ruby]
+    severity: ERROR
+    message: |
+      Backtick command interpolation with params — same RCE as
+      `system("...")`. Replace with array form.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-regex: '`[^`]*#\{[^}]*params\[[^\]]+\][^}]*\}[^`]*`'
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a08-deserialization-ruby
+    languages: [ruby]
+    severity: ERROR
+    message: |
+      `Marshal.load` / `YAML.load` (not `safe_load`) on untrusted
+      bytes is RCE. Switch to JSON or use `YAML.safe_load` with an
+      explicit allow-list of classes.
+
+      OWASP Top 10:2025 — A08 Software and Data Integrity Failures
+    patterns:
+      - pattern-either:
+          - pattern: Marshal.load($X)
+          - pattern: Marshal.restore($X)
+          - pattern: YAML.load($X)
+          - pattern: YAML.unsafe_load($X)
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a05-rails-mass-assignment
+    languages: [ruby]
+    severity: WARNING
+    message: |
+      `Model.new(params[...])` / `update(params[...])` without
+      strong-params permit list. Mass assignment can grant privileged
+      attributes (admin, role) from the request body.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: $MODEL.new(params[$K])
+          - pattern: $MODEL.create(params[$K])
+          - pattern: $MODEL.create!(params[$K])
+          - pattern: $INSTANCE.update_attributes(params[$K])
+          - pattern: $INSTANCE.update(params[$K])
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-915"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]
+
+  - id: web-a01-rails-skip-csrf
+    languages: [ruby]
+    severity: WARNING
+    message: |
+      Rails controller skips CSRF (`skip_before_action
+      :verify_authenticity_token` or `protect_from_forgery with:
+      :null_session`) without an explicit alternative defence.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern-regex: '(skip_before_(action|filter)\s+:verify_authenticity_token|protect_from_forgery\s+with:\s*:null_session)'
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-352"
+      confidence: MEDIUM
+      pack: [web, deep]
+
+  - id: web-a10-ssrf-ruby-net-http
+    languages: [ruby]
+    severity: ERROR
+    message: |
+      `Net::HTTP.get` / `URI.open` / `HTTParty.get` called with a URL
+      built from `params[...]`. SSRF lets an attacker hit cloud
+      metadata (169.254.169.254) or internal services.
+
+      OWASP Top 10:2025 — A10 Server-Side Request Forgery
+    patterns:
+      - pattern-either:
+          - pattern: Net::HTTP.get(URI(params[$K]))
+          - pattern: Net::HTTP.get(URI.parse(params[$K]))
+          - pattern: URI.open(params[$K])
+          - pattern: HTTParty.get(params[$K])
+          - pattern: RestClient.get(params[$K])
+    paths:
+      include: ["*.rb", "**/*.rb"]
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]

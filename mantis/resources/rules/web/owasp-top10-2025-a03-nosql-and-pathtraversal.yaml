@@ -1,0 +1,112 @@
+rules:
+  - id: web-a03-nosql-injection-mongoose
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      Mongoose / MongoDB query built from request body without
+      sanitization. NoSQL operator injection (`{$ne: null}`,
+      `{$gt: ""}`) gives auth bypass. Cast to string or whitelist
+      operators via `express-mongo-sanitize`.
+
+      OWASP Top 10:2025 — A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: $MODEL.findOne(req.body)
+          - pattern: '$MODEL.findOne({ ..., $K: req.body.$F, ... })'
+          - pattern: '$MODEL.find({ ..., $K: req.body.$F, ... })'
+          - pattern: '$MODEL.findOne({ ..., $K: req.query.$F, ... })'
+          - pattern: '$MODEL.find({ ..., $K: req.query.$F, ... })'
+          - pattern: '$DB.collection($C).findOne({ $K: req.body.$F })'
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-943"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-path-traversal-fs-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      `fs.readFile` / `fs.createReadStream` / `res.sendFile` called
+      with a path concatenated from user input. Normalise + verify
+      the resolved path is inside an allow-list root.
+
+      OWASP Top 10:2025 — A03 Injection (Path Traversal)
+    patterns:
+      - pattern-either:
+          - pattern: fs.readFile(req.body.$F, ...)
+          - pattern: fs.readFile(req.query.$F, ...)
+          - pattern: fs.readFile(req.params.$F, ...)
+          - pattern: fs.readFileSync(req.body.$F, ...)
+          - pattern: fs.readFileSync(req.query.$F, ...)
+          - pattern: fs.readFileSync(req.params.$F, ...)
+          - pattern: fs.createReadStream(req.body.$F, ...)
+          - pattern: fs.createReadStream(req.query.$F, ...)
+          - pattern: fs.createReadStream(req.params.$F, ...)
+          - pattern: res.sendFile(req.body.$F, ...)
+          - pattern: res.sendFile(req.query.$F, ...)
+          - pattern: res.sendFile(req.params.$F, ...)
+          - pattern: res.download(req.body.$F, ...)
+          - pattern: res.download(req.query.$F, ...)
+          - pattern: res.download(req.params.$F, ...)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-22"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-path-traversal-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      `open()` / `send_file` / `send_from_directory` with a path
+      derived from request data. Resolve + verify the path is inside
+      an allow-list root before opening.
+
+      OWASP Top 10:2025 — A03 Injection (Path Traversal)
+    patterns:
+      - pattern-either:
+          - pattern: open(request.args.get(...), ...)
+          - pattern: open(request.args[...], ...)
+          - pattern: open(request.form.get(...), ...)
+          - pattern: open(request.form[...], ...)
+          - pattern: send_file(request.args.get(...), ...)
+          - pattern: send_file(request.args[...], ...)
+          - pattern: send_file(request.form.get(...), ...)
+          - pattern: send_from_directory($DIR, request.args.get(...), ...)
+          - pattern: send_from_directory($DIR, request.args[...], ...)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-22"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a08-prototype-pollution-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      Recursive merge or path-set on user data — `Object.assign`,
+      `_.merge`, `_.mergeWith`, `_.set`, `_.setWith` with
+      attacker-controlled keys can write to `Object.prototype`.
+      Use object spread, structured cloning, or Map.
+
+      OWASP Top 10:2025 — A08 Software and Data Integrity Failures
+    patterns:
+      - pattern-either:
+          - pattern: _.merge($DST, req.body)
+          - pattern: _.merge($DST, req.query)
+          - pattern: _.mergeWith($DST, req.body, ...)
+          - pattern: _.set($DST, req.body.$F, ...)
+          - pattern: _.setWith($DST, req.body.$F, ...)
+          - pattern: lodash.merge($DST, req.body)
+          - pattern: Object.assign({}, $DST, req.body)
+          - pattern: extend(true, $DST, req.body)
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-1321"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]

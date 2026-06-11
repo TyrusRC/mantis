@@ -1,0 +1,66 @@
+rules:
+  - id: web-a02-jwt-none-algorithm-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      JWT verified with `algorithms: ["none"]` (or "None"). Any
+      attacker can forge tokens with no signature. Pin to a strong
+      algorithm and library default.
+
+      OWASP Top 10:2025 — A02 Cryptographic Failures
+    patterns:
+      - pattern-either:
+          - pattern: 'jwt.verify($T, $K, {algorithms: ["none"]})'
+          - pattern: 'jwt.verify($T, $K, {algorithms: ["None"]})'
+          - pattern: 'jsonwebtoken.verify($T, $K, {algorithms: ["none"]})'
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-347"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a02-jwt-none-algorithm-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      JWT decoded/verified with `algorithms=["none"]` or
+      `options={"verify_signature": False}`. RCE-equivalent for
+      session forgery.
+
+      OWASP Top 10:2025 — A02 Cryptographic Failures
+    patterns:
+      - pattern-either:
+          - pattern: jwt.decode($T, $K, algorithms=["none"])
+          - pattern: 'jwt.decode($T, $K, options={"verify_signature": False, ...})'
+          - pattern: jwt.decode($T, verify=False)
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-347"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a02-jwt-hardcoded-secret-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      JWT sign / verify with a hardcoded short string. Brute-forceable
+      offline by anyone who can capture one token. Load from env or
+      a secret manager and use ≥256-bit entropy.
+
+      OWASP Top 10:2025 — A02 Cryptographic Failures
+    patterns:
+      - pattern-either:
+          - pattern: jwt.sign($PAYLOAD, "...")
+          - pattern: jwt.verify($T, "...")
+          - pattern: jsonwebtoken.sign($PAYLOAD, "...")
+          - pattern: jsonwebtoken.verify($T, "...")
+      - pattern-not: jwt.sign($PAYLOAD, process.env.$E)
+      - pattern-not: jwt.verify($T, process.env.$E)
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]

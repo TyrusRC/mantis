@@ -1,0 +1,104 @@
+rules:
+  - id: web-a05-cors-allow-origin-wildcard-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      CORS configured with `origin: "*"` (or `Access-Control-Allow-Origin: *`).
+      Combined with `credentials: true` it's a complete CSRF defense bypass.
+      Allow a strict allow-list, never the wildcard.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: 'app.use(cors({ origin: "*" }))'
+          - pattern: 'app.use(cors({ origin: "*", credentials: true }))'
+          - pattern: 'cors({ origin: "*", credentials: true })'
+          - pattern: res.setHeader("Access-Control-Allow-Origin", "*")
+          - pattern: res.header("Access-Control-Allow-Origin", "*")
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-942"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a05-cors-allow-origin-wildcard-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      Flask-CORS / FastAPI CORS with origin `*`. Combined with
+      credentials this bypasses the same-origin policy.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: CORS($APP, origins="*")
+          - pattern: CORS($APP, origins=["*"])
+          - pattern: app.add_middleware(CORSMiddleware, allow_origins=["*"], ...)
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-942"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a05-csrf-disabled-express
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      CSRF middleware bypassed or explicitly disabled. If the
+      application accepts state-changing requests with cookies, CSRF
+      tokens must be enforced.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: 'csrf({ ignoreMethods: ["POST", ...] })'
+          - pattern: 'csurf({ ignoreMethods: ["POST", ...] })'
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-352"
+      confidence: HIGH
+      pack: [web, deep]
+
+  - id: web-a05-cookie-insecure-express
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      Cookie set without `httpOnly`/`secure`/`sameSite`. Session
+      cookies that lack these flags are stealable via XSS and CSRF.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: 'res.cookie($N, $V, {httpOnly: false, ...})'
+          - pattern: 'res.cookie($N, $V, {secure: false, ...})'
+          - pattern: 'res.cookie($N, $V, {sameSite: "none", ...})'
+          - pattern: 'session({ ..., cookie: { secure: false, ...}, ... })'
+          - pattern: 'session({ ..., cookie: { httpOnly: false, ...}, ... })'
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-1004"
+      confidence: HIGH
+      pack: [web, deep]
+
+  - id: web-a05-cookie-insecure-flask
+    languages: [python]
+    severity: WARNING
+    message: |
+      Flask cookie set with `secure=False` / `httponly=False` /
+      `samesite=None` explicitly.
+
+      OWASP Top 10:2025 — A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: $RESP.set_cookie($K, $V, secure=False, ...)
+          - pattern: $RESP.set_cookie($K, $V, httponly=False, ...)
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-1004"
+      confidence: HIGH
+      pack: [web, deep]

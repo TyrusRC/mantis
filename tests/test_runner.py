@@ -168,6 +168,85 @@ def test_pipeline_skip_llm_bypasses_provider(tmp_path, fake_sast, monkeypatch):
     assert "test-rule" in report
 
 
+def test_pipeline_fail_on_high_exits_one(tmp_path, fake_sast, monkeypatch):
+    """An ERROR-severity finding above the --fail-on threshold must exit 1."""
+    bin_dir, _ = fake_sast
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
+
+    target = tmp_path / "proj"
+    target.mkdir()
+    (target / "app.py").write_text("x = 1\n" * 10)
+
+    from mantis.agents import discover_agents
+    from mantis.sast import resolve_sast_binary
+    pipe = Pipeline(
+        target=target,
+        config=_cfg(),
+        sast_bin=resolve_sast_binary("auto"),
+        agents=discover_agents(REPO / "agents"),
+        mode="quick",
+        skip_llm=True,
+        fail_on="high",
+    )
+    assert pipe.run() == 1
+
+
+def test_pipeline_fail_on_critical_lets_high_pass(tmp_path, fake_sast, monkeypatch):
+    """ERROR severity is `high` — `critical` should exit 0 on this corpus."""
+    bin_dir, _ = fake_sast
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
+
+    target = tmp_path / "proj"
+    target.mkdir()
+    (target / "app.py").write_text("x = 1\n" * 10)
+
+    from mantis.agents import discover_agents
+    from mantis.sast import resolve_sast_binary
+    pipe = Pipeline(
+        target=target,
+        config=_cfg(),
+        sast_bin=resolve_sast_binary("auto"),
+        agents=discover_agents(REPO / "agents"),
+        mode="quick",
+        skip_llm=True,
+        fail_on="critical",
+    )
+    assert pipe.run() == 0
+
+
+def test_pipeline_suppressions_drop_finding(tmp_path, fake_sast, monkeypatch):
+    """A .mantisignore matching the rule should remove the finding before triage,
+    and bring --fail-on=high under threshold."""
+    bin_dir, _ = fake_sast
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
+
+    target = tmp_path / "proj"
+    target.mkdir()
+    (target / "app.py").write_text("x = 1\n" * 10)
+    (target / ".mantisignore").write_text(
+        "- rule_id: test-rule\n"
+        "  reason: known noise from fake scanner\n"
+    )
+
+    from mantis.agents import discover_agents
+    from mantis.sast import resolve_sast_binary
+    pipe = Pipeline(
+        target=target,
+        config=_cfg(),
+        sast_bin=resolve_sast_binary("auto"),
+        agents=discover_agents(REPO / "agents"),
+        mode="quick",
+        skip_llm=True,
+        fail_on="high",
+    )
+    assert pipe.run() == 0
+    report = (target / "security-audit-report.md").read_text()
+    assert "Suppressed (.mantisignore)" in report
+
+
 def test_pipeline_unknown_mode_returns_error(tmp_path, fake_sast, monkeypatch):
     bin_dir, _ = fake_sast
     monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")

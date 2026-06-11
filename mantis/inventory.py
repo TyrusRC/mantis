@@ -220,6 +220,10 @@ def take_inventory(target: Path) -> Inventory:
             stack.has_cloud_sdk = True
     if (target / "go.mod").is_file():
         stack.detected.add("go")
+    if (target / "Gemfile").is_file() or _glob_any(target, ["*.gemspec"]):
+        stack.detected.add("ruby")
+        if (target / "config" / "routes.rb").is_file():
+            stack.detected.add("rails")
     if _glob_any(target, ["*.csproj", "*.fsproj", "*.sln"]):
         stack.detected.add("dotnet")
     if (target / "composer.json").is_file():
@@ -250,7 +254,8 @@ def take_inventory(target: Path) -> Inventory:
 
     if "js-web" in stack.detected or "python" in stack.detected or \
        "go" in stack.detected or "jvm" in stack.detected or \
-       "dotnet" in stack.detected or "php" in stack.detected:
+       "dotnet" in stack.detected or "php" in stack.detected or \
+       "ruby" in stack.detected:
         packs.append("web")
         rationale.append("server-side stack -> web pack")
 

@@ -74,6 +74,115 @@ rules:
       confidence: HIGH
       pack: [iac, fast, deep]
 
+  - id: iac-tf-aws-s3-missing-public-access-block
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      `aws_s3_bucket` defined without a sibling
+      `aws_s3_bucket_public_access_block` referencing it. Without
+      Block-Public-Access the bucket can be exposed via ACL or policy
+      misconfiguration later — the gating mitigation for the most
+      common cause of leaks.
+    patterns:
+      - pattern: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+            block_public_acls = $X
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: MEDIUM
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-s3-missing-versioning
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      `aws_s3_bucket` without a `versioning` block. Versioning is
+      essential ransomware / accidental-delete recovery.
+    patterns:
+      - pattern: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+            versioning {
+              ...
+            }
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-693"
+      confidence: MEDIUM
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-s3-missing-logging
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      `aws_s3_bucket` without a `logging` block. Access logs are
+      required for after-the-fact incident investigation.
+    patterns:
+      - pattern: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+            logging {
+              ...
+            }
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-778"
+      confidence: LOW
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-s3-missing-encryption
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      `aws_s3_bucket` without `server_side_encryption_configuration`.
+      SSE-S3 / SSE-KMS at rest is the AWS baseline.
+    patterns:
+      - pattern: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_s3_bucket" $NAME {
+            ...
+            server_side_encryption_configuration {
+              ...
+            }
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: MEDIUM
+      pack: [iac, deep]
+
   - id: iac-tf-aws-cloudtrail-missing-log-validation
     languages: [hcl]
     severity: WARNING

@@ -57,8 +57,13 @@ def test_audit_help_lists_modes(capsys):
         main(["audit", "--help"])
     assert ei.value.code == 0
     out = capsys.readouterr().out
-    for mode in ("quick", "deep", "bugbounty", "cve", "mobile", "web", "llm"):
+    for mode in ("quick", "deep", "bugbounty", "cve", "mobile", "web",
+                 "desktop", "llm", "secrets", "iac", "cloud"):
         assert mode in out
+    # --fail-on is the gate flag — make sure it surfaces in --help
+    assert "--fail-on" in out
+    for sev in ("low", "medium", "high", "critical"):
+        assert sev in out
 
 
 def test_audit_missing_target_errors(tmp_path, monkeypatch, capsys):
