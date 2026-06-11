@@ -1,0 +1,10 @@
+name: cloud
+description: |
+  Cloud SDK misuse — AWS, GCP, Azure code-level patterns: public-ACL
+  uploads, inline credentials, disabled TLS verification, missing
+  ExternalId on AssumeRole, connection strings in source.
+filters:
+  paths_under:
+    - rules/cloud/
+exclude:
+  rule_id_globs: []

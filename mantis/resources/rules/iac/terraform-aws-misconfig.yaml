@@ -1,0 +1,235 @@
+rules:
+  - id: iac-tf-aws-s3-public-acl
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      S3 bucket ACL set to a public value (public-read / public-read-write).
+      Use bucket policies + Block Public Access; never public ACL.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_s3_bucket" $NAME {
+                ...
+                acl = "public-read"
+                ...
+              }
+          - pattern: |
+              resource "aws_s3_bucket" $NAME {
+                ...
+                acl = "public-read-write"
+                ...
+              }
+          - pattern: |
+              resource "aws_s3_bucket_acl" $NAME {
+                ...
+                acl = "public-read"
+                ...
+              }
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [iac, fast, deep, bugbounty]
+
+  - id: iac-tf-aws-s3-no-block-public-access
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      aws_s3_bucket_public_access_block missing or partial. Set all four
+      flags (block_public_acls, block_public_policy, ignore_public_acls,
+      restrict_public_buckets) to true unless this bucket is intentionally
+      public-website.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_s3_bucket_public_access_block" $NAME {
+                ...
+                block_public_acls = false
+                ...
+              }
+          - pattern: |
+              resource "aws_s3_bucket_public_access_block" $NAME {
+                ...
+                block_public_policy = false
+                ...
+              }
+          - pattern: |
+              resource "aws_s3_bucket_public_access_block" $NAME {
+                ...
+                ignore_public_acls = false
+                ...
+              }
+          - pattern: |
+              resource "aws_s3_bucket_public_access_block" $NAME {
+                ...
+                restrict_public_buckets = false
+                ...
+              }
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-sg-ingress-world
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      Security group ingress open to 0.0.0.0/0. Restrict to known CIDRs,
+      or front with an ALB / SSM Session Manager / VPN. SSH (22) and RDP
+      (3389) open to the world is especially high-impact.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_security_group" $NAME {
+                ...
+                ingress {
+                  ...
+                  cidr_blocks = ["0.0.0.0/0"]
+                  ...
+                }
+                ...
+              }
+          - pattern: |
+              resource "aws_security_group_rule" $NAME {
+                ...
+                type        = "ingress"
+                ...
+                cidr_blocks = ["0.0.0.0/0"]
+                ...
+              }
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+    metadata:
+      category: security
+      cwe: "CWE-284"
+      confidence: HIGH
+      pack: [iac, fast, deep, bugbounty]
+
+  - id: iac-tf-aws-rds-no-encryption
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      RDS instance / cluster created without storage_encrypted = true.
+      Encryption at rest is free; data-at-rest leakage from snapshots
+      is otherwise unavoidable.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_db_instance" $NAME {
+                ...
+                storage_encrypted = false
+                ...
+              }
+          - pattern: |
+              resource "aws_rds_cluster" $NAME {
+                ...
+                storage_encrypted = false
+                ...
+              }
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-rds-public
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      RDS instance has publicly_accessible = true. Move into a private
+      subnet and front via bastion / Session Manager / VPN.
+    patterns:
+      - pattern: |
+          resource "aws_db_instance" $NAME {
+            ...
+            publicly_accessible = true
+            ...
+          }
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+    metadata:
+      category: security
+      cwe: "CWE-284"
+      confidence: HIGH
+      pack: [iac, fast, deep, bugbounty]
+
+  - id: iac-tf-aws-iam-policy-wildcard-action
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      IAM policy with Action = "*" and Effect = "Allow". Apply
+      least-privilege; "*" grants every current and future AWS API call.
+    patterns:
+      - pattern-regex: '(?s)"Effect"\s*:\s*"Allow".{0,200}?"Action"\s*:\s*"\*"'
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+        - "*.json"
+        - "**/*.json"
+    metadata:
+      category: security
+      cwe: "CWE-269"
+      confidence: HIGH
+      pack: [iac, fast, deep, bugbounty]
+
+  - id: iac-tf-aws-iam-policy-wildcard-resource
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      IAM policy with Resource = "*". Where possible scope to specific
+      ARN(s); "*" widens the blast radius if the principal is compromised.
+    patterns:
+      - pattern-regex: '(?s)"Effect"\s*:\s*"Allow".{0,200}?"Resource"\s*:\s*"\*"'
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+        - "*.json"
+        - "**/*.json"
+    metadata:
+      category: security
+      cwe: "CWE-269"
+      confidence: MEDIUM
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-cloudtrail-no-log-validation
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      CloudTrail without enable_log_file_validation = true. Log integrity
+      verification protects against tampering by an attacker with
+      cloudtrail:PutObject equivalent.
+    patterns:
+      - pattern: |
+          resource "aws_cloudtrail" $NAME {
+            ...
+            enable_log_file_validation = false
+            ...
+          }
+    paths:
+      include:
+        - "*.tf"
+        - "**/*.tf"
+    metadata:
+      category: security
+      cwe: "CWE-117"
+      confidence: HIGH
+      pack: [iac, deep]

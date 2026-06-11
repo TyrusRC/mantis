@@ -19,6 +19,9 @@ Parse arguments in this order:
    - `web` — web rule pack only (OWASP Top 10:2025, Java/Spring + Node + Python + Go + .NET + PHP).
    - `desktop` — desktop rule pack (Electron BrowserWindow misconfig, IPC, openExternal).
    - `llm` — LLM rule pack only (OWASP LLM Top 10:2025).
+   - `secrets` — hardcoded credentials / API tokens / private keys.
+   - `iac` — infrastructure-as-code: Terraform (AWS), Dockerfile, Kubernetes manifests.
+   - `cloud` — cloud SDK misuse in application code (AWS / GCP / Azure).
    - *omitted* — auto-detect stack, run the default hybrid pipeline.
 3. **Flags** (any order):
    - `--fix` — after deep review, dispatch `fix-author` on confirmed findings, write patches in a worktree, re-run Semgrep to confirm. Diff is included in the report.

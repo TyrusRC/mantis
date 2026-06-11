@@ -1,0 +1,163 @@
+rules:
+  - id: cloud-aws-s3-put-public-acl-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      put_object called with ACL = public-read / public-read-write. Public
+      ACLs are the most common cause of bucket leaks; use signed URLs or
+      CloudFront with OAC.
+    patterns:
+      - pattern-either:
+          - pattern: '$S3.put_object(..., ACL="public-read", ...)'
+          - pattern: '$S3.put_object(..., ACL="public-read-write", ...)'
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-aws-s3-put-public-acl-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      putObject called with ACL = public-read / public-read-write. Public
+      ACLs are the most common cause of bucket leaks; use signed URLs or
+      CloudFront with OAC.
+    patterns:
+      - pattern-either:
+          - pattern: '$S3.putObject({..., ACL: "public-read", ...})'
+          - pattern: '$S3.putObject({..., ACL: "public-read-write", ...})'
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-aws-s3-presigned-url-no-expiry-python
+    languages: [python]
+    severity: WARNING
+    message: |
+      generate_presigned_url called without explicit ExpiresIn. Default
+      is 3600s but is provider-dependent — set a short TTL explicitly.
+    patterns:
+      - pattern: '$S3.generate_presigned_url($OP, Params=$P)'
+    metadata:
+      category: security
+      cwe: "CWE-613"
+      confidence: MEDIUM
+      pack: [cloud, deep]
+
+  - id: cloud-aws-sigv2-python
+    languages: [python]
+    severity: WARNING
+    message: |
+      Signature v2 is end-of-life for most regions. Use SigV4 (default in
+      current SDKs).
+    patterns:
+      - pattern: boto3.client("s3", config=Config(signature_version="s3"))
+    metadata:
+      category: security
+      cwe: "CWE-327"
+      confidence: MEDIUM
+      pack: [cloud, deep]
+
+  - id: cloud-aws-sigv2-node
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      Signature v2 is end-of-life. Use SigV4 (default in current SDKs).
+    patterns:
+      - pattern-regex: 'signatureVersion\s*[:=]\s*["'']v2["'']'
+    metadata:
+      category: security
+      cwe: "CWE-327"
+      confidence: MEDIUM
+      pack: [cloud, deep]
+
+  - id: cloud-aws-sts-assume-role-no-external-id-python
+    languages: [python]
+    severity: WARNING
+    message: |
+      sts:AssumeRole called without ExternalId. In cross-account scenarios
+      ExternalId is the mitigation for the confused-deputy attack.
+    patterns:
+      - pattern: '$STS.assume_role(RoleArn=$R, RoleSessionName=$N)'
+    metadata:
+      category: security
+      cwe: "CWE-441"
+      confidence: MEDIUM
+      pack: [cloud, deep]
+
+  - id: cloud-aws-sts-assume-role-no-external-id-node
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      sts:AssumeRole called without ExternalId. Required mitigation for
+      the cross-account confused-deputy attack.
+    patterns:
+      - pattern: '$STS.assumeRole({RoleArn: $R, RoleSessionName: $N})'
+    metadata:
+      category: security
+      cwe: "CWE-441"
+      confidence: MEDIUM
+      pack: [cloud, deep]
+
+  - id: cloud-aws-credentials-in-code-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      AWS credentials passed in code. Use the default provider chain — env,
+      ~/.aws/credentials, or instance/task role.
+    patterns:
+      - pattern-either:
+          - pattern: boto3.client(..., aws_access_key_id=$K, aws_secret_access_key=$S, ...)
+          - pattern: boto3.Session(aws_access_key_id=$K, aws_secret_access_key=$S, ...)
+    metadata:
+      category: security
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-aws-credentials-in-code-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      AWS credentials passed in code. Use the default provider chain
+      instead of inline accessKeyId / secretAccessKey.
+    patterns:
+      - pattern-either:
+          - pattern: 'new AWS.S3({accessKeyId: $K, secretAccessKey: $S})'
+          - pattern: 'new S3Client({credentials: {accessKeyId: $K, secretAccessKey: $S}})'
+    metadata:
+      category: security
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-aws-disable-tls-verification-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      AWS SDK client with verify=False — disables certificate validation
+      and is MITM-friendly.
+    patterns:
+      - pattern: boto3.client(..., verify=False, ...)
+    metadata:
+      category: security
+      cwe: "CWE-295"
+      confidence: HIGH
+      pack: [cloud, fast, deep]
+
+  - id: cloud-aws-disable-tls-verification-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      AWS SDK client with rejectUnauthorized: false — disables certificate
+      validation and is MITM-friendly.
+    patterns:
+      - pattern: 'new AWS.S3({httpOptions: {rejectUnauthorized: false}})'
+    metadata:
+      category: security
+      cwe: "CWE-295"
+      confidence: HIGH
+      pack: [cloud, fast, deep]

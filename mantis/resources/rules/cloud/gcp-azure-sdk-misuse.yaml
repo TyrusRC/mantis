@@ -1,0 +1,99 @@
+rules:
+  - id: cloud-gcp-storage-make-public-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      GCS object made public via make_public() or acl.add_entity("allUsers").
+      Use signed URLs or front with a CDN auth gate.
+    patterns:
+      - pattern-either:
+          - pattern: $BLOB.make_public()
+          - pattern: $OBJ.acl.add_entity("allUsers")
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-gcp-storage-make-public-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      GCS object made public via makePublic() or acl add allUsers.
+      Use signed URLs or front with a CDN auth gate.
+    patterns:
+      - pattern-either:
+          - pattern: $BLOB.makePublic()
+          - pattern: '$OBJ.acl.add({entity: "allUsers", role: $R})'
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-gcp-service-account-key-from-file-python
+    languages: [python]
+    severity: WARNING
+    message: |
+      Service account JSON loaded from a literal path in code. Use
+      Application Default Credentials or Workload Identity.
+    patterns:
+      - pattern-regex: 'from_service_account_file\s*\(\s*["''][^"'']*\.json["'']'
+    metadata:
+      category: security
+      cwe: "CWE-798"
+      confidence: MEDIUM
+      pack: [cloud, deep]
+
+  - id: cloud-azure-blob-public-container-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      Azure Blob container created with public access. Use SAS tokens
+      (short TTL) or private + auth proxy.
+    patterns:
+      - pattern-either:
+          - pattern: '$BLOB.create_container(..., public_access="container", ...)'
+          - pattern: '$BLOB.create_container(..., public_access="blob", ...)'
+          - pattern: '$BLOB.create_container(..., public_access=PublicAccess.Container, ...)'
+    metadata:
+      category: security
+      cwe: "CWE-732"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-azure-connection-string-in-code
+    languages: [generic]
+    severity: ERROR
+    message: |
+      Azure connection string literal (DefaultEndpointsProtocol + AccountKey).
+      Use Managed Identity (Azure AD auth) instead of account keys.
+    patterns:
+      - pattern-regex: 'DefaultEndpointsProtocol\s*=\s*https?\s*;\s*AccountName\s*=\s*[A-Za-z0-9_-]+\s*;\s*AccountKey\s*=\s*[A-Za-z0-9+/=]{40,}'
+    paths:
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/*.min.js"
+    metadata:
+      category: security
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [cloud, fast, deep, bugbounty]
+
+  - id: cloud-azure-http-storage-endpoint
+    languages: [generic]
+    severity: WARNING
+    message: |
+      Azure Storage endpoint with DefaultEndpointsProtocol=http. Use https.
+    patterns:
+      - pattern-regex: 'DefaultEndpointsProtocol\s*=\s*http\s*;'
+    paths:
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+    metadata:
+      category: security
+      cwe: "CWE-319"
+      confidence: HIGH
+      pack: [cloud, fast, deep]

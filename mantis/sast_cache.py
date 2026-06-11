@@ -26,7 +26,10 @@ _SCANNABLE_EXT = {
     ".go", ".cs", ".php", ".rb",
     ".dart", ".sh", ".bash",
     ".yaml", ".yml", ".xml", ".json",
+    ".tf", ".tfvars", ".hcl",
 }
+_SCANNABLE_NAMES = {"Dockerfile", "Containerfile"}
+_SCANNABLE_NAME_PREFIXES = ("Dockerfile.",)
 _SKIP_DIRS = {
     "node_modules", "vendor", "build", "dist", "target",
     ".git", ".venv", "venv", "__pycache__", ".cache",
@@ -79,7 +82,9 @@ def enumerate_scannable(target: Path) -> list[Path]:
         rp = Path(root)
         for name in files:
             ext = Path(name).suffix.lower()
-            if ext in _SCANNABLE_EXT:
+            if (ext in _SCANNABLE_EXT
+                    or name in _SCANNABLE_NAMES
+                    or any(name.startswith(p) for p in _SCANNABLE_NAME_PREFIXES)):
                 out.append(rp / name)
     return out
 

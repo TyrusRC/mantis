@@ -38,7 +38,8 @@ def _resolve_repo_root() -> Path:
 
 REPO_ROOT = _resolve_repo_root()
 
-AUDIT_MODES = ("quick", "deep", "bugbounty", "cve", "mobile", "web", "desktop", "llm", "taint")
+AUDIT_MODES = ("quick", "deep", "bugbounty", "cve", "mobile", "web", "desktop",
+               "llm", "taint", "secrets", "iac", "cloud")
 
 
 def _resolve_audit_positionals(raw: list[str], explicit_mode: str | None,
@@ -128,6 +129,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--no-cache",
         action="store_true",
         help="Bypass the per-file SAST result cache. Useful when debugging rules.",
+    )
+    audit.add_argument(
+        "--fail-on",
+        default=None,
+        choices=["low", "medium", "high", "critical"],
+        help="Exit non-zero if any unsuppressed finding is at or above this severity. "
+             "Maps to scanner severities: low=INFO, medium=WARNING, high=ERROR. "
+             "Use with pre-commit hooks or local gates.",
     )
 
     doctor = sub.add_parser(
@@ -263,6 +272,7 @@ def cmd_audit(args) -> int:
         since=getattr(args, "since", None),
         output_format=getattr(args, "format", "md"),
         no_cache=getattr(args, "no_cache", False),
+        fail_on=getattr(args, "fail_on", None),
     )
     return pipe.run()
 

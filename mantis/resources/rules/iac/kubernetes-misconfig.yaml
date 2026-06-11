@@ -1,0 +1,189 @@
+rules:
+  - id: iac-k8s-privileged-container
+    languages: [yaml]
+    severity: ERROR
+    message: |
+      Container with securityContext.privileged: true effectively gives
+      root-on-host. Never set this for application workloads.
+    patterns:
+      - pattern-regex: '(?m)^\s*privileged\s*:\s*true\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+        - "**/charts/**/values*.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-250"
+      confidence: HIGH
+      pack: [iac, fast, deep, bugbounty]
+
+  - id: iac-k8s-host-network
+    languages: [yaml]
+    severity: ERROR
+    message: |
+      Pod spec sets hostNetwork: true — pod shares the host network
+      namespace and can sniff / interfere with cluster traffic. Use a
+      Service if you need a stable IP.
+    patterns:
+      - pattern-regex: '(?m)^\s*hostNetwork\s*:\s*true\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+    metadata:
+      category: security
+      cwe: "CWE-668"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-k8s-host-pid
+    languages: [yaml]
+    severity: ERROR
+    message: |
+      Pod spec sets hostPID: true — visibility into all host processes.
+    patterns:
+      - pattern-regex: '(?m)^\s*hostPID\s*:\s*true\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+    metadata:
+      category: security
+      cwe: "CWE-668"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-k8s-allow-privilege-escalation
+    languages: [yaml]
+    severity: WARNING
+    message: |
+      allowPrivilegeEscalation: true (or missing). Set to false unless
+      the container actually needs setuid binaries; defends against
+      kernel exploits granting CAP_SYS_ADMIN.
+    patterns:
+      - pattern-regex: '(?m)^\s*allowPrivilegeEscalation\s*:\s*true\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+    metadata:
+      category: security
+      cwe: "CWE-250"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-k8s-run-as-root
+    languages: [yaml]
+    severity: WARNING
+    message: |
+      runAsNonRoot: false or runAsUser: 0. Run as a non-root UID.
+    patterns:
+      - pattern-either:
+          - pattern-regex: '(?m)^\s*runAsNonRoot\s*:\s*false\s*$'
+          - pattern-regex: '(?m)^\s*runAsUser\s*:\s*0\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+    metadata:
+      category: security
+      cwe: "CWE-250"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-k8s-secret-as-env
+    languages: [yaml]
+    severity: WARNING
+    message: |
+      Secret material injected as env (env.value: literal). Prefer
+      secretKeyRef or projected volumes — env vars leak via `ps`, logs,
+      and crash dumps.
+    patterns:
+      - pattern-regex: '(?im)^\s*(name|value)\s*:\s*.*(password|secret|token|api[_-]?key|private[_-]?key)'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+        - "**/charts/**/values*.yaml"
+    metadata:
+      category: security
+      cwe: "CWE-522"
+      confidence: LOW
+      pack: [iac, deep]
+
+  - id: iac-k8s-image-pull-policy-always-missing
+    languages: [yaml]
+    severity: INFO
+    message: |
+      imagePullPolicy not set to Always or IfNotPresent with a digest.
+      Without a pinned digest, a re-tagged image can swap your binary
+      between rollouts.
+    patterns:
+      - pattern-regex: '(?m)^\s*image\s*:\s*[^@\s]+:(latest|\w+)\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+    metadata:
+      category: security
+      cwe: "CWE-1357"
+      confidence: LOW
+      pack: [iac, deep]
+
+  - id: iac-k8s-capabilities-all
+    languages: [yaml]
+    severity: ERROR
+    message: |
+      capabilities.add includes "ALL" or "SYS_ADMIN" — equivalent to root.
+    patterns:
+      - pattern-regex: '(?m)^\s*-\s*(ALL|SYS_ADMIN)\s*$'
+    paths:
+      include:
+        - "**/*.yaml"
+        - "**/*.yml"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/rules/**"
+        - "**/.github/**"
+    metadata:
+      category: security
+      cwe: "CWE-250"
+      confidence: MEDIUM
+      pack: [iac, deep]

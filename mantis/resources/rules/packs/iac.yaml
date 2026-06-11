@@ -1,0 +1,9 @@
+name: iac
+description: |
+  Infrastructure-as-code misconfiguration — Terraform (AWS),
+  Dockerfile, and Kubernetes manifest checks.
+filters:
+  paths_under:
+    - rules/iac/
+exclude:
+  rule_id_globs: []

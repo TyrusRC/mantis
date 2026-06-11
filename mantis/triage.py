@@ -16,7 +16,7 @@ from mantis.providers import Provider
 from mantis.scan import Finding
 
 
-Verdict = Literal["TRUE", "FALSE", "NEEDS-DEEP", "ERROR"]
+Verdict = Literal["TRUE", "FALSE", "NEEDS-DEEP", "RAW", "ERROR"]
 
 
 @dataclass

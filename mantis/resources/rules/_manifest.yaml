@@ -3,34 +3,36 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 595
-  total_files: 86
+  total_rules: 650
+  total_files: 94
   by_severity:
-    WARNING: 261
-    ERROR: 257
-    INFO: 77
+    WARNING: 282
+    ERROR: 290
+    INFO: 78
   by_language:
     java: 108
     kotlin: 92
     xml: 84
-    generic: 80
+    generic: 99
+    python: 28
+    javascript: 62
+    typescript: 62
     dart: 30
-    yaml: 25
+    yaml: 33
     ruby: 30
     swift: 121
-    javascript: 56
-    typescript: 56
-    python: 19
     json: 26
     bash: 2
     sh: 1
     html: 1
+    dockerfile: 5
+    hcl: 8
     c: 5
     csharp: 6
     go: 6
     php: 6
   by_category:
-    security: 563
+    security: 618
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -62,9 +64,9 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 297
-    MEDIUM: 202
-    LOW: 78
+    HIGH: 332
+    MEDIUM: 218
+    LOW: 82
     VERY_HIGH: 18
   parse_errors: []
 rules:
@@ -3019,6 +3021,354 @@ rules:
   cvss: null
   confidence: MEDIUM
   pack: []
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-s3-put-public-acl-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-s3-put-public-acl-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-s3-presigned-url-no-expiry-python
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-613
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - cloud
+  - deep
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-sigv2-python
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-327
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - cloud
+  - deep
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-sigv2-node
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-327
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - cloud
+  - deep
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-sts-assume-role-no-external-id-python
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-441
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - cloud
+  - deep
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-sts-assume-role-no-external-id-node
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-441
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - cloud
+  - deep
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-credentials-in-code-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-credentials-in-code-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-disable-tls-verification-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-295
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  source: null
+- file: rules/cloud/aws-sdk-misuse.yaml
+  id: cloud-aws-disable-tls-verification-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-295
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  source: null
+- file: rules/cloud/gcp-azure-sdk-misuse.yaml
+  id: cloud-gcp-storage-make-public-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/gcp-azure-sdk-misuse.yaml
+  id: cloud-gcp-storage-make-public-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/gcp-azure-sdk-misuse.yaml
+  id: cloud-gcp-service-account-key-from-file-python
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - cloud
+  - deep
+  source: null
+- file: rules/cloud/gcp-azure-sdk-misuse.yaml
+  id: cloud-azure-blob-public-container-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/gcp-azure-sdk-misuse.yaml
+  id: cloud-azure-connection-string-in-code
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/cloud/gcp-azure-sdk-misuse.yaml
+  id: cloud-azure-http-storage-endpoint
+  severity: WARNING
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-319
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - cloud
+  - fast
+  - deep
   source: null
 - file: rules/cross-platform/flutter-auth-insecure.yaml
   id: flutter-jwt-no-expiration-check
@@ -6219,6 +6569,419 @@ rules:
   pack:
   - desktop
   source: null
+- file: rules/iac/dockerfile-security.yaml
+  id: iac-dockerfile-runs-as-root
+  severity: WARNING
+  languages:
+  - dockerfile
+  category: security
+  cwe:
+  - CWE-269
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/dockerfile-security.yaml
+  id: iac-dockerfile-latest-tag
+  severity: WARNING
+  languages:
+  - dockerfile
+  category: security
+  cwe:
+  - CWE-1357
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/dockerfile-security.yaml
+  id: iac-dockerfile-add-url
+  severity: WARNING
+  languages:
+  - dockerfile
+  category: security
+  cwe:
+  - CWE-494
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/dockerfile-security.yaml
+  id: iac-dockerfile-curl-pipe-sh
+  severity: WARNING
+  languages:
+  - dockerfile
+  category: security
+  cwe:
+  - CWE-494
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/dockerfile-security.yaml
+  id: iac-dockerfile-secret-arg
+  severity: ERROR
+  languages:
+  - dockerfile
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-privileged-container
+  severity: ERROR
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-250
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-host-network
+  severity: ERROR
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-668
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-host-pid
+  severity: ERROR
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-668
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-allow-privilege-escalation
+  severity: WARNING
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-250
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-run-as-root
+  severity: WARNING
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-250
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-secret-as-env
+  severity: WARNING
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-522
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-image-pull-policy-always-missing
+  severity: INFO
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-1357
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/kubernetes-misconfig.yaml
+  id: iac-k8s-capabilities-all
+  severity: ERROR
+  languages:
+  - yaml
+  category: security
+  cwe:
+  - CWE-250
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-s3-public-acl
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-s3-no-block-public-access
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-732
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-sg-ingress-world
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-284
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-rds-no-encryption
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-rds-public
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-284
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-iam-policy-wildcard-action
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-269
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-iam-policy-wildcard-resource
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-269
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-misconfig.yaml
+  id: iac-tf-aws-cloudtrail-no-log-validation
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-117
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
 - file: rules/ios/cve-imageio-processing.yaml
   id: cve-2023-41064-blastpass-imageio
   severity: ERROR
@@ -9357,6 +10120,345 @@ rules:
   - sca
   - deep
   - cve
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-github-personal-access-token
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-github-fine-grained-pat
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-github-oauth-token
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-slack-bot-token
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-stripe-live-key
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-anthropic-api-key
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-openai-api-key
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-google-api-key
+  severity: WARNING
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-private-key-pem
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/secrets/api-tokens.yaml
+  id: secret-jwt-with-signature
+  severity: WARNING
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/cloud-provider-keys.yaml
+  id: secret-aws-access-key-id
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - secrets
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/secrets/cloud-provider-keys.yaml
+  id: secret-aws-secret-access-key
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/cloud-provider-keys.yaml
+  id: secret-gcp-service-account-key
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/cloud-provider-keys.yaml
+  id: secret-azure-storage-key
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/generic-credentials.yaml
+  id: secret-generic-password-assignment
+  severity: WARNING
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/generic-credentials.yaml
+  id: secret-generic-api-key-assignment
+  severity: WARNING
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - secrets
+  - deep
+  source: null
+- file: rules/secrets/generic-credentials.yaml
+  id: secret-db-connection-string-with-password
+  severity: ERROR
+  languages:
+  - generic
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - secrets
+  - fast
+  - deep
+  - bugbounty
   source: null
 - file: rules/taint-pilot/js-command-injection-child-process-taint.yaml
   id: taint-js-command-injection-child-process-exec

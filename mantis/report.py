@@ -61,20 +61,35 @@ def _bucket(results: list[TriageResult]) -> dict[str, dict[str, list[TriageResul
 def _summary_table(results: list[TriageResult], raw_findings: list[Finding]) -> str:
     by_sev = _bucket(results)
     raw_by_sev: Counter[str] = Counter(f.severity.upper() for f in raw_findings)
-    lines = [
-        "| Severity | Confirmed | Triaged out | Needs deep | Errored | Total raw |",
-        "|---|---|---|---|---|---|",
-    ]
-    for sev in _SEV_ORDER:
-        row = by_sev.get(sev, {})
-        lines.append(
-            f"| {_sev_label(sev)} | "
-            f"{len(row.get('TRUE', []))} | "
-            f"{len(row.get('FALSE', []))} | "
-            f"{len(row.get('NEEDS-DEEP', []))} | "
-            f"{len(row.get('ERROR', []))} | "
-            f"{raw_by_sev.get(sev, 0)} |"
-        )
+    has_raw = any(by_sev.get(s, {}).get("RAW") for s in _SEV_ORDER)
+    if has_raw:
+        lines = [
+            "| Severity | Raw (untriaged) | Errored | Total raw |",
+            "|---|---|---|---|",
+        ]
+        for sev in _SEV_ORDER:
+            row = by_sev.get(sev, {})
+            lines.append(
+                f"| {_sev_label(sev)} | "
+                f"{len(row.get('RAW', []))} | "
+                f"{len(row.get('ERROR', []))} | "
+                f"{raw_by_sev.get(sev, 0)} |"
+            )
+    else:
+        lines = [
+            "| Severity | Confirmed | Triaged out | Needs deep | Errored | Total raw |",
+            "|---|---|---|---|---|---|",
+        ]
+        for sev in _SEV_ORDER:
+            row = by_sev.get(sev, {})
+            lines.append(
+                f"| {_sev_label(sev)} | "
+                f"{len(row.get('TRUE', []))} | "
+                f"{len(row.get('FALSE', []))} | "
+                f"{len(row.get('NEEDS-DEEP', []))} | "
+                f"{len(row.get('ERROR', []))} | "
+                f"{raw_by_sev.get(sev, 0)} |"
+            )
     return "\n".join(lines)
 
 
@@ -116,14 +131,16 @@ def _mapping_summary(results: list[TriageResult]) -> str:
     return "\n".join(parts) if parts else "(no mapping metadata on confirmed findings)"
 
 
-def _findings_section(results: list[TriageResult]) -> str:
+def _findings_section(results: list[TriageResult], cluster_siblings: Optional[dict[str, int]] = None) -> str:
+    cluster_siblings = cluster_siblings or {}
     by_sev = _bucket(results)
     out: list[str] = ["## Findings"]
     sev_to_header = {"ERROR": "### Critical / High", "WARNING": "### Medium", "INFO": "### Low"}
     for sev in _SEV_ORDER:
         confirmed = by_sev.get(sev, {}).get("TRUE", [])
         needs_deep = by_sev.get(sev, {}).get("NEEDS-DEEP", [])
-        items = sorted(confirmed + needs_deep, key=lambda r: (r.finding.path, r.finding.start_line))
+        raw = by_sev.get(sev, {}).get("RAW", [])
+        items = sorted(confirmed + needs_deep + raw, key=lambda r: (r.finding.path, r.finding.start_line))
         if not items:
             continue
         out.append(sev_to_header[sev])
@@ -139,12 +156,19 @@ def _findings_section(results: list[TriageResult]) -> str:
             group = groups[key]
             head = group[0]
             f = head.finding
-            verdict_tag = " (NEEDS-DEEP)" if head.verdict == "NEEDS-DEEP" else ""
+            if head.verdict == "NEEDS-DEEP":
+                verdict_tag = " (NEEDS-DEEP)"
+            elif head.verdict == "RAW":
+                verdict_tag = " (RAW)"
+            else:
+                verdict_tag = ""
+            n_siblings = cluster_siblings.get(f.id, 0)
+            sib_tag = f" (+{n_siblings} similar in same function)" if n_siblings else ""
             if len(group) == 1:
-                out.append(f"- **{f.rule_id}** — `{f.path}:{f.start_line}`{verdict_tag}")
+                out.append(f"- **{f.rule_id}** — `{f.path}:{f.start_line}`{verdict_tag}{sib_tag}")
             else:
                 ids = ", ".join(sorted({r.finding.rule_id for r in group}))
-                out.append(f"- **{f.path}:{f.start_line}**{verdict_tag} — {len(group)} rules: {ids}")
+                out.append(f"- **{f.path}:{f.start_line}**{verdict_tag} — {len(group)} rules: {ids}{sib_tag}")
             out.append(f"  - {f.message.splitlines()[0] if f.message else '(no message)'}")
             out.append(f"  - **Triage:** {head.reason}")
             out.append(f"  - **Mapping:** {_format_metadata_inline(f.metadata or {})}")
@@ -274,6 +298,8 @@ def write_report(
     fix_results: Optional[list] = None,
     fix_worktree: Optional[Path] = None,
     toast_results: Optional[list] = None,
+    cluster_siblings: Optional[dict[str, int]] = None,
+    suppressed_findings: Optional[list[Finding]] = None,
 ) -> Path:
     duration = f"{int(meta.duration_seconds // 60)}m {int(meta.duration_seconds % 60)}s"
     tokens_in_k = meta.tokens_in / 1000
@@ -308,8 +334,16 @@ def write_report(
     parts.append("")
     parts.append(_mapping_summary(triage_results))
     parts.append("")
-    parts.append(_findings_section(triage_results))
+    parts.append(_findings_section(triage_results, cluster_siblings or {}))
     parts.append("")
+    if suppressed_findings:
+        parts.append("## Suppressed (.mantisignore)")
+        parts.append(f"{len(suppressed_findings)} finding(s) skipped before triage:")
+        for f in suppressed_findings[:20]:
+            parts.append(f"- `{f.rule_id}` — {f.path}:{f.start_line}")
+        if len(suppressed_findings) > 20:
+            parts.append(f"- ... and {len(suppressed_findings) - 20} more")
+        parts.append("")
     if deep_results:
         parts.append(_deep_section(deep_results))
         parts.append("")

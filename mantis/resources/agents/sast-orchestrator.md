@@ -13,7 +13,7 @@ The SAST scanner is **OpenGrep** by default; **Semgrep** is accepted as a fallba
 # Inputs you receive
 
 - `path` — local directory to scan. Default: current working directory.
-- `mode` — one of: `quick`, `deep`, `bugbounty`, `cve`, `mobile`, `web`, `llm`, `taint`, or unset (auto-detect).
+- `mode` — one of: `quick`, `deep`, `bugbounty`, `cve`, `mobile`, `web`, `desktop`, `llm`, `taint`, `secrets`, `iac`, `cloud`, or unset (auto-detect).
 - `flags` — `--fix`, `--lite`, `focus:<area>`, `--experimental-toast` (bugbounty only).
 
 # Local-only guardrails (non-negotiable)
@@ -54,6 +54,9 @@ The SAST scanner is **OpenGrep** by default; **Semgrep** is accepted as a fallba
 | `desktop` | `rules/packs/desktop.yaml` | Electron and other packaged-web stacks |
 | `llm` | `rules/packs/llm.yaml` | also consult `checklists/otg-llm.md` in stage 7 |
 | `taint` | `rules/packs/taint.yaml` | requires OpenGrep `--taint-intrafile`; rule files are in `rules/taint-pilot/` |
+| `secrets` | `rules/packs/secrets.yaml` | hardcoded creds / tokens / private keys; runs on the whole tree |
+| `iac` | `rules/packs/iac.yaml` | Terraform AWS misconfig, Dockerfile bad practices, K8s manifest hardening |
+| `cloud` | `rules/packs/cloud.yaml` | AWS/GCP/Azure SDK misuse in application code |
 
 To compose a pack (one --config per rule file, one --severity per level):
 ```bash

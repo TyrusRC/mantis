@@ -41,6 +41,17 @@ def _is_writable(p: Path) -> bool:
     import os
     return os.access(p, os.W_OK)
 
+_SEVERITY_RANK = {"ERROR": 0, "WARNING": 1, "INFO": 2}
+_CONFIDENCE_RANK = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+
+
+def _finding_priority(f: Finding) -> tuple[int, int]:
+    return (
+        _SEVERITY_RANK.get((f.severity or "").upper(), 9),
+        _CONFIDENCE_RANK.get((f.confidence or "").upper(), 9),
+    )
+
+
 _FOCUS_TAGS: dict[str, list[str]] = {
     "auth": ["auth", "m3-", "session", "jwt", "oauth"],
     "crypto": ["crypto", "cipher", "hash", "random", "m2-"],
@@ -71,6 +82,7 @@ class Pipeline:
     since: Optional[str] = None
     output_format: str = "md"
     no_cache: bool = False
+    fail_on: Optional[str] = None
 
     def run(self) -> int:
         t0 = time.monotonic()
@@ -166,18 +178,60 @@ class Pipeline:
             print("[mantis] done — no findings.")
             return 0
 
-        filtered = self._apply_focus(raw_findings)
-        if self.focus and len(filtered) != len(raw_findings):
-            print(f"[mantis] focus={self.focus!r} kept {len(filtered)}/{len(raw_findings)} findings")
+        # Suppressions (.mantisignore) — applied before triage so suppressed
+        # findings never burn LLM tokens.
+        from mantis.suppressions import (
+            apply_suppressions, load_suppressions, SuppressionParseError,
+        )
+        try:
+            suppression_rules = load_suppressions(self.target)
+        except SuppressionParseError as e:
+            print(f"[mantis] .mantisignore: {e}")
+            return 2
+        kept, suppressed_findings = apply_suppressions(
+            raw_findings, suppression_rules, self.target,
+        )
+        if suppression_rules:
+            print(f"[mantis] suppressions: {len(suppressed_findings)} dropped "
+                  f"via {len(suppression_rules)} .mantisignore rule(s); "
+                  f"{len(kept)} remain")
+            if suppressed_findings:
+                notes.append(
+                    f"{len(suppressed_findings)} finding(s) suppressed via "
+                    f".mantisignore ({len(suppression_rules)} rule(s))"
+                )
+
+        filtered = self._apply_focus(kept)
+        if self.focus and len(filtered) != len(kept):
+            print(f"[mantis] focus={self.focus!r} kept {len(filtered)}/{len(kept)} findings")
+
+        # Semantic dedup: collapse N findings inside one (rule, function) into
+        # a single representative. Sibling counts are surfaced in the report.
+        from mantis.dedup import cluster_findings
+        clusters, cstats = cluster_findings(filtered, self.target)
+        cluster_by_rep: dict[str, list[Finding]] = {
+            c.representative.id: c.siblings for c in clusters
+        }
+        if cstats["collapsed"]:
+            print(f"[mantis] dedup: {cstats['total']} findings collapsed to "
+                  f"{cstats['clusters']} ({cstats['collapsed']} sibling(s) "
+                  f"folded into representatives)")
+            notes.append(
+                f"{cstats['collapsed']} sibling finding(s) collapsed into "
+                f"{cstats['clusters']} representative cluster(s)"
+            )
+        filtered = [c.representative for c in clusters]
 
         if len(filtered) > self.config.max_findings and m != "deep":
             notes.append(
                 f"raw findings exceeded max_findings ({len(filtered)} > "
-                f"{self.config.max_findings}); only the first {self.config.max_findings} were triaged."
+                f"{self.config.max_findings}); kept the highest-severity "
+                f"{self.config.max_findings}."
             )
-            print(f"[mantis] capping to {self.config.max_findings} findings (mode=deep bypasses cap)")
+            print(f"[mantis] capping to {self.config.max_findings} findings "
+                  f"(severity-sorted; mode=deep bypasses cap)")
             status = "incomplete"
-            filtered = filtered[: self.config.max_findings]
+            filtered = sorted(filtered, key=_finding_priority)[: self.config.max_findings]
 
         # Provider for any LLM-driven stage
         if self.skip_llm:
@@ -196,10 +250,18 @@ class Pipeline:
             print(f"[mantis] stage 5: triage ({len(filtered)} findings, {tmode}-chain)")
             triage_results = triage_all(filtered, self.agents, provider, self.target, mode=tmode)
         else:
-            print("[mantis] stage 5: triage skipped (no provider)")
+            if self.skip_llm:
+                placeholder_verdict = "RAW"
+                placeholder_reason = "LLM disabled (--skip-llm); raw scanner output"
+                print("[mantis] stage 5: triage skipped (--skip-llm); findings marked RAW")
+            else:
+                placeholder_verdict = "NEEDS-DEEP"
+                placeholder_reason = "triage skipped (provider unavailable)"
+                print("[mantis] stage 5: triage skipped (provider unavailable); "
+                      "findings marked NEEDS-DEEP")
             triage_results = [
-                TriageResult(finding=f, verdict="NEEDS-DEEP",
-                             reason="triage skipped (no provider)", raw_response="")
+                TriageResult(finding=f, verdict=placeholder_verdict,
+                             reason=placeholder_reason, raw_response="")
                 for f in filtered
             ]
 
@@ -275,9 +337,12 @@ class Pipeline:
             notes.append("--fix requested but no confirmed deep findings to patch")
 
         duration = time.monotonic() - t0
+        cluster_siblings = {rid: len(sibs) for rid, sibs in cluster_by_rep.items() if sibs}
         self._write(packs, mode_label, duration, notes, status,
                     raw_findings, filtered, triage_results, slices, deep_results,
-                    fix_worktree, fix_results, toast_results)
+                    fix_worktree, fix_results, toast_results,
+                    cluster_siblings=cluster_siblings,
+                    suppressed_findings=suppressed_findings)
         # Match the report's "Confirmed" column: triage verdict TRUE.
         # Deep-review verdicts further refine these but aren't a separate bucket
         # in the user-facing summary table.
@@ -285,6 +350,21 @@ class Pipeline:
         applied_n = sum(1 for r in fix_results if r.status == "applied")
         print(f"[mantis] done. confirmed={confirmed_n}  applied={applied_n}  "
               f"duration={duration:.1f}s")
+
+        if self.fail_on:
+            from mantis.suppressions import severity_at_or_above
+            gate_verdicts = {"TRUE", "NEEDS-DEEP", "RAW"}
+            offenders = [
+                r for r in triage_results
+                if r.verdict in gate_verdicts
+                and severity_at_or_above(r.finding.severity, self.fail_on)
+            ]
+            if offenders:
+                print(f"[mantis] --fail-on {self.fail_on.upper()}: "
+                      f"{len(offenders)} unsuppressed finding(s) at or above "
+                      f"threshold; exit 1")
+                return 1
+            print(f"[mantis] --fail-on {self.fail_on.upper()}: no offenders; exit 0")
         return 0
 
     # ------------ helpers ------------
@@ -309,10 +389,7 @@ class Pipeline:
             return None, f"{type(e).__name__}: {e}"
 
     def _select_for_slice(self, triage_results: list[TriageResult], mode_lower: str) -> list[TriageResult]:
-        kept = [r for r in triage_results if r.verdict in ("TRUE", "NEEDS-DEEP")]
-        if mode_lower == "bugbounty":
-            return kept
-        return kept
+        return [r for r in triage_results if r.verdict in ("TRUE", "NEEDS-DEEP")]
 
     def _pair_confirmed(self, slices: list[Slice], deep_results: list[DeepResult]):
         by_id = {s.finding.id: s for s in slices}
@@ -327,7 +404,8 @@ class Pipeline:
 
     def _write(self, packs, mode_label, duration, notes, status,
                raw_findings, filtered, triage_results, slices, deep_results,
-               fix_worktree, fix_results, toast_results=None):
+               fix_worktree, fix_results, toast_results=None,
+               cluster_siblings=None, suppressed_findings=None):
         toast_results = toast_results or []
         tokens_in = sum(r.tokens_in for r in triage_results) + sum(r.tokens_in for r in deep_results)
         tokens_out = sum(r.tokens_out for r in triage_results) + sum(r.tokens_out for r in deep_results)
@@ -360,6 +438,8 @@ class Pipeline:
             slices=slices, deep_results=deep_results,
             fix_results=fix_results, fix_worktree=fix_worktree,
             toast_results=toast_results,
+            cluster_siblings=cluster_siblings,
+            suppressed_findings=suppressed_findings,
         )
         update_pointers(self.target, out_path)
         print(f"[mantis] stage 9: wrote {out_path}")

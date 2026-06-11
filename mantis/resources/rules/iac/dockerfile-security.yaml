@@ -1,0 +1,110 @@
+rules:
+  - id: iac-dockerfile-runs-as-root
+    languages: [dockerfile]
+    severity: WARNING
+    message: |
+      Dockerfile has no USER directive (or USER root). Running as root
+      means a container escape lands the attacker as root on the host
+      namespace. Add `USER <nonroot>` before CMD/ENTRYPOINT.
+    patterns:
+      - pattern-either:
+          - pattern: USER root
+          - pattern: USER 0
+    paths:
+      include:
+        - "Dockerfile"
+        - "**/Dockerfile"
+        - "Dockerfile.*"
+        - "**/Dockerfile.*"
+    metadata:
+      category: security
+      cwe: "CWE-269"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-dockerfile-latest-tag
+    languages: [dockerfile]
+    severity: WARNING
+    message: |
+      FROM uses the implicit or explicit `:latest` tag. Pin to an immutable
+      digest or version tag so builds are reproducible and supply-chain
+      attacks via re-tagged images are detectable.
+    patterns:
+      - pattern-either:
+          - pattern-regex: '(?m)^FROM\s+[^:\s@]+:latest(\s|$)'
+          - pattern-regex: '(?m)^FROM\s+[^:\s@]+(\s|$)'
+    paths:
+      include:
+        - "Dockerfile"
+        - "**/Dockerfile"
+        - "Dockerfile.*"
+        - "**/Dockerfile.*"
+    metadata:
+      category: security
+      cwe: "CWE-1357"
+      confidence: MEDIUM
+      pack: [iac, deep]
+
+  - id: iac-dockerfile-add-url
+    languages: [dockerfile]
+    severity: WARNING
+    message: |
+      `ADD <url>` fetches code at build time with no integrity check and
+      no caching. Use `RUN curl ... && sha256sum -c` or pre-pulled assets.
+    patterns:
+      - pattern-regex: '(?im)^ADD\s+https?://'
+    paths:
+      include:
+        - "Dockerfile"
+        - "**/Dockerfile"
+        - "Dockerfile.*"
+        - "**/Dockerfile.*"
+    metadata:
+      category: security
+      cwe: "CWE-494"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-dockerfile-curl-pipe-sh
+    languages: [dockerfile]
+    severity: WARNING
+    message: |
+      `curl|sh` (or `wget|sh`) in a Dockerfile RUN. Any compromise of the
+      origin host injects code into your image. Pin to a release artifact
+      and verify a checksum.
+    patterns:
+      - pattern-regex: '(?im)^RUN\s+.*(curl|wget)\s+[^|]*\|\s*(ba)?sh'
+    paths:
+      include:
+        - "Dockerfile"
+        - "**/Dockerfile"
+        - "Dockerfile.*"
+        - "**/Dockerfile.*"
+    metadata:
+      category: security
+      cwe: "CWE-494"
+      confidence: HIGH
+      pack: [iac, fast, deep, bugbounty]
+
+  - id: iac-dockerfile-secret-arg
+    languages: [dockerfile]
+    severity: ERROR
+    message: |
+      Secret value passed via ARG or ENV. Build-time args are baked into
+      every image layer and leak via `docker history`. Use `--secret`
+      build mounts (BuildKit) or runtime env vars.
+    patterns:
+      - pattern-either:
+          - pattern-regex: '(?im)^ARG\s+.*(PASSWORD|SECRET|TOKEN|API[_-]?KEY|PRIVATE[_-]?KEY)\b'
+          - pattern-regex: '(?im)^ENV\s+.*(PASSWORD|SECRET|TOKEN|API[_-]?KEY|PRIVATE[_-]?KEY)\s*=\s*[^$]'
+    paths:
+      include:
+        - "Dockerfile"
+        - "**/Dockerfile"
+        - "Dockerfile.*"
+        - "**/Dockerfile.*"
+    metadata:
+      category: security
+      cwe: "CWE-798"
+      confidence: MEDIUM
+      pack: [iac, deep]

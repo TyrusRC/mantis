@@ -17,6 +17,7 @@ class Stack:
     detected: set[str] = field(default_factory=set)
     lockfiles: list[Path] = field(default_factory=list)
     has_llm_sdk: bool = False
+    has_cloud_sdk: bool = False
 
 
 @dataclass
@@ -49,12 +50,12 @@ def _glob_any(root: Path, patterns: list[str], limit: int = 5) -> list[Path]:
     return out
 
 
-def _scan_package_json(path: Path) -> tuple[bool, bool]:
-    """Return (is_react_native, has_llm_sdk) without reading line-by-line."""
+def _scan_package_json(path: Path) -> tuple[bool, bool, bool]:
+    """Return (is_react_native, has_llm_sdk, has_cloud_sdk)."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return (False, False)
+        return (False, False, False)
     deps = {}
     for k in ("dependencies", "devDependencies", "peerDependencies"):
         deps.update(data.get(k) or {})
@@ -64,7 +65,15 @@ def _scan_package_json(path: Path) -> tuple[bool, bool]:
         "langchain", "@langchain/core", "llamaindex", "@pinecone-database/pinecone",
         "chromadb", "@qdrant/js-client-rest",
     ))
-    return (rn, llm)
+    cloud = any(d in deps for d in (
+        "aws-sdk", "@aws-sdk/client-s3", "@aws-sdk/client-sts",
+        "@aws-sdk/client-dynamodb", "@aws-sdk/client-secretsmanager",
+        "@google-cloud/storage", "@google-cloud/bigquery", "@google-cloud/pubsub",
+        "google-auth-library", "googleapis",
+        "@azure/storage-blob", "@azure/identity", "@azure/keyvault-secrets",
+    )) or any(d.startswith("@aws-sdk/") or d.startswith("@google-cloud/") or
+              d.startswith("@azure/") for d in deps)
+    return (rn, llm, cloud)
 
 
 def _is_electron(target: Path) -> bool:
@@ -89,11 +98,19 @@ _LLM_PY_DISTS = {
     "cohere", "mistralai", "litellm",
 }
 
+_CLOUD_PY_DISTS = {
+    "boto3", "botocore", "aiobotocore", "s3transfer",
+    "google-cloud-storage", "google-cloud-bigquery", "google-cloud-pubsub",
+    "google-cloud-secret-manager", "google-auth", "google-api-python-client",
+    "azure-storage-blob", "azure-identity", "azure-keyvault-secrets",
+    "azure-mgmt-resource", "azure-mgmt-compute",
+}
+
 _PY_DIST_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
 
 
-def _scan_python_requirements(target: Path) -> bool:
-    """Parse Python dep files line-by-line; match bare distribution names."""
+def _scan_python_requirements(target: Path) -> tuple[bool, bool]:
+    """Parse Python dep files; return (has_llm, has_cloud)."""
     files = []
     for fname in ("requirements.txt", "requirements-dev.txt", "requirements_dev.txt",
                   "dev-requirements.txt", "Pipfile"):
@@ -101,6 +118,8 @@ def _scan_python_requirements(target: Path) -> bool:
         if f.is_file():
             files.append(f)
 
+    found_llm = False
+    found_cloud = False
     for f in files:
         try:
             for raw in f.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -112,7 +131,9 @@ def _scan_python_requirements(target: Path) -> bool:
                     continue
                 name = m.group(1).lower()
                 if name in _LLM_PY_DISTS:
-                    return True
+                    found_llm = True
+                if name in _CLOUD_PY_DISTS:
+                    found_cloud = True
         except OSError:
             continue
 
@@ -122,14 +143,15 @@ def _scan_python_requirements(target: Path) -> bool:
             text = pyproject.read_text(encoding="utf-8", errors="replace")
         except OSError:
             text = ""
-        alt = "|".join(re.escape(n) for n in _LLM_PY_DISTS)
-        # PEP 621 list form: dependencies = ["openai>=1.0", ...]
-        if re.search(rf'["\']\s*({alt})\s*[\[<=>~!,"\']', text, re.IGNORECASE):
-            return True
-        # Poetry table form: anthropic = "^0.20"  (unquoted key)
-        if re.search(rf'(?m)^\s*({alt})\s*=', text, re.IGNORECASE):
-            return True
-    return False
+        for dists, flag_name in ((_LLM_PY_DISTS, "llm"), (_CLOUD_PY_DISTS, "cloud")):
+            alt = "|".join(re.escape(n) for n in dists)
+            hit = (re.search(rf'["\']\s*({alt})\s*[\[<=>~!,"\']', text, re.IGNORECASE)
+                   or re.search(rf'(?m)^\s*({alt})\s*=', text, re.IGNORECASE))
+            if hit and flag_name == "llm":
+                found_llm = True
+            elif hit and flag_name == "cloud":
+                found_cloud = True
+    return (found_llm, found_cloud)
 
 
 _K8S_MARKERS = (
@@ -183,14 +205,19 @@ def take_inventory(target: Path) -> Inventory:
     if (target / "pubspec.yaml").is_file():
         stack.detected.add("flutter")
     if (target / "package.json").is_file():
-        rn, has_llm = _scan_package_json(target / "package.json")
+        rn, has_llm, has_cloud = _scan_package_json(target / "package.json")
         stack.detected.add("react-native" if rn else "js-web")
         if has_llm:
             stack.has_llm_sdk = True
+        if has_cloud:
+            stack.has_cloud_sdk = True
     if _glob_any(target, ["requirements*.txt", "pyproject.toml", "Pipfile"]):
         stack.detected.add("python")
-        if _scan_python_requirements(target):
+        py_llm, py_cloud = _scan_python_requirements(target)
+        if py_llm:
             stack.has_llm_sdk = True
+        if py_cloud:
+            stack.has_cloud_sdk = True
     if (target / "go.mod").is_file():
         stack.detected.add("go")
     if _glob_any(target, ["*.csproj", "*.fsproj", "*.sln"]):
@@ -235,6 +262,18 @@ def take_inventory(target: Path) -> Inventory:
         packs.append("llm")
         rationale.append("LLM SDK detected -> llm pack")
 
+    if stack.has_cloud_sdk:
+        packs.append("cloud")
+        rationale.append("cloud SDK (AWS/GCP/Azure) detected -> cloud pack")
+
+    if "infra" in stack.detected:
+        packs.append("iac")
+        rationale.append("infra signals (Dockerfile / *.tf / k8s) -> iac pack")
+
+    if stack.detected:
+        packs.append("secrets")
+        rationale.append("source tree present -> secrets pack")
+
     if stack.lockfiles and "cve" not in packs:
         packs.append("sca")
         rationale.append(f"{len(stack.lockfiles)} lockfile(s) -> sca pack")
@@ -262,6 +301,9 @@ MODE_TO_PACKS: dict[str, list[str]] = {
     "desktop": ["desktop"],
     "llm": ["llm"],
     "taint": ["taint"],
+    "secrets": ["secrets"],
+    "iac": ["iac"],
+    "cloud": ["cloud"],
 }
 
 

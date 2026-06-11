@@ -66,7 +66,8 @@ installs are skipped (you maintain them via git).
 | `/audit deep` | every rule, full pipeline |
 | `/audit bugbounty` | exploit-first, gates on entrypoint reachability |
 | `/audit cve` | SCA / lockfile dependency scan only |
-| `/audit mobile` \| `web` \| `llm` | scope to a single rule pack |
+| `/audit mobile` \| `web` \| `desktop` \| `llm` | scope to a single rule pack |
+| `/audit secrets` \| `iac` \| `cloud` | hardcoded creds / Terraform+Dockerfile+K8s / AWS-GCP-Azure SDK misuse |
 | `/audit deep focus:auth` | full pipeline, deep review only on auth-tagged findings |
 | `/audit --fix` | apply patches in a worktree, re-verify |
 | `/audit --lite` | skip slicing and deep review |
@@ -96,6 +97,7 @@ mantis update [--check]               # query PyPI, upgrade in place
 | `--skip-llm` | SAST + inventory only; no provider needed |
 | `--lite` | skip slicing + deep review |
 | `--fix` | apply patches in a worktree, re-verify |
+| `--fail-on low\|medium\|high\|critical` | exit non-zero if any unsuppressed finding is at or above this severity (pre-commit / local gate) |
 
 `audit` mode is positional and matches the MCP slash form:
 `mantis audit quick`, `mantis audit deep focus:auth`, `mantis audit . web --since main`.
@@ -103,6 +105,27 @@ mantis update [--check]               # query PyPI, upgrade in place
 Reports land under `<target>/.mantis/runs/<ts>-<sha>.md` with stable pointers at
 `<target>/.mantis/latest.md` and `<target>/security-audit-report.md`. With `--fix`,
 patches are applied in `../<repo>.audit-fix-<short>/`; the working tree is never modified.
+
+### Suppressions
+
+Drop a `.mantisignore` at the target root to silence known-but-accepted findings.
+Suppressed findings never reach the LLM. The short rule id is enough; the matcher
+also accepts the fully-qualified scanner id or a fnmatch glob.
+
+```yaml
+- rule_id: iac-k8s-host-network
+  path: "k8s/cni/**"
+  reason: hostNetwork required for our CNI in this cluster
+- rule_id: iac-*
+  path: "tests/fixtures/**"
+  reason: deliberately vulnerable test fixtures
+- rule_id: secret-generic-password-assignment
+  path: "docs/examples/**"
+```
+
+Same-function findings (12 SQLi calls in one helper) are folded into one
+representative before triage so the deep-reviewer doesn't get 12 near-identical
+calls; the report shows `(+N similar in same function)` on the rep.
 
 ## Configuration (standalone)
 
