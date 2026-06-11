@@ -1,0 +1,57 @@
+rules:
+  - id: web-a03-ssti-flask-render-template-string
+    languages: [python]
+    severity: ERROR
+    message: |
+      `render_template_string` with a template derived from user input or
+      string-concatenated request data — Server-Side Template Injection.
+      Jinja2 templates can run arbitrary Python via the object graph
+      (`{{ self.__init__.__globals__ }}`). Use `render_template` with a
+      static template file and pass user data as context.
+
+      OWASP Top 10:2025 — A03 Injection (SSTI)
+    patterns:
+      - pattern-either:
+          - pattern: render_template_string($T, ...)
+      - metavariable-pattern:
+          metavariable: $T
+          patterns:
+            - pattern-either:
+                - pattern: request.args.get(...)
+                - pattern: request.args[...]
+                - pattern: request.form.get(...)
+                - pattern: request.form[...]
+                - pattern: request.values.get(...)
+                - pattern: request.json[...]
+                - pattern: request.url
+                - pattern: request.path
+                - pattern: $X % request.$F
+                - pattern: $X % $Y.format(...)
+                - pattern: f"...{request.$F}..."
+                - pattern: $X + request.$F
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-1336"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-ssti-flask-render-template-string-broad
+    languages: [python]
+    severity: WARNING
+    message: |
+      `render_template_string` used with a non-literal template. If any
+      part of the template string flows from a request (even indirectly),
+      this is SSTI. Prefer `render_template` with a static file.
+
+      OWASP Top 10:2025 — A03 Injection (SSTI)
+    patterns:
+      - pattern: render_template_string($T, ...)
+      - pattern-not: render_template_string("...", ...)
+      - pattern-not: render_template_string('...', ...)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-1336"
+      confidence: MEDIUM
+      pack: [web, deep]

@@ -1,0 +1,100 @@
+rules:
+  - id: iac-tf-aws-ebs-volume-missing-encryption
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      `aws_ebs_volume` without an `encrypted` attribute. Defaults to
+      unencrypted at-rest. Set `encrypted = true`.
+    patterns:
+      - pattern: |
+          resource "aws_ebs_volume" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_ebs_volume" $NAME {
+            ...
+            encrypted = $X
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-tf-aws-kms-missing-rotation
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      `aws_kms_key` without `enable_key_rotation`. KMS key rotation is
+      the AWS-recommended baseline; explicitly enable it.
+    patterns:
+      - pattern: |
+          resource "aws_kms_key" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_kms_key" $NAME {
+            ...
+            enable_key_rotation = $X
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-320"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-efs-missing-encryption
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      `aws_efs_file_system` without an `encrypted` attribute. Defaults
+      to unencrypted. Set `encrypted = true`.
+    patterns:
+      - pattern: |
+          resource "aws_efs_file_system" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_efs_file_system" $NAME {
+            ...
+            encrypted = $X
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-tf-aws-cloudtrail-missing-log-validation
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      `aws_cloudtrail` without `enable_log_file_validation`. Log
+      integrity verification protects against tampering.
+    patterns:
+      - pattern: |
+          resource "aws_cloudtrail" $NAME {
+            ...
+          }
+      - pattern-not: |
+          resource "aws_cloudtrail" $NAME {
+            ...
+            enable_log_file_validation = $X
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-117"
+      confidence: HIGH
+      pack: [iac, deep]

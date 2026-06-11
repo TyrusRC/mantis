@@ -3,20 +3,20 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 650
-  total_files: 94
+  total_rules: 676
+  total_files: 100
   by_severity:
-    WARNING: 282
-    ERROR: 290
+    WARNING: 297
+    ERROR: 301
     INFO: 78
   by_language:
     java: 108
     kotlin: 92
     xml: 84
     generic: 99
-    python: 28
-    javascript: 62
-    typescript: 62
+    python: 36
+    javascript: 64
+    typescript: 64
     dart: 30
     yaml: 33
     ruby: 30
@@ -26,13 +26,13 @@ summary:
     sh: 1
     html: 1
     dockerfile: 5
-    hcl: 8
+    hcl: 24
     c: 5
     csharp: 6
     go: 6
     php: 6
   by_category:
-    security: 618
+    security: 644
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -64,8 +64,8 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 332
-    MEDIUM: 218
+    HIGH: 352
+    MEDIUM: 224
     LOW: 82
     VERY_HIGH: 18
   parse_errors: []
@@ -6982,6 +6982,318 @@ rules:
   - iac
   - deep
   source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-ebs-volume-missing-encryption
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-kms-missing-rotation
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-320
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-efs-missing-encryption
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-missing-blocks.yaml
+  id: iac-tf-aws-cloudtrail-missing-log-validation
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-117
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-network.yaml
+  id: iac-tf-aws-alb-http-listener
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-319
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-network.yaml
+  id: iac-tf-aws-elasticsearch-no-encrypt-at-rest
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-network.yaml
+  id: iac-tf-aws-elasticsearch-no-node-to-node-encryption
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-319
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-network.yaml
+  id: iac-tf-aws-eks-public-endpoint
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-284
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/terraform-aws-network.yaml
+  id: iac-tf-aws-lambda-env-secret
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - iac
+  - deep
+  - bugbounty
+  source: null
+- file: rules/iac/terraform-aws-network.yaml
+  id: iac-tf-aws-ecr-no-image-scanning
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-1357
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-storage.yaml
+  id: iac-tf-aws-s3-no-versioning
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-693
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-storage.yaml
+  id: iac-tf-aws-ebs-volume-unencrypted
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-storage.yaml
+  id: iac-tf-aws-efs-unencrypted
+  severity: ERROR
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - fast
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-storage.yaml
+  id: iac-tf-aws-dynamodb-no-encryption
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-311
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-storage.yaml
+  id: iac-tf-aws-kms-key-rotation-disabled
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-320
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
+- file: rules/iac/terraform-aws-storage.yaml
+  id: iac-tf-aws-cloudtrail-not-multi-region
+  severity: WARNING
+  languages:
+  - hcl
+  category: security
+  cwe:
+  - CWE-778
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - iac
+  - deep
+  source: null
 - file: rules/ios/cve-imageio-processing.yaml
   id: cve-2023-41064-blastpass-imageio
   severity: ERROR
@@ -10610,6 +10922,108 @@ rules:
   - web
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a01-open-redirect.yaml
+  id: web-a01-open-redirect-flask
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-601
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a01-open-redirect.yaml
+  id: web-a01-open-redirect-express
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-601
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a01-open-redirect.yaml
+  id: web-a01-open-redirect-express-broad
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-601
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a01-open-redirect.yaml
+  id: web-a01-open-redirect-flask-broad
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-601
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a01-open-redirect.yaml
+  id: web-a01-open-redirect-django
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-601
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a02-crypto-failures.yaml
   id: web-a02-hardcoded-aes-key-node
   severity: ERROR
@@ -10876,6 +11290,46 @@ rules:
   - fast
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a03-ssti-flask.yaml
+  id: web-a03-ssti-flask-render-template-string
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-1336
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-ssti-flask.yaml
+  id: web-a03-ssti-flask-render-template-string-broad
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-1336
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
 - file: rules/web/owasp-top10-2025-a05-security-misconfig.yaml
   id: web-a05-django-debug-true
   severity: ERROR
@@ -10936,6 +11390,67 @@ rules:
   pack:
   - web
   - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a08-deserialization-python.yaml
+  id: web-a08-insecure-deserialization-pickle
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-502
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a08-deserialization-python.yaml
+  id: web-a08-insecure-deserialization-shelve
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-502
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a08-deserialization-python.yaml
+  id: web-a08-insecure-deserialization-marshal
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-502
+  owasp_mobile: null
+  owasp: A08:2025 Software and Data Integrity Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a08-integrity-failures.yaml
   id: web-a08-pickle-loads-untrusted

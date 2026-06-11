@@ -1,0 +1,142 @@
+rules:
+  - id: iac-tf-aws-s3-no-versioning
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      S3 bucket without `versioning { enabled = true }`. Without
+      versioning, ransomware / accidental deletion is unrecoverable.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_s3_bucket_versioning" $NAME {
+                ...
+                versioning_configuration {
+                  status = "Suspended"
+                  ...
+                }
+                ...
+              }
+          - pattern: |
+              resource "aws_s3_bucket_versioning" $NAME {
+                ...
+                versioning_configuration {
+                  status = "Disabled"
+                  ...
+                }
+                ...
+              }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-693"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-ebs-volume-unencrypted
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      EBS volume created with `encrypted = false`. EBS encryption is
+      free and the data-at-rest leakage from snapshots is otherwise
+      unavoidable.
+    patterns:
+      - pattern: |
+          resource "aws_ebs_volume" $NAME {
+            ...
+            encrypted = false
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-tf-aws-efs-unencrypted
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      EFS file system with `encrypted = false`. EFS supports
+      transparent KMS encryption at rest.
+    patterns:
+      - pattern: |
+          resource "aws_efs_file_system" $NAME {
+            ...
+            encrypted = false
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-tf-aws-dynamodb-no-encryption
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      DynamoDB table with `server_side_encryption { enabled = false }`.
+    patterns:
+      - pattern: |
+          resource "aws_dynamodb_table" $NAME {
+            ...
+            server_side_encryption {
+              enabled = false
+              ...
+            }
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-kms-key-rotation-disabled
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      KMS key without `enable_key_rotation = true`. Rotation is the
+      recommended baseline for keys protecting long-lived data.
+    patterns:
+      - pattern: |
+          resource "aws_kms_key" $NAME {
+            ...
+            enable_key_rotation = false
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-320"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-cloudtrail-not-multi-region
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      CloudTrail with `is_multi_region_trail = false` (or unset).
+      Activity in non-instrumented regions is invisible to detection.
+    patterns:
+      - pattern: |
+          resource "aws_cloudtrail" $NAME {
+            ...
+            is_multi_region_trail = false
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-778"
+      confidence: HIGH
+      pack: [iac, deep]

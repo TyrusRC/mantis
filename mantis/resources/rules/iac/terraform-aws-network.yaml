@@ -1,0 +1,159 @@
+rules:
+  - id: iac-tf-aws-alb-http-listener
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      ALB / NLB listener with `protocol = "HTTP"`. Use HTTPS / TLS and
+      redirect HTTP to HTTPS. Plaintext credentials cross the wire on
+      every request.
+    patterns:
+      - pattern: |
+          resource "aws_lb_listener" $NAME {
+            ...
+            protocol = "HTTP"
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-319"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-tf-aws-elasticsearch-no-encrypt-at-rest
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      Elasticsearch / OpenSearch domain with
+      `encrypt_at_rest { enabled = false }`.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_elasticsearch_domain" $NAME {
+                ...
+                encrypt_at_rest {
+                  enabled = false
+                  ...
+                }
+                ...
+              }
+          - pattern: |
+              resource "aws_opensearch_domain" $NAME {
+                ...
+                encrypt_at_rest {
+                  enabled = false
+                  ...
+                }
+                ...
+              }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-311"
+      confidence: HIGH
+      pack: [iac, fast, deep]
+
+  - id: iac-tf-aws-elasticsearch-no-node-to-node-encryption
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      Elasticsearch / OpenSearch without
+      `node_to_node_encryption { enabled = true }`. Intra-cluster
+      traffic is plaintext.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              resource "aws_elasticsearch_domain" $NAME {
+                ...
+                node_to_node_encryption {
+                  enabled = false
+                  ...
+                }
+                ...
+              }
+          - pattern: |
+              resource "aws_opensearch_domain" $NAME {
+                ...
+                node_to_node_encryption {
+                  enabled = false
+                  ...
+                }
+                ...
+              }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-319"
+      confidence: HIGH
+      pack: [iac, deep]
+
+  - id: iac-tf-aws-eks-public-endpoint
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      EKS cluster with `endpoint_public_access = true` and no CIDR
+      restriction. The K8s API is reachable from the internet.
+    patterns:
+      - pattern: |
+          resource "aws_eks_cluster" $NAME {
+            ...
+            vpc_config {
+              ...
+              endpoint_public_access = true
+              ...
+            }
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-284"
+      confidence: MEDIUM
+      pack: [iac, deep, bugbounty]
+
+  - id: iac-tf-aws-lambda-env-secret
+    languages: [hcl]
+    severity: ERROR
+    message: |
+      Terraform variable assignment in an HCL file with a credential-like
+      key name. Lambda env vars are visible via
+      `lambda:GetFunctionConfiguration` and appear in CloudTrail.
+      Hard-coded provider creds in `provider` blocks are no better.
+      Use Secrets Manager / Parameter Store / env injection.
+    patterns:
+      - pattern-regex: '(?im)^\s*(password|passwd|secret|api_key|apikey|access_key|secret_key|access_token|auth_token|private_key|aws_secret_access_key|stripe_key|slack_token)\s*=\s*"[^$"\n]{4,}"'
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+      confidence: MEDIUM
+      pack: [iac, deep, bugbounty]
+
+  - id: iac-tf-aws-ecr-no-image-scanning
+    languages: [hcl]
+    severity: WARNING
+    message: |
+      ECR repository with `image_scanning_configuration.scan_on_push = false`.
+      Enabling scan-on-push catches known-CVE base images at build time.
+    patterns:
+      - pattern: |
+          resource "aws_ecr_repository" $NAME {
+            ...
+            image_scanning_configuration {
+              scan_on_push = false
+              ...
+            }
+            ...
+          }
+    paths:
+      include: ["*.tf", "**/*.tf"]
+    metadata:
+      category: security
+      cwe: "CWE-1357"
+      confidence: HIGH
+      pack: [iac, deep]

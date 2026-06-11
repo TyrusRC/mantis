@@ -47,7 +47,11 @@ def _enclosing_function_name(finding: Finding, target: Path) -> Optional[str]:
 
 
 def _cluster_key(finding: Finding, fn_name: Optional[str]) -> tuple[str, str, str]:
-    return (finding.rule_id, finding.path, fn_name or f"_line:{finding.start_line}")
+    # Module-level findings (no enclosing function — e.g. Express route
+    # registrations, top-level config) collapse to one cluster per
+    # (rule_id, path). Without this fallback every line would be its own
+    # cluster — exactly what we want to avoid.
+    return (finding.rule_id, finding.path, fn_name or "_module")
 
 
 def cluster_findings(

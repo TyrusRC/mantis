@@ -1,0 +1,136 @@
+rules:
+  - id: web-a01-open-redirect-flask
+    languages: [python]
+    severity: WARNING
+    message: |
+      `redirect()` target derived from user input. Validate against an
+      allow-list of paths/hosts, or use a server-side mapping table.
+      Open redirects enable phishing and OAuth/SAML relay attacks.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern-either:
+          - pattern: redirect($U)
+          - pattern: flask.redirect($U)
+      - metavariable-pattern:
+          metavariable: $U
+          patterns:
+            - pattern-either:
+                - pattern: request.args.get(...)
+                - pattern: request.args[...]
+                - pattern: request.form.get(...)
+                - pattern: request.form[...]
+                - pattern: request.values.get(...)
+                - pattern: request.GET.get(...)
+                - pattern: request.POST.get(...)
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-601"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a01-open-redirect-express
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      `res.redirect()` target derived from `req.body|query|params|headers`.
+      Validate against an allow-list. Open redirects are commonly chained
+      into OAuth/SAML callback hijacks.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern-either:
+          - pattern: $RES.redirect($U)
+          - pattern: $RES.redirect($CODE, $U)
+      - metavariable-pattern:
+          metavariable: $U
+          patterns:
+            - pattern-either:
+                - pattern: req.body.$F
+                - pattern: req.body[$F]
+                - pattern: req.query.$F
+                - pattern: req.query[$F]
+                - pattern: req.params.$F
+                - pattern: req.params[$F]
+                - pattern: req.headers.$F
+                - pattern: req.cookies.$F
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-601"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a01-open-redirect-express-broad
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      `res.redirect()` target is a variable, not a literal. If that
+      variable is ever derived from `req.body|query|params|headers`,
+      this is an open redirect. Validate against an allow-list.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern: $RES.redirect($U)
+      - pattern-not: $RES.redirect("...")
+      - pattern-not: $RES.redirect('...')
+      - pattern-not-regex: 'redirect\s*\(\s*`[^`$]*`\s*\)'
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-601"
+      confidence: MEDIUM
+      pack: [web, deep]
+
+  - id: web-a01-open-redirect-flask-broad
+    languages: [python]
+    severity: WARNING
+    message: |
+      Flask `redirect()` target is not a string literal. Validate user
+      flow to confirm the destination cannot be controlled by an
+      attacker.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern-either:
+          - pattern: redirect($U)
+          - pattern: flask.redirect($U)
+      - pattern-not: redirect("...")
+      - pattern-not: redirect('...')
+      - pattern-not: redirect(url_for(...))
+      - pattern-not: redirect(url_for(...), ...)
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-601"
+      confidence: MEDIUM
+      pack: [web, deep]
+
+  - id: web-a01-open-redirect-django
+    languages: [python]
+    severity: WARNING
+    message: |
+      Django `HttpResponseRedirect` / `redirect()` with user-controlled
+      target. Validate against `url_has_allowed_host_and_scheme` or an
+      explicit allow-list.
+
+      OWASP Top 10:2025 — A01 Broken Access Control
+    patterns:
+      - pattern-either:
+          - pattern: HttpResponseRedirect($U)
+          - pattern: django.shortcuts.redirect($U)
+      - metavariable-pattern:
+          metavariable: $U
+          patterns:
+            - pattern-either:
+                - pattern: request.GET.get(...)
+                - pattern: request.GET[...]
+                - pattern: request.POST.get(...)
+                - pattern: request.POST[...]
+    metadata:
+      category: security
+      owasp: "A01:2025 Broken Access Control"
+      cwe: "CWE-601"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]

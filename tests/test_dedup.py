@@ -71,3 +71,22 @@ def test_cluster_empty_input(tmp_path: Path):
     clusters, stats = cluster_findings([], tmp_path)
     assert clusters == []
     assert stats == {"total": 0, "clusters": 0, "collapsed": 0}
+
+
+def test_cluster_module_level_findings_collapse(tmp_path: Path):
+    """Findings outside any function (e.g. Express app.get(...) at module
+    level) must still cluster by (rule_id, path) — otherwise every line
+    becomes its own cluster, defeating the point of dedup."""
+    src = tmp_path / "app.js"
+    src.write_text(
+        "var app = express();\n"
+        "app.get('/a', handler);\n"
+        "app.get('/b', handler);\n"
+        "app.get('/c', handler);\n"
+        "app.get('/d', handler);\n"
+    )
+    findings = [_f("express-no-auth", str(src), i) for i in (2, 3, 4, 5)]
+    clusters, stats = cluster_findings(findings, tmp_path)
+    assert stats == {"total": 4, "clusters": 1, "collapsed": 3}
+    assert clusters[0].enclosing_function is None
+    assert clusters[0].representative.start_line == 2

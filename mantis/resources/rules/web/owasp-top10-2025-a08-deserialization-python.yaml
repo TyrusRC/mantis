@@ -1,0 +1,61 @@
+rules:
+  - id: web-a08-insecure-deserialization-pickle
+    languages: [python]
+    severity: ERROR
+    message: |
+      `pickle.loads` / `pickle.load` on untrusted data is RCE. Replace
+      with JSON (for data) or a signed/HMAC-verified envelope. Any byte
+      string an attacker can influence becomes arbitrary code execution.
+
+      OWASP Top 10:2025 — A08 Software and Data Integrity Failures
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads(...)
+          - pattern: pickle.load(...)
+          - pattern: cPickle.loads(...)
+          - pattern: cPickle.load(...)
+          - pattern: dill.loads(...)
+          - pattern: dill.load(...)
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a08-insecure-deserialization-shelve
+    languages: [python]
+    severity: WARNING
+    message: |
+      `shelve.open` uses pickle internally. Any attacker write to the
+      shelf file yields code execution on next read.
+
+      OWASP Top 10:2025 — A08 Software and Data Integrity Failures
+    patterns:
+      - pattern: shelve.open(...)
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502"
+      confidence: MEDIUM
+      pack: [web, deep]
+
+  - id: web-a08-insecure-deserialization-marshal
+    languages: [python]
+    severity: ERROR
+    message: |
+      `marshal.loads` / `marshal.load` on untrusted bytes is RCE. marshal
+      is an internal Python interpreter format and should never deserialize
+      attacker-controlled data.
+
+      OWASP Top 10:2025 — A08 Software and Data Integrity Failures
+    patterns:
+      - pattern-either:
+          - pattern: marshal.loads(...)
+          - pattern: marshal.load(...)
+    metadata:
+      category: security
+      owasp: "A08:2025 Software and Data Integrity Failures"
+      cwe: "CWE-502"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
