@@ -38,6 +38,8 @@ There is one slash command, `/audit`. Modes (`quick`, `deep`, `bugbounty`, `cve`
 
 The standalone CLI also accepts `--since <git-ref>`, `--format md|json|sarif|all`, `--no-cache`, `--skip-llm`, and `--fail-on low|medium|high|critical` (non-zero exit when an unsuppressed finding crosses the threshold — useful for pre-commit gates). A `.mantisignore` YAML at the target root suppresses findings by `rule_id` + path glob before triage.
 
+For auditing decompiled / reverse-engineered source (jadx Java, Ghidra pseudo-C — e.g. what chimera emits), where inventory can't see build files: `--pack <name>` (repeatable) runs exactly those packs, bypassing mode and inventory; `--decompiled` detects the stack from source extensions alone. Both are also parameters on the programmatic `mantis.audit()` API (`packs=[...]`, `decompiled=True`) — the SAST-only seam an external tool calls. These are flags/params on the one command, not new commands; the local-only rule still holds.
+
 The `web` pack covers Java/Spring, Node.js, Python (Django/Flask/FastAPI), Go, .NET (C#), and PHP. The `desktop` pack covers Electron. Mobile (`mobile`, `mobile-ios`, `mobile-android`) covers native iOS / Android plus cross-platform Flutter and React Native.
 
 The standalone CLI additionally exposes `--skip-llm` for SAST-only diagnostic runs (no provider config needed). This is CLI-only — the MCP slash command always runs the full pipeline.

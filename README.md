@@ -98,9 +98,43 @@ mantis update [--check]               # query PyPI, upgrade in place
 | `--lite` | skip slicing + deep review |
 | `--fix` | apply patches in a worktree, re-verify |
 | `--fail-on low\|medium\|high\|critical` | exit non-zero if any unsuppressed finding is at or above this severity (pre-commit / local gate) |
+| `--pack <name>` | run exactly this pack (repeatable), bypassing mode + inventory |
+| `--decompiled` | detect the stack from source extensions alone (no build files) |
 
 `audit` mode is positional and matches the MCP slash form:
 `mantis audit quick`, `mantis audit deep focus:auth`, `mantis audit . web --since main`.
+
+### Auditing decompiled / reverse-engineered source
+
+Inventory keys off build files (`build.gradle`, lockfiles, `AndroidManifest.xml`).
+A decompiled tree — jadx Java/Kotlin, Ghidra pseudo-C, e.g. what
+[chimera](https://github.com/TyrusRC/chimera) emits when it unpacks a binary —
+has source but none of those, so plain inventory would fall back to the `fast`
+pack. Two knobs fix that:
+
+```bash
+# Best-effort: detect the stack from source extensions alone
+mantis audit ./decompiled_out --decompiled --skip-llm
+
+# Precise: you already know the platform, so name the packs
+mantis audit ./jadx_sources --pack mobile-android --pack secrets --skip-llm
+mantis audit ./ghidra_pseudo_c --pack secrets --skip-llm
+```
+
+Programmatically (SAST-only, no provider needed) — the seam a tool like chimera
+calls after decompiling a binary to a source tree:
+
+```python
+from mantis import audit
+
+findings = audit("jadx_sources", packs=["mobile-android", "secrets"])
+findings = audit("decompiled_out", decompiled=True)   # auto stack detection
+# each finding: {rule_id, severity, confidence, path, start_line, end_line,
+#                message, metadata (cwe/owasp/masvs...), verdict}
+```
+
+C/C++ has no dedicated rule pack, but the `secrets` pack still surfaces
+hardcoded keys/credentials in Ghidra pseudo-C.
 
 Reports land under `<target>/.mantis/runs/<ts>-<sha>.md` with stable pointers at
 `<target>/.mantis/latest.md` and `<target>/security-audit-report.md`. With `--fix`,

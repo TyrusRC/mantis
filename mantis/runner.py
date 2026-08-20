@@ -83,6 +83,10 @@ class Pipeline:
     output_format: str = "md"
     no_cache: bool = False
     fail_on: Optional[str] = None
+    #: Explicit pack override (bypasses mode + inventory), and lenient
+    #: detection for a decompiled/reverse-engineered source tree.
+    packs: Optional[list] = None
+    decompiled: bool = False
 
     def run(self) -> int:
         t0 = time.monotonic()
@@ -110,14 +114,16 @@ class Pipeline:
 
         # Stage 0: inventory
         print("[mantis] stage 0: inventory")
-        inv = take_inventory(self.target)
+        inv = take_inventory(self.target, decompiled=self.decompiled)
         for r in inv.rationale:
             print(f"           - {r}")
         try:
-            packs = packs_for(self.mode, inv)
+            packs = packs_for(self.mode, inv, explicit=self.packs)
         except ValueError as e:
             print(f"[mantis] error: {e}")
             return 2
+        if self.packs:
+            print(f"[mantis] packs override: {', '.join(self.packs)}")
         print(f"[mantis] packs   = {', '.join(packs)}")
 
         # Stage 1: SAST scan

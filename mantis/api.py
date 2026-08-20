@@ -45,6 +45,8 @@ def audit(
     path,
     *,
     mode: Optional[str] = None,
+    packs: Optional[list] = None,
+    decompiled: bool = False,
     llm: bool = False,
     config: Optional[str] = None,
     sast_bin: Optional[str] = None,
@@ -54,12 +56,24 @@ def audit(
     SAST-only by default (no LLM provider required). Pass ``llm=True`` to also
     run triage, which attaches a per-finding verdict (TRUE / FALSE / NEEDS-DEEP).
 
-    Raises ``NotADirectoryError`` when ``path`` is not a directory, and
-    propagates ``ConfigError`` / ``SastError`` / ``ScanError`` from the stages.
+    Auditing reverse-engineered / decompiled source (the chimera use case):
+    such a tree has source files but no build.gradle, lockfile, or manifest, so
+    normal inventory would fall back to the ``fast`` pack. Two knobs handle it:
+
+    - ``packs=[...]`` — run exactly these packs, bypassing mode and inventory.
+      This is the precise path: a caller that already knows the platform passes
+      e.g. ``packs=["mobile-android", "secrets"]`` for jadx Java output or
+      ``packs=["secrets"]`` for Ghidra pseudo-C. Mutually exclusive with ``mode``.
+    - ``decompiled=True`` — best-effort: detect the stack from source-file
+      extensions alone (no build files needed) and pick packs from that.
+
+    Raises ``NotADirectoryError`` when ``path`` is not a directory, ``ValueError``
+    for an unknown pack name or ``mode``+``packs`` together, and propagates
+    ``ConfigError`` / ``SastError`` / ``ScanError`` from the stages.
     """
     from mantis.cli import REPO_ROOT
     from mantis.config import load_config
-    from mantis.inventory import packs_for, take_inventory
+    from mantis.inventory import packs_for, resolve_pack_override, take_inventory
     from mantis.sast import resolve_sast_binary
     from mantis.scan import (
         ScanError, compose_pack_files, dedupe_findings,
@@ -71,12 +85,17 @@ def audit(
     if not target.is_dir():
         raise NotADirectoryError(f"target not found: {target}")
 
+    if packs and mode:
+        raise ValueError("pass either `mode` or `packs`, not both")
+    override = (resolve_pack_override(list(packs), REPO_ROOT / "rules" / "packs")
+                if packs else None)
+
     cfg = load_config(target, explicit=config, skip_provider_validation=not llm)
     sast = resolve_sast_binary(sast_bin or cfg.sast_bin)
 
-    inv = take_inventory(target)
-    packs = packs_for(mode, inv)
-    rule_files = compose_pack_files(packs, REPO_ROOT / "scripts")
+    inv = take_inventory(target, decompiled=decompiled)
+    selected = packs_for(mode, inv, explicit=override)
+    rule_files = compose_pack_files(selected, REPO_ROOT / "scripts")
     valid_rules, _invalid = filter_valid_rule_files(rule_files, sast)
     if not valid_rules:
         raise ScanError("no valid rule files in composed pack")

@@ -138,6 +138,23 @@ def _build_parser() -> argparse.ArgumentParser:
              "Maps to scanner severities: low=INFO, medium=WARNING, high=ERROR. "
              "Use with pre-commit hooks or local gates.",
     )
+    audit.add_argument(
+        "--pack",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help="Run exactly this pack, bypassing mode and inventory (repeatable). "
+             "For decompiled/RE'd source where inventory can't see build files: "
+             "e.g. --pack mobile-android --pack secrets for jadx Java, or "
+             "--pack secrets for Ghidra pseudo-C. Mutually exclusive with a mode.",
+    )
+    audit.add_argument(
+        "--decompiled",
+        action="store_true",
+        help="Treat the target as a reverse-engineered source tree: detect the "
+             "stack from source-file extensions alone (no build.gradle / lockfile "
+             "/ manifest needed), so a decompiled dump isn't reduced to the fast pack.",
+    )
 
     doctor = sub.add_parser(
         "doctor",
@@ -239,6 +256,19 @@ def cmd_audit(args) -> int:
         print(f"target not found: {target}", file=sys.stderr)
         return 2
 
+    packs = getattr(args, "pack", None)
+    decompiled = getattr(args, "decompiled", False)
+    if packs and mode:
+        print("error: pass either a mode or --pack, not both", file=sys.stderr)
+        return 2
+    if packs:
+        from mantis.inventory import resolve_pack_override
+        try:
+            packs = resolve_pack_override(packs, REPO_ROOT / "rules" / "packs")
+        except ValueError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
+
     skip_llm = getattr(args, "skip_llm", False)
     try:
         cfg = load_config(target, explicit=args.config, skip_provider_validation=skip_llm)
@@ -273,6 +303,8 @@ def cmd_audit(args) -> int:
         output_format=getattr(args, "format", "md"),
         no_cache=getattr(args, "no_cache", False),
         fail_on=getattr(args, "fail_on", None),
+        packs=packs,
+        decompiled=decompiled,
     )
     return pipe.run()
 

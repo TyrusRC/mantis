@@ -185,22 +185,36 @@ def _has_infra_signals(target: Path) -> bool:
     return False
 
 
-def take_inventory(target: Path) -> Inventory:
+def take_inventory(target: Path, *, decompiled: bool = False) -> Inventory:
+    """Detect the stack by file presence; suggest packs.
+
+    `decompiled=True` relaxes detection for a reverse-engineered source tree
+    (e.g. what chimera emits: jadx Java/Kotlin, Ghidra pseudo-C). Such a tree
+    has source files but no build.gradle, lockfile, or manifest at its root,
+    so the normal build-file-gated detection would find nothing and fall back
+    to the `fast` pack. In decompiled mode a language's *source files* alone
+    select its pack, and C/C++ is recognised (`native`) so the secrets pack
+    still runs over Ghidra output. Bare Java/Kotlin with no manifest stays
+    `jvm` (could be server or app) — pass an explicit pack (`mobile-android`)
+    when you know it is mobile.
+    """
     target = target.resolve()
     stack = Stack()
     rationale: list[str] = []
 
-    if _glob_any(target, ["*.swift", "Podfile", "*.xcodeproj"]):
+    if _glob_any(target, ["*.swift", "Podfile", "*.xcodeproj"]) or \
+       (decompiled and _glob_any(target, ["*.m", "*.mm"])):  # *.swift already above
         stack.detected.add("ios")
     # Android = AndroidManifest.xml (definitive). Kotlin + Gradle alone is
-    # ambiguous (could be a JVM server) — mark `jvm` for those.
+    # ambiguous (could be a JVM server) — mark `jvm` for those. In decompiled
+    # mode source files stand in for the (absent) gradle build.
     has_manifest = bool(_glob_any(target, ["AndroidManifest.xml"]))
     has_gradle = bool(_glob_any(target, ["build.gradle", "build.gradle.kts", "settings.gradle"]))
     has_kt = bool(_glob_any(target, ["*.kt", "*.kts"]))
     has_java = bool(_glob_any(target, ["*.java"]))
     if has_manifest:
         stack.detected.add("android")
-    elif (has_kt or has_java) and has_gradle:
+    elif (has_kt or has_java) and (has_gradle or decompiled):
         stack.detected.add("jvm")
     if (target / "pubspec.yaml").is_file():
         stack.detected.add("flutter")
@@ -211,7 +225,8 @@ def take_inventory(target: Path) -> Inventory:
             stack.has_llm_sdk = True
         if has_cloud:
             stack.has_cloud_sdk = True
-    if _glob_any(target, ["requirements*.txt", "pyproject.toml", "Pipfile"]):
+    if _glob_any(target, ["requirements*.txt", "pyproject.toml", "Pipfile"]) or \
+       (decompiled and _glob_any(target, ["*.py"])):
         stack.detected.add("python")
         py_llm, py_cloud = _scan_python_requirements(target)
         if py_llm:
@@ -230,6 +245,11 @@ def take_inventory(target: Path) -> Inventory:
         stack.detected.add("php")
     if _is_electron(target):
         stack.detected.add("electron")
+    # Decompiled native (Ghidra pseudo-C). No dedicated C/C++ rule pack, but
+    # marking the stack keeps it off the `fast` fallback so the secrets pack
+    # (added below for any detected stack) runs over the pseudo-C.
+    if decompiled and _glob_any(target, ["*.c", "*.cc", "*.cpp", "*.cxx", "*.h", "*.hpp"]):
+        stack.detected.add("native")
     if _has_infra_signals(target):
         stack.detected.add("infra")
 
@@ -312,10 +332,48 @@ MODE_TO_PACKS: dict[str, list[str]] = {
 }
 
 
-def packs_for(mode: str | None, inv: Inventory) -> list[str]:
+def packs_for(mode: str | None, inv: Inventory,
+              explicit: list[str] | None = None) -> list[str]:
+    """Resolve the pack list. Precedence: explicit > mode > inventory.
+
+    `explicit` is a caller-supplied pack override (deduped, order preserved) —
+    the seam a programmatic consumer like chimera uses to say exactly which
+    packs to run over a decompiled tree, bypassing both mode and inventory.
+    """
+    if explicit:
+        return list(dict.fromkeys(explicit))
     if mode:
         m = mode.lower()
         if m not in MODE_TO_PACKS:
             raise ValueError(f"unknown mode: {mode!r}")
         return MODE_TO_PACKS[m]
     return inv.packs
+
+
+def known_packs(packs_dir: Path) -> set[str]:
+    """Names of every pack spec on disk (``<name>.yaml`` in ``packs_dir``)."""
+    return {p.stem for p in packs_dir.glob("*.yaml")}
+
+
+def validate_packs(names: list[str], packs_dir: Path) -> list[str]:
+    """Return the subset of `names` that have no pack spec on disk."""
+    known = known_packs(packs_dir)
+    return [n for n in names if n not in known]
+
+
+def resolve_pack_override(packs: list[str], packs_dir: Path) -> list[str]:
+    """Validate + normalise an explicit pack override; return the deduped list.
+
+    Names are lowercased (spec files are lowercase, and this matches how a
+    `mode` is treated, so `--pack Secrets` works) then checked against the
+    packs on disk. Raises ValueError naming the unknown pack(s) and the valid
+    set. The single home for the override's validation and error wording, so
+    the api and CLI can't drift apart.
+    """
+    names = [n.lower() for n in packs]
+    unknown = validate_packs(names, packs_dir)
+    if unknown:
+        raise ValueError(
+            f"unknown pack(s): {', '.join(unknown)}; "
+            f"valid packs: {', '.join(sorted(known_packs(packs_dir)))}")
+    return list(dict.fromkeys(names))
