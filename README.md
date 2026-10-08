@@ -98,6 +98,8 @@ mantis update [--check]               # query PyPI, upgrade in place
 | `--lite` | skip slicing + deep review |
 | `--fix` | apply patches in a worktree, re-verify |
 | `--fail-on low\|medium\|high\|critical` | exit non-zero if any unsuppressed finding is at or above this severity (pre-commit / local gate) |
+| `--engines <list\|auto\|all>` | run extra SAST engines alongside OpenGrep (opt-in, default off): bandit, gosec, njsscan, eslint-security, checkov, trivy, grype. `auto` picks installed engines matching the tree (never the network ones); `all` runs every installed engine. |
+| `--engines-offline` | run the network SCA engines (trivy/grype) in offline-DB mode. trivy/grype fetch a vulnerability database (network); every other engine is fully local. |
 | `--pack <name>` | run exactly this pack (repeatable), bypassing mode + inventory |
 | `--decompiled` | detect the stack from source extensions alone (no build files) |
 
