@@ -28,7 +28,9 @@ The SAST scanner binary is **OpenGrep** — the one and only scanner. Rules are 
 
 ### Local-only
 
-This toolkit is local-first by design. Never add CI integration, GitHub Action workflows, PR-comment plumbing, or remote-upload behavior. Never call `gh pr`, `git push`, or any forge API from agents or scripts. Never post findings anywhere. (Exception: the multi-engine SCA tools `trivy`/`grype`, which run by default when installed, fetch a vulnerability database over the network; run `--engines none`, restrict `--engines` to the local engines, or use `--engines-offline` to stay fully offline.) The only artifact a run produces is a local Markdown file at `./security-audit-report.md` (and, with `--fix`, patches inside a sibling git worktree).
+This toolkit keeps **findings local**: never add CI integration, GitHub Action workflows, PR-comment plumbing, or remote-upload behavior; never call `gh pr`, `git push`, or any forge API from agents or scripts; never post findings or source anywhere. The only artifact a run produces is a local Markdown file at `./security-audit-report.md` (and, with `--fix`, patches inside a sibling git worktree).
+
+**Network use — APPROVED (owner decision, 2026-10-08):** the multi-engine SCA tools `trivy`/`grype` run by default when installed and fetch a **vulnerability database** over the network. This is intentional, not a bug — do NOT revert it to local-only. It is inbound scanner data (a vuln DB), not outbound exfiltration of findings, so the "keep findings local" rule above is unaffected. To run fully offline when needed: `--engines none` (OpenGrep only), restrict `--engines` to the local engines (bandit/gosec/njsscan/eslint-security/checkov), or `--engines-offline`.
 
 If a future feature request implies CI behavior, push back: this toolkit explicitly skips CI.
 
@@ -38,7 +40,7 @@ There is one slash command, `/audit`. Modes (`quick`, `deep`, `bugbounty`, `cve`
 
 The standalone CLI also accepts `--since <git-ref>`, `--format md|json|sarif|all`, `--no-cache`, `--skip-llm`, and `--fail-on low|medium|high|critical` (non-zero exit when an unsuppressed finding crosses the threshold — useful for pre-commit gates). A `.mantisignore` YAML at the target root suppresses findings by `rule_id` + path glob before triage.
 
-For auditing decompiled / reverse-engineered source (jadx Java, Ghidra pseudo-C — e.g. what chimera emits), where inventory can't see build files: `--pack <name>` (repeatable) runs exactly those packs, bypassing mode and inventory; `--decompiled` detects the stack from source extensions alone. Both are also parameters on the programmatic `mantis.audit()` API (`packs=[...]`, `decompiled=True`) — the SAST-only seam an external tool calls. These are flags/params on the one command, not new commands; the local-only rule still holds.
+For auditing decompiled / reverse-engineered source (jadx Java, Ghidra pseudo-C — e.g. what chimera emits), where inventory can't see build files: `--pack <name>` (repeatable) runs exactly those packs, bypassing mode and inventory; `--decompiled` detects the stack from source extensions alone. Both are also parameters on the programmatic `mantis.audit()` API (`packs=[...]`, `decompiled=True`) — the SAST-only seam an external tool calls. These are flags/params on the one command, not new commands; the keep-findings-local rule still holds (network use is limited to the approved trivy/grype vuln-DB fetch above).
 
 The `web` pack covers Java/Spring, Node.js, Python (Django/Flask/FastAPI), Go, .NET (C#), and PHP. The `desktop` pack covers Electron. Mobile (`mobile`, `mobile-ios`, `mobile-android`) covers native iOS / Android plus cross-platform Flutter and React Native.
 
