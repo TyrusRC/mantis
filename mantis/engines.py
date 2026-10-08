@@ -215,36 +215,43 @@ def detect_languages(tree) -> set[str]:
     return langs
 
 
-def select(requested, languages, *, allow_network: bool = False, classes=None):
-    """Return (list[Engine], skipped_names). `requested`: None/[] off; "auto" =
-    installed engines whose languages intersect the tree (network excluded); "all" =
-    every installed engine (network only if allow_network); or an explicit name list/
-    csv (those engines regardless of language; an explicitly-named network engine is
-    its own opt-in)."""
+_OFF = {"none", "off", "", "false", "0", "no"}
+
+
+def _normalize(requested):
+    """None -> default ON ('auto'); an explicit off value -> None; else pass through."""
+    if requested is None:
+        return "auto"
+    if isinstance(requested, str):
+        return None if requested.strip().lower() in _OFF else requested
+    if not requested:            # empty list
+        return None
+    return list(requested)
+
+
+def select(requested, languages, *, classes=None):
+    """Return (list[Engine], skipped_names). Engines run BY DEFAULT: `requested`
+    None/"auto" = every installed engine whose languages match the tree (trivy/grype
+    included); "all" = every installed engine (ignore language); an explicit csv/list
+    = just those (installed); "none"/"off"/[] = disabled."""
     pool = [c() if isinstance(c, type) else c
             for c in (classes if classes is not None else ENGINES)]
-    if not requested:
+    req = _normalize(requested)
+    if req is None:
         return [], []
-    is_auto = requested == "auto"
-    is_all = requested == "all"
+    is_auto = req == "auto"
+    is_all = req == "all"
     names = None
     if not (is_auto or is_all):
-        names = ({n.strip() for n in requested.split(",")}
-                 if isinstance(requested, str) else set(requested))
+        names = ({n.strip() for n in req.split(",")}
+                 if isinstance(req, str) else set(req))
     chosen, skipped = [], []
     langs = set(languages or ())
     for e in pool:
         if names is not None and e.name not in names:
             continue
-        if is_auto:
-            if not ("*" in e.languages or set(e.languages) & langs):
-                continue
-            if e.needs_network:
-                continue
-        elif is_all:
-            if e.needs_network and not allow_network:
-                continue
-        # explicit names: run regardless of language; a named network engine is allowed.
+        if is_auto and not ("*" in e.languages or set(e.languages) & langs):
+            continue  # "auto" is language-gated; "all" and explicit names are not
         if not e.available():
             skipped.append(e.name)
             continue
@@ -252,11 +259,9 @@ def select(requested, languages, *, allow_network: bool = False, classes=None):
     return chosen, skipped
 
 
-def run_selected(tree, languages, requested, *, allow_network: bool = True,
-                 offline: bool = False, classes=None):
+def run_selected(tree, languages, requested=None, *, offline: bool = False, classes=None):
     """Run the selected engines over `tree`; return (findings, errors, skipped)."""
-    chosen, skipped = select(requested, languages, allow_network=allow_network,
-                             classes=classes)
+    chosen, skipped = select(requested, languages, classes=classes)
     findings: list[Finding] = []
     errors: list[str] = []
     for e in chosen:

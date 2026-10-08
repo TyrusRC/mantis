@@ -141,10 +141,11 @@ def _build_parser() -> argparse.ArgumentParser:
     audit.add_argument(
         "--engines",
         default=None,
-        help="Additional SAST engines to run alongside OpenGrep (opt-in, default off): "
-             "a comma list (bandit,gosec,njsscan,eslint-security,checkov,trivy,grype), "
-             "'auto' (installed engines matching the tree; never trivy/grype), or 'all'. "
-             "trivy/grype need a vulnerability DB (network); see --engines-offline.",
+        help="SAST engines run alongside OpenGrep BY DEFAULT (installed engines matching "
+             "the tree, trivy/grype included). Pass a comma list "
+             "(bandit,gosec,njsscan,eslint-security,checkov,trivy,grype) to restrict, "
+             "'all' for every installed engine, or 'none' to disable. trivy/grype fetch a "
+             "vulnerability DB (network) — use --engines-offline or 'none' to stay offline.",
     )
     audit.add_argument(
         "--engines-offline",

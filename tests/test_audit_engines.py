@@ -25,7 +25,7 @@ def test_seam_merges_engine_findings_into_scan_output():
 
 
 def test_engines_none_is_noop():
-    f, e, skipped = eng.run_selected("/tree", {"python"}, None, classes=[_Fake])
+    f, e, skipped = eng.run_selected("/tree", {"python"}, "none", classes=[_Fake])
     assert f == [] and e == [] and skipped == []
 
 

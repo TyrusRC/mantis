@@ -185,7 +185,7 @@ def cmd_doctor(args) -> int:
     _say("SAST scanner")
     fail |= _emit(_probe_scanner())
 
-    _say("optional SAST engines (--engines)")
+    _say("SAST engines (run by default; --engines to restrict/disable)")
     for _r in _probe_engines():
         fail |= _emit(_r)
 

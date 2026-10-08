@@ -169,15 +169,15 @@ class Pipeline:
         except ScanError as e:
             print(f"[mantis] scan failed: {e}")
             return 2
-        if self.engines:
-            from mantis.engines import detect_languages, run_selected
-            langs = detect_languages(str(self.target))
-            extra_f, extra_e, _sk = run_selected(
-                str(self.target), langs, self.engines, offline=self.engines_offline)
-            scan_out.findings.extend(extra_f)
-            scan_out.errors.extend(extra_e)
-            if extra_f:
-                print(f"[mantis] engines: +{len(extra_f)} finding(s)")
+        # Multi-engine layer runs by default (opt out with --engines none).
+        from mantis.engines import detect_languages, run_selected
+        langs = detect_languages(str(self.target))
+        extra_f, extra_e, _sk = run_selected(
+            str(self.target), langs, self.engines, offline=self.engines_offline)
+        scan_out.findings.extend(extra_f)
+        scan_out.errors.extend(extra_e)
+        if extra_f:
+            print(f"[mantis] engines: +{len(extra_f)} finding(s)")
         raw_findings = dedupe_findings(scan_out.findings)
         if scan_out.errors:
             kept = scan_out.errors[:5]

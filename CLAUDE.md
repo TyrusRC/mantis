@@ -28,7 +28,7 @@ The SAST scanner binary is **OpenGrep** — the one and only scanner. Rules are 
 
 ### Local-only
 
-This toolkit is local-only by design. Never add CI integration, GitHub Action workflows, PR-comment plumbing, or remote-upload behavior. Never call `gh pr`, `git push`, or any forge API from agents or scripts. Never post findings anywhere. The only artifact a run produces is a local Markdown file at `./security-audit-report.md` (and, with `--fix`, patches inside a sibling git worktree).
+This toolkit is local-first by design. Never add CI integration, GitHub Action workflows, PR-comment plumbing, or remote-upload behavior. Never call `gh pr`, `git push`, or any forge API from agents or scripts. Never post findings anywhere. (Exception: the multi-engine SCA tools `trivy`/`grype`, which run by default when installed, fetch a vulnerability database over the network; run `--engines none`, restrict `--engines` to the local engines, or use `--engines-offline` to stay fully offline.) The only artifact a run produces is a local Markdown file at `./security-audit-report.md` (and, with `--fix`, patches inside a sibling git worktree).
 
 If a future feature request implies CI behavior, push back: this toolkit explicitly skips CI.
 
