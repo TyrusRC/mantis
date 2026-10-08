@@ -156,6 +156,21 @@ def _probe_config(target: Path, explicit: str | None) -> ProbeResult:
     return ProbeResult("pass", f"config: {src}  provider={cfg.provider or '?'}  {tiers}")
 
 
+def _probe_engines() -> list["ProbeResult"]:
+    """Optional multi-engine SAST tools (--engines). Never a hard failure."""
+    from mantis.engines import ENGINES
+    out: list[ProbeResult] = []
+    for cls in ENGINES:
+        e = cls()
+        path = shutil.which(e.binary)
+        net = " [needs vuln DB]" if e.needs_network else ""
+        if path:
+            out.append(ProbeResult("pass", f"{e.name}{net}  [{path}]"))
+        else:
+            out.append(ProbeResult("warn", f"{e.name} not installed (optional){net}"))
+    return out
+
+
 def cmd_doctor(args) -> int:
     print(_color(CYAN, f"mantis doctor — v{__version__}"))
     target = Path(getattr(args, "path", ".") or ".").resolve()
@@ -169,6 +184,10 @@ def cmd_doctor(args) -> int:
 
     _say("SAST scanner")
     fail |= _emit(_probe_scanner())
+
+    _say("optional SAST engines (--engines)")
+    for _r in _probe_engines():
+        fail |= _emit(_r)
 
     _say("resource discovery")
     root_r, root = _probe_repo_root()
