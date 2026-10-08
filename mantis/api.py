@@ -50,6 +50,8 @@ def audit(
     llm: bool = False,
     config: Optional[str] = None,
     sast_bin: Optional[str] = None,
+    engines=None,
+    engines_offline: bool = False,
 ) -> list[dict]:
     """Audit a source tree and return findings as a list of dicts.
 
@@ -101,6 +103,18 @@ def audit(
         raise ScanError("no valid rule files in composed pack")
 
     scan_out = run_scan(target, valid_rules, sast)
+
+    # Multi-engine layer: append additional engines' findings into the same pipeline.
+    # Opt-in and default-off; OpenGrep above stays primary. A missing/failed engine is
+    # recorded in scan_out.errors, never fatal.
+    if engines:
+        from mantis.engines import detect_languages, run_selected
+        langs = detect_languages(str(target))
+        extra_f, extra_e, _skipped = run_selected(
+            str(target), langs, engines, offline=engines_offline)
+        scan_out.findings.extend(extra_f)
+        scan_out.errors.extend(extra_e)
+
     kept, _suppressed = apply_suppressions(
         dedupe_findings(scan_out.findings), load_suppressions(target), target,
     )

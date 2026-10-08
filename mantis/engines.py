@@ -182,6 +182,39 @@ ENGINES: list[type[Engine]] = [
 ]
 
 
+
+_LANG_EXT = {".py": "python", ".js": "javascript", ".jsx": "javascript",
+             ".mjs": "javascript", ".ts": "typescript", ".tsx": "typescript",
+             ".go": "go", ".tf": "terraform"}
+_SKIP = {".git", "node_modules", "vendor", "build", "dist", ".venv", "venv"}
+
+
+def detect_languages(tree) -> set[str]:
+    """Cheap language/ecosystem detection for the `auto` engine selection."""
+    root = Path(tree)
+    langs: set[str] = set()
+    seen = 0
+    for pth in root.rglob("*"):
+        if any(part in _SKIP for part in pth.parts) or not pth.is_file():
+            continue
+        seen += 1
+        if seen > 100000:
+            break
+        langs.add(_LANG_EXT.get(pth.suffix.lower(), ""))
+        if pth.name in ("requirements.txt", "pyproject.toml", "setup.py", "Pipfile"):
+            langs.add("python")
+        elif pth.name == "package.json":
+            langs.add("javascript")
+        elif pth.name == "go.mod":
+            langs.add("go")
+        elif pth.name == "Dockerfile":
+            langs.add("docker")
+        elif pth.suffix.lower() in (".yaml", ".yml"):
+            langs.add("yaml")
+    langs.discard("")
+    return langs
+
+
 def select(requested, languages, *, allow_network: bool = False, classes=None):
     """Return (list[Engine], skipped_names). `requested`: None/[] off; "auto" =
     installed engines whose languages intersect the tree (network excluded); "all" =
@@ -219,13 +252,16 @@ def select(requested, languages, *, allow_network: bool = False, classes=None):
     return chosen, skipped
 
 
-def run_selected(tree, languages, requested, *, allow_network: bool = False, classes=None):
+def run_selected(tree, languages, requested, *, allow_network: bool = True,
+                 offline: bool = False, classes=None):
     """Run the selected engines over `tree`; return (findings, errors, skipped)."""
     chosen, skipped = select(requested, languages, allow_network=allow_network,
                              classes=classes)
     findings: list[Finding] = []
     errors: list[str] = []
     for e in chosen:
+        if offline and hasattr(e, "offline"):
+            e.offline = True
         r = e.run(tree)
         if r.error:
             errors.append(f"{e.name}: {r.error}")
