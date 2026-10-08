@@ -22,7 +22,7 @@ Layout:
 
 The CLI resolves resources via `Path(__file__).parent/'resources'` first (the canonical location for pipx/pip installs and editable source checkouts), then `$MANTIS_HOME`, then a top-level fallback for legacy layouts.
 
-The SAST scanner binary is **OpenGrep**; Semgrep is an explicit opt-in only (see "SAST binary" below). Rules are written in the Semgrep YAML schema which OpenGrep consumes unchanged.
+The SAST scanner binary is **OpenGrep** — the one and only scanner. Rules are written in the Semgrep YAML schema (a rule-format name), which OpenGrep consumes unchanged.
 
 ## Hard rules
 
@@ -65,7 +65,7 @@ Agent frontmatter carries both `model: haiku|sonnet|opus` (consumed by Claude Co
 
 ### SAST binary
 
-`OpenGrep` is the scanner; `Semgrep` is used only when explicitly requested (`sast_bin: semgrep` or `$AUDIT_SAST_BIN=semgrep`), never as an implicit fallback. The binary is resolved at runtime: `$AUDIT_SAST_BIN` overrides; otherwise `opengrep`. Rules are written in the Semgrep YAML schema; both binaries consume the same rule files. Do not split the rule library by binary.
+`OpenGrep` is the one and only SAST scanner. The binary is resolved at runtime: `$AUDIT_SAST_BIN` overrides (point it at any scanner you like); otherwise `opengrep`. Rules are written in the Semgrep YAML schema (a rule format), which OpenGrep consumes unchanged — that is a format name, not a dependency on the semgrep binary.
 
 ## File-format conventions
 

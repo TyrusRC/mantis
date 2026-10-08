@@ -53,14 +53,16 @@ def test_auto_no_binary_raises(monkeypatch):
     _mock_which(monkeypatch, set())
     with pytest.raises(SastError) as ei:
         resolve_sast_binary("auto")
-    assert "no SAST binary" in str(ei.value)
+    assert "OpenGrep not on PATH" in str(ei.value)
 
 
 def test_explicit_opengrep_pref(monkeypatch):
     monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
     _mock_which(monkeypatch, {"opengrep", "semgrep"})
     assert resolve_sast_binary("opengrep") == "opengrep"
-    assert resolve_sast_binary("semgrep") == "semgrep"
+    # semgrep is no longer an accepted explicit value
+    with pytest.raises(SastError):
+        resolve_sast_binary("semgrep")
 
 
 def test_explicit_pref_not_on_path_raises(monkeypatch):
