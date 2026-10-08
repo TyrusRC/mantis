@@ -6,7 +6,7 @@ model: sonnet
 tier: mid
 ---
 
-Given a Semgrep finding (file, line, rule_id), build the minimal slice of code that the deep-reviewer needs to reason about dataflow.
+Given a OpenGrep finding (file, line, rule_id), build the minimal slice of code that the deep-reviewer needs to reason about dataflow.
 
 Inspired by [Slice (noperator.dev)](https://noperator.dev/posts/slice/): tree-sitter for context, depth-limited callgraph, hard token cap.
 

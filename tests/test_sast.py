@@ -33,10 +33,13 @@ def test_auto_prefers_opengrep(monkeypatch):
     assert resolve_sast_binary("auto") == "opengrep"
 
 
-def test_auto_falls_back_to_semgrep(monkeypatch):
+@pytest.mark.parametrize("pref", [None, "auto"])
+def test_default_never_falls_back_to_semgrep(monkeypatch, pref):
     monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
     _mock_which(monkeypatch, {"semgrep"})
-    assert resolve_sast_binary("auto") == "semgrep"
+    with pytest.raises(SastError) as ei:
+        resolve_sast_binary(pref)
+    assert "opengrep" in str(ei.value)
 
 
 def test_auto_with_none_preference_is_auto(monkeypatch):

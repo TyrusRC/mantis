@@ -65,9 +65,8 @@ one command:
   /audit --fix           -- apply patches in a local worktree, re-verify
   /audit --lite          -- skip slicing + deep review, token-conservative
 
-SAST binary: opengrep is preferred; semgrep also works. install one:
-  pipx install opengrep        (recommended; ships cross-function intrafile taint)
-  pipx install semgrep         (fallback; both consume the same rule YAML)
+SAST engine: opengrep. install it:
+  pipx install opengrep        (ships cross-function intrafile taint)
 
 for standalone CLI mode (any LLM provider — anthropic, google, openai, ollama):
   pipx install mantis-sast

@@ -78,8 +78,8 @@ def _probe_binary(name: str, *, required: bool = True,
 
 
 def _probe_scanner() -> ProbeResult:
-    """OpenGrep preferred, semgrep accepted."""
-    for binary in ("opengrep", "semgrep"):
+    """OpenGrep is the engine; semgrep is never probed or used implicitly."""
+    for binary in ("opengrep",):
         path = shutil.which(binary)
         if path:
             try:
@@ -88,9 +88,8 @@ def _probe_scanner() -> ProbeResult:
                 ver = out[0] if out else ""
             except (OSError, subprocess.SubprocessError):
                 ver = ""
-            suffix = "" if binary == "opengrep" else "  (opengrep is recommended)"
-            return ProbeResult("pass", f"{binary} {ver}{suffix}")
-    return ProbeResult("fail", "no SAST binary found; install opengrep or semgrep")
+            return ProbeResult("pass", f"{binary} {ver}")
+    return ProbeResult("fail", "opengrep not found; install it: pipx install opengrep")
 
 
 def _probe_repo_root() -> tuple[ProbeResult, Path | None]:

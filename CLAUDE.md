@@ -16,13 +16,13 @@ Layout:
 - `mantis/` — standalone CLI Python package (loads agents, runs pipeline, routes to configured provider)
 - `mantis/resources/agents/` — subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
 - `mantis/resources/commands/` — one slash command (`/audit`), MCP-mode only
-- `mantis/resources/rules/` — OpenGrep / Semgrep YAML rules + pack specs + manifest
+- `mantis/resources/rules/` — OpenGrep YAML rules (Semgrep schema) + pack specs + manifest
 - `mantis/resources/scripts/` — manifest builder + pack composer
 - `mantis/resources/checklists/` — OWASP Testing Guide chapters for the deep-reviewer
 
 The CLI resolves resources via `Path(__file__).parent/'resources'` first (the canonical location for pipx/pip installs and editable source checkouts), then `$MANTIS_HOME`, then a top-level fallback for legacy layouts.
 
-The SAST scanner binary is **OpenGrep** by default with **Semgrep** as a transparent fallback (see "SAST binary" below). Rules are written in the Semgrep YAML schema which OpenGrep consumes unchanged.
+The SAST scanner binary is **OpenGrep**; Semgrep is an explicit opt-in only (see "SAST binary" below). Rules are written in the Semgrep YAML schema which OpenGrep consumes unchanged.
 
 ## Hard rules
 
@@ -65,7 +65,7 @@ Agent frontmatter carries both `model: haiku|sonnet|opus` (consumed by Claude Co
 
 ### SAST binary
 
-`OpenGrep` is the default scanner; `Semgrep` is accepted as a fallback. The binary is resolved at runtime: `$AUDIT_SAST_BIN` overrides; otherwise `opengrep` is tried, then `semgrep`. Rules are written in the Semgrep YAML schema; both binaries consume the same rule files. Do not split the rule library by binary.
+`OpenGrep` is the scanner; `Semgrep` is used only when explicitly requested (`sast_bin: semgrep` or `$AUDIT_SAST_BIN=semgrep`), never as an implicit fallback. The binary is resolved at runtime: `$AUDIT_SAST_BIN` overrides; otherwise `opengrep`. Rules are written in the Semgrep YAML schema; both binaries consume the same rule files. Do not split the rule library by binary.
 
 ## File-format conventions
 
@@ -138,10 +138,10 @@ This rewrites `rules/_manifest.yaml`. Commit the manifest with the rule changes 
 
 ### Validating a rule
 
-The repo doesn't ship the scanner binary. Install OpenGrep (`pipx install opengrep`) or Semgrep (`pipx install semgrep`) separately. Validate a rule with:
+The repo doesn't ship the scanner binary. Install OpenGrep (`pipx install opengrep`) separately. Validate a rule with:
 
 ```bash
-opengrep --validate --config rules/<dir>/<file>.yaml   # or: semgrep --validate ...
+opengrep --validate --config rules/<dir>/<file>.yaml   
 ```
 
 This catches schema errors the manifest builder doesn't (the builder only checks YAML syntax, not scanner semantics).

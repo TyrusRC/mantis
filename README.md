@@ -2,14 +2,14 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-OpenGrep (or Semgrep) finds candidates; an LLM reasons on the slices the
+OpenGrep finds candidates; an LLM reasons on the slices the
 scanner flags. Runs as a Claude Code slash command, or as a standalone
 CLI against any litellm-supported provider. Local only.
 
 ## Requirements
 
 - Python 3.10+
-- [OpenGrep](https://www.opengrep.dev/) or [Semgrep](https://semgrep.dev/)
+- [OpenGrep](https://www.opengrep.dev/)
 - MCP mode: [Claude Code](https://docs.claude.com/claude-code)
 - Standalone mode: an LLM provider (Anthropic, Google, OpenAI, OpenRouter, Ollama, ...)
 
@@ -19,7 +19,7 @@ From PyPI (recommended):
 
 ```bash
 pipx install mantis-sast        # the CLI binary is `mantis`
-pipx install opengrep           # or: pipx install semgrep
+pipx install opengrep
 mantis --version
 ```
 
@@ -174,7 +174,7 @@ models:
 budget:
   max_findings: 200
   max_deep_calls: 50
-sast_bin: opengrep   # opengrep | semgrep | auto
+sast_bin: opengrep   # default; `semgrep` is an explicit opt-in only
 triage:
   mode: single       # single | dual
 ```
@@ -193,7 +193,7 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
 
 ```
 0  inventory      detect stack, lockfiles, entrypoints
-1  static wide    opengrep/semgrep with the selected pack
+1  static wide    opengrep with the selected pack
 2  SCA            lockfile dependency-CVE rules
 3  secrets        high-confidence secrets pack
 4  deobf gate     route minified/packed files to the deobfuscator
@@ -213,7 +213,7 @@ slicing run in isolated contexts to keep the orchestrator's window small.
 mantis/                       standalone CLI Python package
 mantis/resources/agents/      subagent definitions (model: + tier: frontmatter)
 mantis/resources/commands/    slash command for MCP mode
-mantis/resources/rules/       opengrep/semgrep YAML rules + pack specs + manifest
+mantis/resources/rules/       opengrep YAML rules (Semgrep schema) + pack specs + manifest
 mantis/resources/scripts/     build_manifest.py, pack_compose.py
 mantis/resources/checklists/  OWASP Testing Guide chapters for the deep-reviewer
 install.sh                    install agents/commands into a target (MCP mode)

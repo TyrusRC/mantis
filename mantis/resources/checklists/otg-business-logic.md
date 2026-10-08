@@ -1,6 +1,6 @@
 # OWASP Testing Guide — Business Logic & Authorization
 
-Deep-reviewer should consult this when a finding involves authorization, identity, or workflow state. Semgrep cannot pattern-match these — they are semantic.
+Deep-reviewer should consult this when a finding involves authorization, identity, or workflow state. OpenGrep cannot pattern-match these — they are semantic.
 
 ## IDOR / BOLA — Insecure Direct Object Reference / Broken Object-Level Authorization
 

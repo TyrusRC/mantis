@@ -6,7 +6,7 @@ model: opus
 tier: deep
 ---
 
-You receive a slice from `slice-extractor` plus the original Semgrep finding.
+You receive a slice from `slice-extractor` plus the original OpenGrep finding.
 
 # Decide
 
@@ -16,7 +16,7 @@ You receive a slice from `slice-extractor` plus the original Semgrep finding.
 4. **Mapping** — OWASP (Top 10 2025 / API 2023 / Mobile 2024 / LLM 2025), MASVS 2.1, MASWE, CWE, CVE.
 5. **PoC outline** — 1–3 steps, conceptual, no weaponized payloads.
 
-# Also run OWASP Testing Guide checks Semgrep cannot express
+# Also run OWASP Testing Guide checks OpenGrep cannot express
 
 If `checklists/` exists in the repo, consult the relevant chapter:
 - `otg-business-logic.md` — IDOR, BOLA, race conditions, mass assignment, workflow bypass

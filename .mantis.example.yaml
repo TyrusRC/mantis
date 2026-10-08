@@ -52,5 +52,5 @@ budget:
   max_findings:   200
   max_deep_calls: 50
 
-# SAST binary preference. `auto` tries opengrep, then semgrep.
-sast_bin: auto
+# SAST binary preference. opengrep is the default engine; `semgrep` is an explicit opt-in only.
+sast_bin: opengrep

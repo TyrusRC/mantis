@@ -25,8 +25,7 @@ fi
 
 command -v pipx >/dev/null 2>&1 && pass "pipx $(pipx --version)" || fail "pipx not on PATH"
 command -v opengrep >/dev/null 2>&1 && pass "opengrep $(opengrep --version 2>&1 | head -1)" \
-  || (command -v semgrep >/dev/null 2>&1 && warn "semgrep present; opengrep recommended (./setup.sh)" \
-      || fail "no SAST binary; run ./setup.sh")
+  || fail "opengrep not found; run ./setup.sh")
 
 echo
 if [[ "$FAIL" == "0" ]]; then
