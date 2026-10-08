@@ -180,3 +180,54 @@ ENGINES: list[type[Engine]] = [
     BanditEngine, GosecEngine, NjsscanEngine, EslintSecurityEngine,
     CheckovEngine, TrivyEngine, GrypeEngine,
 ]
+
+
+def select(requested, languages, *, allow_network: bool = False, classes=None):
+    """Return (list[Engine], skipped_names). `requested`: None/[] off; "auto" =
+    installed engines whose languages intersect the tree (network excluded); "all" =
+    every installed engine (network only if allow_network); or an explicit name list/
+    csv (those engines regardless of language; an explicitly-named network engine is
+    its own opt-in)."""
+    pool = [c() if isinstance(c, type) else c
+            for c in (classes if classes is not None else ENGINES)]
+    if not requested:
+        return [], []
+    is_auto = requested == "auto"
+    is_all = requested == "all"
+    names = None
+    if not (is_auto or is_all):
+        names = ({n.strip() for n in requested.split(",")}
+                 if isinstance(requested, str) else set(requested))
+    chosen, skipped = [], []
+    langs = set(languages or ())
+    for e in pool:
+        if names is not None and e.name not in names:
+            continue
+        if is_auto:
+            if not ("*" in e.languages or set(e.languages) & langs):
+                continue
+            if e.needs_network:
+                continue
+        elif is_all:
+            if e.needs_network and not allow_network:
+                continue
+        # explicit names: run regardless of language; a named network engine is allowed.
+        if not e.available():
+            skipped.append(e.name)
+            continue
+        chosen.append(e)
+    return chosen, skipped
+
+
+def run_selected(tree, languages, requested, *, allow_network: bool = False, classes=None):
+    """Run the selected engines over `tree`; return (findings, errors, skipped)."""
+    chosen, skipped = select(requested, languages, allow_network=allow_network,
+                             classes=classes)
+    findings: list[Finding] = []
+    errors: list[str] = []
+    for e in chosen:
+        r = e.run(tree)
+        if r.error:
+            errors.append(f"{e.name}: {r.error}")
+        findings.extend(r.findings)
+    return findings, errors, skipped
