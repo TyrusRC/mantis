@@ -87,6 +87,10 @@ class Pipeline:
     #: detection for a decompiled/reverse-engineered source tree.
     packs: Optional[list] = None
     decompiled: bool = False
+    #: Opt-in multi-engine SAST (bandit/gosec/njsscan/eslint/checkov + trivy/grype);
+    #: default off, OpenGrep stays primary. See mantis.engines.
+    engines: Optional[object] = None
+    engines_offline: bool = False
 
     def run(self) -> int:
         t0 = time.monotonic()
@@ -165,6 +169,15 @@ class Pipeline:
         except ScanError as e:
             print(f"[mantis] scan failed: {e}")
             return 2
+        if self.engines:
+            from mantis.engines import detect_languages, run_selected
+            langs = detect_languages(str(self.target))
+            extra_f, extra_e, _sk = run_selected(
+                str(self.target), langs, self.engines, offline=self.engines_offline)
+            scan_out.findings.extend(extra_f)
+            scan_out.errors.extend(extra_e)
+            if extra_f:
+                print(f"[mantis] engines: +{len(extra_f)} finding(s)")
         raw_findings = dedupe_findings(scan_out.findings)
         if scan_out.errors:
             kept = scan_out.errors[:5]

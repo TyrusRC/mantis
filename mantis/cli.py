@@ -139,6 +139,19 @@ def _build_parser() -> argparse.ArgumentParser:
              "Use with pre-commit hooks or local gates.",
     )
     audit.add_argument(
+        "--engines",
+        default=None,
+        help="Additional SAST engines to run alongside OpenGrep (opt-in, default off): "
+             "a comma list (bandit,gosec,njsscan,eslint-security,checkov,trivy,grype), "
+             "'auto' (installed engines matching the tree; never trivy/grype), or 'all'. "
+             "trivy/grype need a vulnerability DB (network); see --engines-offline.",
+    )
+    audit.add_argument(
+        "--engines-offline",
+        action="store_true",
+        help="Run network SCA engines (trivy/grype) in offline-DB mode.",
+    )
+    audit.add_argument(
         "--pack",
         action="append",
         default=None,
@@ -305,6 +318,8 @@ def cmd_audit(args) -> int:
         fail_on=getattr(args, "fail_on", None),
         packs=packs,
         decompiled=decompiled,
+        engines=getattr(args, "engines", None),
+        engines_offline=getattr(args, "engines_offline", False),
     )
     return pipe.run()
 
