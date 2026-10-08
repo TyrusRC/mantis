@@ -71,3 +71,6 @@ docs/
 !.env.example
 .mantis.yaml
 !.mantis.example.yaml
+
+# Session scratch (SDD ledgers)
+.superpowers/
