@@ -98,7 +98,7 @@ mantis update [--check]               # query PyPI, upgrade in place
 | `--lite` | skip slicing + deep review |
 | `--fix` | apply patches in a worktree, re-verify |
 | `--fail-on low\|medium\|high\|critical` | exit non-zero if any unsuppressed finding is at or above this severity (pre-commit / local gate) |
-| `--engines <list\|auto\|all>` | run extra SAST engines alongside OpenGrep (opt-in, default off): bandit, gosec, njsscan, eslint-security, checkov, trivy, grype. `auto` picks installed engines matching the tree (never the network ones); `all` runs every installed engine. |
+| `--engines <list\|all\|none>` | SAST engines run alongside OpenGrep **by default** (installed engines matching the tree, incl. trivy/grype): bandit, gosec, njsscan, eslint-security, checkov, trivy, grype. Pass a list to restrict, `all` for every installed engine, or `none` to disable. |
 | `--engines-offline` | run the network SCA engines (trivy/grype) in offline-DB mode. trivy/grype fetch a vulnerability database (network); every other engine is fully local. |
 | `--pack <name>` | run exactly this pack (repeatable), bypassing mode + inventory |
 | `--decompiled` | detect the stack from source extensions alone (no build files) |
@@ -176,7 +176,7 @@ models:
 budget:
   max_findings: 200
   max_deep_calls: 50
-sast_bin: opengrep   # default; `semgrep` is an explicit opt-in only
+sast_bin: opengrep   # the only supported scanner
 triage:
   mode: single       # single | dual
 ```
@@ -258,12 +258,18 @@ python3 mantis/resources/scripts/pack_compose.py mantis/resources/rules/packs/fa
 opengrep $(python3 mantis/resources/scripts/pack_compose.py mantis/resources/rules/packs/fast.yaml --as-args) --json <target>
 ```
 
-## Local-only
+## Network & privacy
 
-No CI integration, no forge API calls, no telemetry of findings. `--fix`
-writes to a sibling git worktree, never the working tree. Audit reports
-live under `<target>/.mantis/runs/`; the only outbound network call is the
-once-per-day PyPI version check (set `MANTIS_NO_UPDATE_CHECK=1` to disable).
+Findings stay local: no CI integration, no forge API calls, no telemetry or
+upload of findings or source. `--fix` writes to a sibling git worktree, never the
+working tree; reports live under `<target>/.mantis/runs/`.
+
+Two kinds of outbound call exist: a once-per-day PyPI version check
+(`MANTIS_NO_UPDATE_CHECK=1` to disable), and — when the `trivy`/`grype` SCA engines
+run (they are part of the default engine set) — a vulnerability-database fetch. To
+run fully offline: `--engines none` (OpenGrep only), restrict `--engines` to the
+local engines (`bandit,gosec,njsscan,eslint-security,checkov`), or
+`--engines-offline`.
 
 ## Contributing
 
