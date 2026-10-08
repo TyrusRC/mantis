@@ -118,3 +118,65 @@ class Engine:
             return EngineResult(self.name, error="invalid SARIF output")
         finally:
             Path(out).unlink(missing_ok=True)
+
+
+class BanditEngine(Engine):
+    name = "bandit"; binary = "bandit"; languages = ("python",)
+    def command(self, tree, out): return ["bandit", "-r", tree, "-f", "sarif", "-o", out]
+
+
+class GosecEngine(Engine):
+    name = "gosec"; binary = "gosec"; languages = ("go",)
+    def command(self, tree, out):
+        return ["gosec", "-no-fail", "-fmt", "sarif", "-out", out, tree + "/..."]
+
+
+class NjsscanEngine(Engine):
+    name = "njsscan"; binary = "njsscan"; languages = ("javascript", "typescript")
+    def command(self, tree, out): return ["njsscan", "--sarif", "-o", out, tree]
+
+
+class EslintSecurityEngine(Engine):
+    name = "eslint-security"; binary = "eslint"; languages = ("javascript", "typescript")
+    def command(self, tree, out):
+        return ["eslint", tree, "-f", "@microsoft/sarif", "-o", out]
+
+
+class CheckovEngine(Engine):
+    name = "checkov"; binary = "checkov"
+    languages = ("terraform", "kubernetes", "docker", "yaml")
+    supports_sarif = False  # checkov --output-file-path is a dir; use stdout SARIF
+    def command(self, tree, out):
+        return ["checkov", "-d", tree, "-o", "sarif", "--compact", "--quiet"]
+    def parse_native(self, stdout):
+        text = (stdout or "").strip(); i = text.find("{")
+        if i < 0:
+            return []
+        try:
+            data = json.loads(text[i:])
+        except ValueError:
+            return []
+        return sarif_to_findings(data, self.name)
+
+
+class TrivyEngine(Engine):
+    name = "trivy"; binary = "trivy"; languages = ("*",); needs_network = True
+    offline = False
+    def command(self, tree, out):
+        cmd = ["trivy", "fs", "--quiet", "--format", "sarif",
+               "--scanners", "vuln,misconfig"]
+        if self.offline:
+            cmd.append("--offline-scan")
+        return cmd + ["--output", out, tree]
+
+
+class GrypeEngine(Engine):
+    name = "grype"; binary = "grype"; languages = ("*",); needs_network = True
+    def command(self, tree, out):
+        return ["grype", "dir:" + tree, "-o", "sarif", "--file", out]
+
+
+ENGINES: list[type[Engine]] = [
+    BanditEngine, GosecEngine, NjsscanEngine, EslintSecurityEngine,
+    CheckovEngine, TrivyEngine, GrypeEngine,
+]
