@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mantis-sast"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hybrid SAST + LLM toolkit for local code-security audits."
 readme = "README.md"
 license = { text = "MIT" }

@@ -13,8 +13,7 @@ Inspired by [Slice (noperator.dev)](https://noperator.dev/posts/slice/): tree-si
 # Procedure
 
 1. **Get the sink function**
-   - Prefer `mcp__semgrep__get_abstract_syntax_tree` on the file.
-   - Fallback: `tree-sitter parse <file>` if the binary is installed.
+   - Prefer `tree-sitter parse <file>` if the binary is installed.
    - Identify the enclosing function / method of the match line.
 
 2. **Find callers (depth ≤ 3)**
