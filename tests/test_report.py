@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 from mantis.report import RunMeta, write_report
 from mantis.scan import Finding

@@ -8,7 +8,6 @@ import pytest
 
 from mantis.config import Config
 from mantis.providers import (
-    LLMResponse,
     Provider,
     ProviderError,
     _is_param_mismatch,

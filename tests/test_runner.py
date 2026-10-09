@@ -1,12 +1,7 @@
 """End-to-end pipeline test with a mocked SAST binary and mocked LLM provider."""
 from __future__ import annotations
 
-import json
 import os
-import shutil
-import subprocess
-import sys
-import textwrap
 from pathlib import Path
 
 import pytest

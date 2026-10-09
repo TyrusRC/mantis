@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from mantis.agents import Agent
 from mantis.deep import (
-    DeepResult,
     build_user_prompt,
     deep_review,
     deep_review_many,

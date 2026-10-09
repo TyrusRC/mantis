@@ -7,9 +7,7 @@ explicit `packs=[...]` override lets a caller pick packs directly.
 """
 from __future__ import annotations
 
-import json
 import os
-from pathlib import Path
 
 import pytest
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from mantis.agents import Agent
 from mantis.providers import LLMResponse

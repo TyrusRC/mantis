@@ -21,11 +21,11 @@ from mantis.agents import Agent
 from mantis.config import Config
 from mantis.deep import DeepResult, deep_review_many
 from mantis.fix import FixResult, fix_all
-from mantis.inventory import MODE_TO_PACKS, packs_for, take_inventory
+from mantis.inventory import packs_for, take_inventory
 from mantis.report import RunMeta, write_report
 from mantis.scan import (
     Finding, ScanError, compose_pack_files, dedupe_findings,
-    filter_valid_rule_files, run_scan,
+    filter_valid_rule_files,
 )
 from mantis.slice import Slice, extract_slice
 from mantis.triage import TriageResult, triage_all
@@ -284,7 +284,7 @@ class Pipeline:
                 for f in filtered
             ]
 
-        slice_input = self._select_for_slice(triage_results, m)
+        slice_input = self._select_for_slice(triage_results)
         slices: list[Slice] = []
         deep_results: list[DeepResult] = []
         fix_results: list[FixResult] = []
@@ -399,7 +399,7 @@ class Pipeline:
 
     def _make_provider(self):
         try:
-            from mantis.providers import Provider, ProviderError
+            from mantis.providers import Provider
         except Exception as e:
             return None, f"provider import failed: {e}"
         try:
@@ -407,7 +407,7 @@ class Pipeline:
         except Exception as e:
             return None, f"{type(e).__name__}: {e}"
 
-    def _select_for_slice(self, triage_results: list[TriageResult], mode_lower: str) -> list[TriageResult]:
+    def _select_for_slice(self, triage_results: list[TriageResult]) -> list[TriageResult]:
         return [r for r in triage_results if r.verdict in ("TRUE", "NEEDS-DEEP")]
 
     def _pair_confirmed(self, slices: list[Slice], deep_results: list[DeepResult]):

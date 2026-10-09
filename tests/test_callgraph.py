@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 from mantis.callgraph import (
-    CallGraph,
-    _ENTRYPOINT_FUNCTION_NAMES,
     index_project,
     reaches_entrypoint,
 )

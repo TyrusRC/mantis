@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from mantis.agents import Agent
 from mantis.providers import LLMResponse
@@ -133,5 +132,5 @@ def test_triage_all_uses_dual_when_mode_dual(tmp_path):
 def test_triage_all_uses_single_by_default(tmp_path):
     (tmp_path / "app.py").write_text("def f():\n    bad()\n")
     p = _DualProvider(["r1@app.py:2 | TRUE | x"] * 4)
-    results = triage_all([_finding()], [_agent()], p, tmp_path)
+    triage_all([_finding()], [_agent()], p, tmp_path)
     assert len(p.calls) == 1

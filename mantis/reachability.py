@@ -18,8 +18,6 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from mantis.callgraph import CallGraph
-    from mantis.scan import Finding
-    from mantis.slice import SliceChunk
 
 
 _DEAD_PATH_TOKENS = (

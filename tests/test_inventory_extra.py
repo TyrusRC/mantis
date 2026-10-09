@@ -1,7 +1,6 @@
 """Tests for the tightened inventory detection (gaps #5 and #6)."""
 from __future__ import annotations
 
-from pathlib import Path
 
 from mantis.inventory import take_inventory
 

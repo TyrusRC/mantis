@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -12,7 +11,6 @@ from mantis.fix import (
     FixError,
     apply_patch,
     author_fix,
-    build_fix_user_prompt,
     ensure_worktree,
     extract_diff,
     files_in_diff,

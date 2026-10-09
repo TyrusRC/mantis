@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from mantis.config import Config, ConfigError, REQUIRED_TIERS, load_config
+from mantis.config import ConfigError, REQUIRED_TIERS, load_config
 
 
 def _write(path: Path, body: str) -> Path:

@@ -101,7 +101,6 @@ def _find_rule_file(rule_id: str, rules_root: Path) -> Optional[Path]:
     if not rules_root.is_dir():
         return None
     # Match by exact rule id in the file body.
-    import yaml
     for path in rules_root.rglob("*.yaml"):
         if "packs" in path.parts:
             continue

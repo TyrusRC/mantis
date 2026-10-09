@@ -2,14 +2,12 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import pytest
 
 
 def _write_fake_sast(tmp_path, results):
     """Create a fake scanner binary on a fresh bin dir that emits `results`."""
-    import json
 
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
