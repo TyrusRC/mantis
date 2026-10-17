@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from mantis import haruspex
 from mantis.agents import Agent
 from mantis.config import Config
 from mantis.deep import DeepResult, deep_review_many
@@ -283,6 +284,29 @@ class Pipeline:
                              reason=placeholder_reason, raw_response="")
                 for f in filtered
             ]
+
+        # Stage 5b: Haruspex adjudication — FAIL-OPEN, opt-in via MANTIS_HARUSPEX_URL.
+        # Annotates each triage result with a true-positive likelihood for report ranking.
+        # It NEVER changes the verdict and never feeds _select_for_slice, the max_findings
+        # cap, or --fail-on — a missed finding is the cardinal harm, so it only annotates.
+        if haruspex.base_url() and triage_results:
+            from pathlib import Path as _HxPath
+            from .triage import read_window as _hx_window
+            n_ann = 0
+            for r in triage_results:
+                f = r.finding
+                try:
+                    window = _hx_window(_HxPath(f.path), f.start_line)
+                except Exception:
+                    window = ""
+                state = f"{f.rule_id} at {f.path}:{f.start_line} — {f.message}\n{window}"
+                p = haruspex.adjudicate(state)
+                if p is not None:
+                    r.haruspex_prob = p
+                    n_ann += 1
+            if n_ann:
+                notes.append(f"haruspex: scored {n_ann}/{len(triage_results)} findings "
+                             f"for triage ranking (advisory; no verdict/drop effect)")
 
         slice_input = self._select_for_slice(triage_results)
         slices: list[Slice] = []

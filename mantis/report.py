@@ -140,7 +140,12 @@ def _findings_section(results: list[TriageResult], cluster_siblings: Optional[di
         confirmed = by_sev.get(sev, {}).get("TRUE", [])
         needs_deep = by_sev.get(sev, {}).get("NEEDS-DEEP", [])
         raw = by_sev.get(sev, {}).get("RAW", [])
-        items = sorted(confirmed + needs_deep + raw, key=lambda r: (r.finding.path, r.finding.start_line))
+        # Within a severity bucket, rank by Haruspex true-positive likelihood (advisory,
+        # highest first) when present, then stably by location. Annotation-only: no finding
+        # is dropped or moved between severity buckets.
+        items = sorted(confirmed + needs_deep + raw,
+                       key=lambda r: (-(getattr(r, "haruspex_prob", None) or 0.0),
+                                      r.finding.path, r.finding.start_line))
         if not items:
             continue
         out.append(sev_to_header[sev])

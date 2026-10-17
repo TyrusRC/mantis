@@ -28,6 +28,9 @@ class TriageResult:
     tokens_in: int = 0
     tokens_out: int = 0
     error: Optional[str] = None
+    # Haruspex advisory TP-likelihood (0..1) for report ranking; None = not scored.
+    # Advisory only — never changes the verdict or drops the finding.
+    haruspex_prob: Optional[float] = None
 
 
 WINDOW_LINES = 40
