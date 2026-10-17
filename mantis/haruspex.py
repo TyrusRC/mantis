@@ -40,7 +40,10 @@ def adjudicate(state: str, url: str = "", timeout: int = 30) -> float | None:
     endpoint = (url or base_url()).strip()
     if not endpoint or not state:
         return None
-    body = json.dumps({"model": "haruspex", "state": state, "questions": {"q": _QUESTION}}).encode()
+    # domain="web": mantis is a code/web SAST tool; a multi-adapter engine routes
+    # to the web/SOC adapter, a single-adapter engine ignores the hint.
+    body = json.dumps({"model": "haruspex", "domain": "web", "state": state,
+                       "questions": {"q": _QUESTION}}).encode()
     req = urllib.request.Request(endpoint.rstrip("/") + "/v1/evaluate", data=body,
                                  headers={"Content-Type": "application/json"})
     try:
