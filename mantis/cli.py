@@ -217,45 +217,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def cmd_check(args) -> int:
-    from mantis.config import load_config, ConfigError
-    from mantis.sast import resolve_sast_binary, SastError
-    from mantis.agents import discover_agents, AgentParseError
-
-    target = Path(args.path).resolve()
-    try:
-        cfg = load_config(target, explicit=args.config)
-    except ConfigError as e:
-        print(f"config error: {e}", file=sys.stderr)
-        return 2
-
-    try:
-        sast = resolve_sast_binary(cfg.sast_bin)
-    except SastError as e:
-        print(f"sast error: {e}", file=sys.stderr)
-        return 2
-
-    try:
-        agents = discover_agents(REPO_ROOT / "agents")
-    except AgentParseError as e:
-        print(f"agent error: {e}", file=sys.stderr)
-        return 2
-
-    cfg_src = cfg.source_path or "(none — using env vars only)"
-    print(f"mantis {__version__}")
-    print(f"config: {cfg_src}")
-    print(f"sast binary: {sast}")
-    print(f"provider: {cfg.provider or '(unspecified)'}")
-    print(f"tier mapping:")
-    for tier in ("fast", "mid", "deep"):
-        print(f"  {tier:<4} -> {cfg.models.get(tier)}")
-    print(f"budget: max_findings={cfg.max_findings}  max_deep_calls={cfg.max_deep_calls}")
-    print(f"agents discovered: {len(agents)}")
-    for a in agents:
-        print(f"  {a.name:<22} tier={a.tier:<4} model={a.model}")
-    return 0
-
-
 def cmd_audit(args) -> int:
     from mantis.agents import discover_agents, AgentParseError
     from mantis.config import load_config, ConfigError

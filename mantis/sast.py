@@ -18,7 +18,6 @@ class SastError(Exception):
 
 
 DEFAULT = "opengrep"
-CANDIDATES = (DEFAULT,)  # OpenGrep only; semgrep support removed
 
 
 def resolve_sast_binary(preference: Optional[str]) -> str:
