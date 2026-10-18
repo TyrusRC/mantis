@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
+import time
+from pathlib import Path
 
 import pytest
 
+import mantis.scan as scan_mod
 from mantis.scan import (
     Finding,
     ScanError,
     dedupe_findings,
+    filter_valid_rule_files,
     parse_scan_output,
 )
 
@@ -93,3 +97,42 @@ def test_dedupe_same_rule_path_line():
 def test_parse_invalid_json_raises():
     with pytest.raises(ScanError):
         parse_scan_output("{not json")
+
+
+def test_filter_valid_rule_files_splits_correctly(monkeypatch):
+    # Odd-indexed files are "invalid" — proves results land in the right
+    # bucket regardless of which thread finishes first.
+    files = [Path(f"rule{i}.yaml") for i in range(10)]
+
+    def fake_validate(sast_bin, path, timeout=30):
+        return int(path.stem.removeprefix("rule")) % 2 == 0
+
+    monkeypatch.setattr(scan_mod, "validate_rule_file", fake_validate)
+    valid, invalid = filter_valid_rule_files(files, "opengrep")
+    assert sorted(valid, key=str) == [Path(f"rule{i}.yaml") for i in range(0, 10, 2)]
+    assert sorted(invalid, key=str) == [Path(f"rule{i}.yaml") for i in range(1, 10, 2)]
+    assert len(valid) + len(invalid) == len(files)
+
+
+def test_filter_valid_rule_files_runs_concurrently_not_sequentially(monkeypatch):
+    # The whole point of parallelizing: N files that each take `delay` should
+    # take roughly `delay` total, not N * delay. A regression back to a plain
+    # for-loop would make this test take ~1s instead of ~0.15s.
+    files = [Path(f"rule{i}.yaml") for i in range(8)]
+    delay = 0.15
+
+    def fake_validate(sast_bin, path, timeout=30):
+        time.sleep(delay)
+        return True
+
+    monkeypatch.setattr(scan_mod, "validate_rule_file", fake_validate)
+    start = time.monotonic()
+    valid, invalid = filter_valid_rule_files(files, "opengrep", max_workers=8)
+    elapsed = time.monotonic() - start
+
+    assert len(valid) == len(files)
+    assert invalid == []
+    assert elapsed < delay * len(files) / 2, (
+        f"took {elapsed:.2f}s for {len(files)} files at {delay}s each — "
+        "looks sequential, not parallel"
+    )

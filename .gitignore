@@ -74,3 +74,4 @@ docs/
 
 # Session scratch (SDD ledgers)
 .superpowers/
+uv.lock

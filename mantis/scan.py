@@ -12,8 +12,10 @@ accept the flag as repeatable. Their behavior on the comma-list form
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -108,15 +110,25 @@ def validate_rule_file(sast_bin: str, path: Path, timeout: int = 30) -> bool:
     return ok
 
 
-def filter_valid_rule_files(rule_files: list[Path], sast_bin: str) -> tuple[list[Path], list[Path]]:
-    """Split rule files into (valid, invalid) using the scanner's own validator."""
-    valid: list[Path] = []
-    invalid: list[Path] = []
-    for f in rule_files:
-        if validate_rule_file(sast_bin, f):
-            valid.append(f)
-        else:
-            invalid.append(f)
+def filter_valid_rule_files(
+    rule_files: list[Path], sast_bin: str, max_workers: int | None = None
+) -> tuple[list[Path], list[Path]]:
+    """Split rule files into (valid, invalid) using the scanner's own validator.
+
+    Each file spawns its own scanner subprocess, which is I/O-bound (waiting
+    on the subprocess, not CPU) — a real pack is 80+ files, and run one at a
+    time that is well over a minute of pure process-startup overhead before
+    any scanning even starts (measured: 83 files, ~125s sequential). A thread
+    pool overlaps that wait time; each call is still independent and still
+    goes through the same per-file timeout and cache as before, so the result
+    set is identical, just not built one subprocess at a time.
+    """
+    max_workers = max_workers or min(32, (os.cpu_count() or 4) * 4, max(1, len(rule_files)))
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        results = list(pool.map(lambda f: (f, validate_rule_file(sast_bin, f)), rule_files))
+
+    valid = [f for f, ok in results if ok]
+    invalid = [f for f, ok in results if not ok]
     return valid, invalid
 
 
