@@ -312,6 +312,14 @@ pipx run twine upload dist/*
 Use an API token (`__token__` as the username, the token as the password) stored in
 `~/.pypirc` or `TWINE_PASSWORD` — never commit it.
 
+## Praetor Integration
+
+[Praetor](https://github.com/TyrusRC/praetor) drives mantis via `run_mantis()` for source-audit within a pentest engagement. Findings feed into praetor's save-finding pipeline and the engagement graph. The `sast_to_endpoint_risk` tool bridges mantis SAST findings to DAST targets — a source-level SQL injection in a controller maps to the HTTP endpoint praetor tests next.
+
+```
+praetor: run_mantis(path, mode='deep') → import results → sast_to_endpoint_risk → confirm_sqli on the endpoint
+```
+
 ## License
 
 [MIT](LICENSE)
