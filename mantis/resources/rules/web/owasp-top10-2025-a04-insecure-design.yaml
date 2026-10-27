@@ -1,0 +1,112 @@
+rules:
+  - id: web-a04-idor-direct-id-query-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      User-supplied ID used directly in a database query without authorization check.
+      Verify the requesting user owns or has access to the requested resource.
+
+      OWASP Top 10:2025 — A04 Insecure Design
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $ID = request.$METHOD.get($KEY)
+              ...
+              $MODEL.objects.get(id=$ID)
+          - pattern: |
+              $ID = request.$METHOD.get($KEY)
+              ...
+              $MODEL.objects.filter(id=$ID)
+    metadata:
+      category: security
+      owasp: "A04:2025 Insecure Design"
+      cwe: "CWE-639"
+      confidence: MEDIUM
+      pack: [web, deep, bugbounty]
+
+  - id: web-a04-idor-direct-id-query-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      User-supplied ID from request params used directly in a database lookup
+      without authorization check. Verify resource ownership before returning data.
+
+      OWASP Top 10:2025 — A04 Insecure Design
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $ID = req.params.$NAME
+              ...
+              $MODEL.findById($ID)
+          - pattern: |
+              $ID = req.params.$NAME
+              ...
+              $MODEL.findOne({_id: $ID})
+          - pattern: |
+              $ID = req.query.$NAME
+              ...
+              $MODEL.findById($ID)
+    metadata:
+      category: security
+      owasp: "A04:2025 Insecure Design"
+      cwe: "CWE-639"
+      confidence: MEDIUM
+      pack: [web, deep, bugbounty]
+
+  - id: web-a04-missing-rate-limit-sensitive-endpoint
+    languages: [python]
+    severity: WARNING
+    message: |
+      Sensitive endpoint (login, password reset, OTP verification) without a
+      rate-limiting decorator. Add throttling to prevent brute-force attacks.
+
+      OWASP Top 10:2025 — A04 Insecure Design
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  def $FUNC(request, ...):
+                      ...
+              - metavariable-regex:
+                  metavariable: $FUNC
+                  regex: (login|authenticate|verify_otp|reset_password|forgot_password|send_otp)
+              - pattern-not-inside: |
+                  @throttle_classes(...)
+                  def $FUNC(request, ...):
+                      ...
+              - pattern-not-inside: |
+                  @ratelimit(...)
+                  def $FUNC(request, ...):
+                      ...
+    metadata:
+      category: security
+      owasp: "A04:2025 Insecure Design"
+      cwe: "CWE-770"
+      confidence: LOW
+      pack: [web, deep]
+
+  - id: web-a04-no-transaction-limit-check
+    languages: [python, javascript, typescript]
+    severity: WARNING
+    message: |
+      Financial operation (transfer, payment, withdrawal) without explicit
+      amount or frequency validation. Enforce server-side limits on transaction
+      amounts and rates.
+
+      OWASP Top 10:2025 — A04 Insecure Design
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $AMOUNT = request.$METHOD.get("amount")
+              ...
+              $OBJ.transfer($AMOUNT)
+          - pattern: |
+              $AMOUNT = req.body.amount
+              ...
+              $OBJ.transfer($AMOUNT)
+    metadata:
+      category: security
+      owasp: "A04:2025 Insecure Design"
+      cwe: "CWE-20"
+      confidence: LOW
+      pack: [web, deep, bugbounty]

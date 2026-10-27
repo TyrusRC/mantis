@@ -1,0 +1,62 @@
+rules:
+  - id: web-a06-dependency-confusion-publish-config
+    languages: [json]
+    severity: ERROR
+    message: |
+      Package.json with publishConfig pointing to a public registry for what
+      appears to be an internal package (scoped @company or unscoped private).
+      An attacker can register the same name on the public registry and inject
+      malicious code via dependency confusion.
+
+      OWASP Top 10:2025 — A06 Vulnerable and Outdated Components
+    patterns:
+      - pattern: |
+          {"publishConfig": {"registry": "https://registry.npmjs.org"}}
+    metadata:
+      category: security
+      owasp: "A06:2025 Vulnerable and Outdated Components"
+      cwe: "CWE-427"
+      confidence: MEDIUM
+      pack: [web, deep, sca]
+
+  - id: web-a06-pip-install-no-hash-check
+    languages: [python]
+    severity: WARNING
+    message: |
+      Subprocess call to pip install without --require-hashes. Dependencies
+      can be tampered with in transit or at the registry. Use hash-pinned
+      requirements for production installs.
+
+      OWASP Top 10:2025 — A06 Vulnerable and Outdated Components
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.run(["pip", "install", ...], ...)
+          - pattern: subprocess.call(["pip", "install", ...], ...)
+          - pattern: os.system("pip install ...")
+    metadata:
+      category: security
+      owasp: "A06:2025 Vulnerable and Outdated Components"
+      cwe: "CWE-494"
+      confidence: LOW
+      pack: [web, deep, sca]
+
+  - id: web-a06-outdated-framework-import-node
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      Import of a known-deprecated or end-of-life package. Check for an
+      actively maintained replacement.
+
+      OWASP Top 10:2025 — A06 Vulnerable and Outdated Components
+    patterns:
+      - pattern-either:
+          - pattern: require("request")
+          - pattern: import $X from "request"
+          - pattern: require("bower")
+          - pattern: require("coffee-script")
+    metadata:
+      category: security
+      owasp: "A06:2025 Vulnerable and Outdated Components"
+      cwe: "CWE-1104"
+      confidence: LOW
+      pack: [web, deep, sca]

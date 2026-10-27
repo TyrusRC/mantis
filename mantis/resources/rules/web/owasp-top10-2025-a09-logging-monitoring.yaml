@@ -1,0 +1,86 @@
+rules:
+  - id: web-a09-sensitive-data-in-log-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      Sensitive data (password, token, credit card, secret) logged directly.
+      Mask or redact sensitive values before writing to logs.
+
+      OWASP Top 10:2025 — A09 Security Logging and Monitoring Failures
+    patterns:
+      - pattern-either:
+          - pattern: logging.$LEVEL(f"...{$PASSWORD}...")
+          - pattern: logging.$LEVEL("..." + $TOKEN + "...")
+          - pattern: logger.$LEVEL(f"...{$PASSWORD}...")
+          - pattern: print(f"...password...{$X}...")
+    metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (password|passwd|secret|token|api_key|credit_card|ssn|cvv)
+    metadata:
+      category: security
+      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      cwe: "CWE-532"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a09-sensitive-data-in-log-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      Sensitive data (password, token, secret) logged directly. Redact
+      sensitive values before writing to logs or console output.
+
+      OWASP Top 10:2025 — A09 Security Logging and Monitoring Failures
+    patterns:
+      - pattern-either:
+          - pattern: console.log(`...${$PASSWORD}...`)
+          - pattern: console.log("..." + $TOKEN + "...")
+          - pattern: logger.info(`...${$SECRET}...`)
+          - pattern: winston.log("info", `...${$KEY}...`)
+    metadata:
+      category: security
+      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      cwe: "CWE-532"
+      confidence: HIGH
+      pack: [web, fast, deep]
+
+  - id: web-a09-log-injection-python
+    languages: [python]
+    severity: WARNING
+    message: |
+      User-controlled input in a log format string. An attacker can inject
+      fake log entries, corrupt log analysis, or exploit log viewers.
+      Use structured logging with named fields.
+
+      OWASP Top 10:2025 — A09 Security Logging and Monitoring Failures
+    patterns:
+      - pattern-either:
+          - pattern: logging.$LEVEL(f"...{request.$METHOD.get($KEY)}...")
+          - pattern: logger.$LEVEL("User %s" % request.$METHOD.get($KEY))
+    metadata:
+      category: security
+      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      cwe: "CWE-117"
+      confidence: MEDIUM
+      pack: [web, deep]
+
+  - id: web-a09-log-injection-node
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      User-controlled input in a log statement. An attacker can inject
+      newlines to forge log entries or exploit log viewers.
+      Use structured logging (JSON) with named fields.
+
+      OWASP Top 10:2025 — A09 Security Logging and Monitoring Failures
+    patterns:
+      - pattern-either:
+          - pattern: console.log(`...${req.body.$FIELD}...`)
+          - pattern: console.log(`...${req.query.$FIELD}...`)
+          - pattern: logger.info(`...${req.params.$FIELD}...`)
+    metadata:
+      category: security
+      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      cwe: "CWE-117"
+      confidence: MEDIUM
+      pack: [web, deep]

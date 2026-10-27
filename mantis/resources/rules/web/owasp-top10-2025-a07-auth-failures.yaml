@@ -1,0 +1,95 @@
+rules:
+  - id: web-a07-weak-password-hash-md5
+    languages: [python, javascript, typescript, java, go, ruby, php]
+    severity: ERROR
+    message: |
+      MD5 used for password hashing. MD5 is cryptographically broken and
+      trivially crackable. Use bcrypt, scrypt, or Argon2id.
+
+      OWASP Top 10:2025 — A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5($PASSWORD)
+          - pattern: crypto.createHash("md5").update($PASSWORD)
+          - pattern: md5($PASSWORD)
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: Digest::MD5.hexdigest($PASSWORD)
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-328"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a07-weak-password-hash-sha1
+    languages: [python, javascript, typescript, java, go, ruby, php]
+    severity: ERROR
+    message: |
+      SHA1 used for password hashing. SHA1 is too fast for password storage
+      and vulnerable to GPU-accelerated cracking. Use bcrypt, scrypt, or Argon2id.
+
+      OWASP Top 10:2025 — A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.sha1($PASSWORD)
+          - pattern: crypto.createHash("sha1").update($PASSWORD)
+          - pattern: sha1($PASSWORD)
+          - pattern: MessageDigest.getInstance("SHA-1")
+          - pattern: Digest::SHA1.hexdigest($PASSWORD)
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-328"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a07-session-id-in-url
+    languages: [python, javascript, typescript, java, ruby, php]
+    severity: ERROR
+    message: |
+      Session ID or token passed as a URL query parameter. Tokens in URLs leak
+      via Referer headers, browser history, and server logs. Use cookies with
+      HttpOnly+Secure+SameSite or Authorization headers.
+
+      OWASP Top 10:2025 — A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: redirect_to("..." + "?session_id=" + $TOKEN)
+          - pattern: redirect(f"...?token={$TOKEN}")
+          - pattern: res.redirect(`...?session=${$TOKEN}`)
+          - pattern: response.sendRedirect("...?JSESSIONID=" + $SID)
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-598"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a07-hardcoded-credential-in-auth
+    languages: [python, javascript, typescript, java, go, ruby]
+    severity: ERROR
+    message: |
+      Hardcoded password or secret in authentication logic. Credentials must
+      come from environment variables, a secrets manager, or a config file
+      excluded from version control.
+
+      OWASP Top 10:2025 — A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $PASSWORD == "...":
+                  ...
+          - pattern: |
+              if (password === "...") {
+                  ...
+              }
+          - pattern: |
+              if $PASSWORD.equals("...") {
+                  ...
+              }
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-798"
+      confidence: MEDIUM
+      pack: [web, fast, deep, bugbounty, secrets]

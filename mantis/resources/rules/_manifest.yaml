@@ -3,36 +3,36 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 699
-  total_files: 104
+  total_rules: 737
+  total_files: 110
   by_severity:
-    WARNING: 304
-    ERROR: 317
-    INFO: 78
+    WARNING: 316
+    ERROR: 340
+    INFO: 81
   by_language:
-    java: 108
+    java: 112
     kotlin: 92
     xml: 84
     generic: 99
-    python: 40
-    javascript: 72
-    typescript: 72
+    python: 50
+    javascript: 81
+    typescript: 81
     dart: 30
     yaml: 33
-    ruby: 37
+    ruby: 41
     swift: 121
-    json: 26
+    json: 27
     bash: 2
     sh: 1
     html: 1
     dockerfile: 5
     hcl: 28
-    c: 5
+    c: 28
+    go: 9
+    php: 9
     csharp: 6
-    go: 6
-    php: 6
   by_category:
-    security: 667
+    security: 705
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -64,9 +64,9 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 370
-    MEDIUM: 228
-    LOW: 83
+    HIGH: 387
+    MEDIUM: 242
+    LOW: 90
     VERY_HIGH: 18
   parse_errors: []
 rules:
@@ -10356,6 +10356,393 @@ rules:
   - llm
   - deep
   source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-bof-gets
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-120
+  owasp_mobile: null
+  owasp:
+  - A03:2021
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-bof-strcpy
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-120
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-bof-strcat
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-120
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-bof-sprintf
+  severity: WARNING
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-120
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-bof-scanf-s
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-120
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-fmt-printf
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-134
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-fmt-fprintf
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-134
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-fmt-syslog
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-134
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-cmdi-system
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-78
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-cmdi-popen
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-78
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-uaf-free-use
+  severity: WARNING
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-416
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-hardcoded-key
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-insecure-random
+  severity: WARNING
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-338
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-memcpy-overflow
+  severity: INFO
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-120
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-malloc-int-overflow
+  severity: WARNING
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-190
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/decompiled-c-vulns.yaml
+  id: native-toctou-access
+  severity: WARNING
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-367
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-process-injection
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-94
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-shellcode-callback
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe:
+  - CWE-94
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-dynamic-api-resolution
+  severity: INFO
+  languages:
+  - c
+  category: security
+  cwe: []
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-anti-debug-check
+  severity: WARNING
+  languages:
+  - c
+  category: security
+  cwe: []
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-persistence-registry
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe: []
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-keylogging
+  severity: ERROR
+  languages:
+  - c
+  category: security
+  cwe: []
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack: []
+  source: null
+- file: rules/native/malware-patterns.yaml
+  id: malware-network-comms
+  severity: INFO
+  languages:
+  - c
+  category: security
+  cwe: []
+  owasp_mobile: null
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack: []
+  source: null
 - file: rules/sca/gradle.yaml
   id: sca-gradle-log4j-core-log4shell
   severity: ERROR
@@ -11558,6 +11945,88 @@ rules:
   - web
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a04-insecure-design.yaml
+  id: web-a04-idor-direct-id-query-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-639
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a04-insecure-design.yaml
+  id: web-a04-idor-direct-id-query-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-639
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a04-insecure-design.yaml
+  id: web-a04-missing-rate-limit-sensitive-endpoint
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-770
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a04-insecure-design.yaml
+  id: web-a04-no-transaction-limit-check
+  severity: WARNING
+  languages:
+  - python
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-20
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
   id: web-a05-cors-allow-origin-wildcard-node
   severity: ERROR
@@ -11720,6 +12189,174 @@ rules:
   - web
   - deep
   source: null
+- file: rules/web/owasp-top10-2025-a06-vulnerable-components.yaml
+  id: web-a06-dependency-confusion-publish-config
+  severity: ERROR
+  languages:
+  - json
+  category: security
+  cwe:
+  - CWE-427
+  owasp_mobile: null
+  owasp: A06:2025 Vulnerable and Outdated Components
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  - sca
+  source: null
+- file: rules/web/owasp-top10-2025-a06-vulnerable-components.yaml
+  id: web-a06-pip-install-no-hash-check
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-494
+  owasp_mobile: null
+  owasp: A06:2025 Vulnerable and Outdated Components
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - web
+  - deep
+  - sca
+  source: null
+- file: rules/web/owasp-top10-2025-a06-vulnerable-components.yaml
+  id: web-a06-outdated-framework-import-node
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-1104
+  owasp_mobile: null
+  owasp: A06:2025 Vulnerable and Outdated Components
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: LOW
+  pack:
+  - web
+  - deep
+  - sca
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-weak-password-hash-md5
+  severity: ERROR
+  languages:
+  - python
+  - javascript
+  - typescript
+  - java
+  - go
+  - ruby
+  - php
+  category: security
+  cwe:
+  - CWE-328
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-weak-password-hash-sha1
+  severity: ERROR
+  languages:
+  - python
+  - javascript
+  - typescript
+  - java
+  - go
+  - ruby
+  - php
+  category: security
+  cwe:
+  - CWE-328
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-session-id-in-url
+  severity: ERROR
+  languages:
+  - python
+  - javascript
+  - typescript
+  - java
+  - ruby
+  - php
+  category: security
+  cwe:
+  - CWE-598
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-hardcoded-credential-in-auth
+  severity: ERROR
+  languages:
+  - python
+  - javascript
+  - typescript
+  - java
+  - go
+  - ruby
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  - secrets
+  source: null
 - file: rules/web/owasp-top10-2025-a08-deserialization-python.yaml
   id: web-a08-insecure-deserialization-pickle
   severity: ERROR
@@ -11819,6 +12456,86 @@ rules:
   pack:
   - web
   - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a09-logging-monitoring.yaml
+  id: web-a09-sensitive-data-in-log-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-532
+  owasp_mobile: null
+  owasp: A09:2025 Security Logging and Monitoring Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a09-logging-monitoring.yaml
+  id: web-a09-sensitive-data-in-log-node
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-532
+  owasp_mobile: null
+  owasp: A09:2025 Security Logging and Monitoring Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a09-logging-monitoring.yaml
+  id: web-a09-log-injection-python
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-117
+  owasp_mobile: null
+  owasp: A09:2025 Security Logging and Monitoring Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a09-logging-monitoring.yaml
+  id: web-a09-log-injection-node
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-117
+  owasp_mobile: null
+  owasp: A09:2025 Security Logging and Monitoring Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
   - deep
   source: null
 - file: rules/web/owasp-top10-2025-a10-ssrf.yaml
