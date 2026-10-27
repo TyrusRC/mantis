@@ -2,9 +2,7 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-OpenGrep finds candidates; an LLM reasons on the slices the
-scanner flags. Runs as a Claude Code slash command, or as a standalone
-CLI against any litellm-supported provider. Local only.
+110 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, and taint analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
 
 ## Requirements
 
