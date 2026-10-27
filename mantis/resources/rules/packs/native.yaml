@@ -1,0 +1,9 @@
+name: native
+description: |
+  Rules for decompiled native code (C/C++ from Ghidra, r2ghidra, IDA Hex-Rays).
+  Covers buffer overflows, format strings, command injection, use-after-free,
+  integer overflows, hardcoded credentials, and malware-specific patterns.
+  Use with chimera's mantis_audit(decompiled=True) on Ghidra/r2 output.
+include:
+  - native/decompiled-c-vulns.yaml
+  - native/malware-patterns.yaml

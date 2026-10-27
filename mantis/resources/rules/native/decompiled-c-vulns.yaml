@@ -1,0 +1,229 @@
+rules:
+  # Buffer Overflow — dangerous functions without bounds
+  - id: native-bof-gets
+    pattern: gets($BUF)
+    message: |
+      gets() reads unbounded input into a buffer — guaranteed stack buffer overflow.
+      Replace with fgets(buf, sizeof(buf), stdin).
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-120"]
+      category: security
+      owasp: ["A03:2021"]
+    languages: [c]
+
+  - id: native-bof-strcpy
+    patterns:
+      - pattern: strcpy($DST, $SRC)
+      - pattern-not: strcpy($DST, "...")
+    message: |
+      strcpy() copies without bounds checking — buffer overflow if src > dst.
+      Use strncpy() or strlcpy() with explicit size.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-120"]
+      category: security
+    languages: [c]
+
+  - id: native-bof-strcat
+    patterns:
+      - pattern: strcat($DST, $SRC)
+      - pattern-not: strcat($DST, "...")
+    message: |
+      strcat() appends without bounds checking — buffer overflow risk.
+      Use strncat() with remaining buffer size.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-120"]
+      category: security
+    languages: [c]
+
+  - id: native-bof-sprintf
+    patterns:
+      - pattern: sprintf($DST, $FMT, ...)
+    message: |
+      sprintf() writes without bounds checking — buffer overflow risk.
+      Use snprintf() with explicit buffer size.
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      cwe: ["CWE-120"]
+      category: security
+    languages: [c]
+
+  - id: native-bof-scanf-s
+    patterns:
+      - pattern: scanf("%s", $BUF)
+      - pattern: scanf($FMT, $BUF)
+    message: |
+      scanf with %s reads unbounded input — buffer overflow.
+      Use scanf("%Ns", buf) with explicit width, or fgets().
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-120"]
+      category: security
+    languages: [c]
+
+  # Format String
+  - id: native-fmt-printf
+    patterns:
+      - pattern: printf($VAR)
+      - pattern-not: printf("...")
+    message: |
+      printf() called with a variable as format string — format string vulnerability.
+      Allows arbitrary read (%p/%x) and write (%n). Use printf("%s", var) instead.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-134"]
+      category: security
+    languages: [c]
+
+  - id: native-fmt-fprintf
+    patterns:
+      - pattern: fprintf($STREAM, $VAR)
+      - pattern-not: fprintf($STREAM, "...")
+    message: |
+      fprintf() with variable format string — format string vulnerability.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-134"]
+      category: security
+    languages: [c]
+
+  - id: native-fmt-syslog
+    patterns:
+      - pattern: syslog($PRIORITY, $VAR)
+      - pattern-not: syslog($PRIORITY, "...")
+    message: |
+      syslog() with variable format string — format string vulnerability.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-134"]
+      category: security
+    languages: [c]
+
+  # Command Injection
+  - id: native-cmdi-system
+    patterns:
+      - pattern: system($CMD)
+      - pattern-not: system("...")
+    message: |
+      system() with variable command — command injection risk.
+      Use execve() with explicit argv array instead.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-78"]
+      category: security
+    languages: [c]
+
+  - id: native-cmdi-popen
+    patterns:
+      - pattern: popen($CMD, ...)
+      - pattern-not: popen("...", ...)
+    message: |
+      popen() with variable command — command injection via shell.
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      cwe: ["CWE-78"]
+      category: security
+    languages: [c]
+
+  # Use After Free indicators
+  - id: native-uaf-free-use
+    pattern: |
+      free($PTR);
+      ...
+      $PTR[$IDX]
+    message: |
+      Potential use-after-free: pointer used after free().
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      cwe: ["CWE-416"]
+      category: security
+    languages: [c]
+
+  # Hardcoded Credentials / Keys
+  - id: native-hardcoded-key
+    patterns:
+      - pattern: |
+          char $KEY[] = "..."
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (key|password|secret|token|apikey|api_key|passwd|pwd|auth)
+    message: |
+      Hardcoded credential or key in source — extract to environment or config.
+    severity: ERROR
+    metadata:
+      confidence: MEDIUM
+      cwe: ["CWE-798"]
+      category: security
+    languages: [c]
+
+  # Insecure Random
+  - id: native-insecure-random
+    patterns:
+      - pattern: rand()
+      - pattern: srand($SEED)
+    message: |
+      rand()/srand() is not cryptographically secure. Use /dev/urandom,
+      getrandom(), or arc4random() for security-sensitive randomness.
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      cwe: ["CWE-338"]
+      category: security
+    languages: [c]
+
+  # Dangerous Memory Operations
+  - id: native-memcpy-overflow
+    patterns:
+      - pattern: memcpy($DST, $SRC, $SIZE)
+    message: |
+      memcpy() — verify $SIZE does not exceed destination buffer size.
+      Common source of heap and stack buffer overflows.
+    severity: INFO
+    metadata:
+      confidence: LOW
+      cwe: ["CWE-120"]
+      category: security
+    languages: [c]
+
+  # Integer Overflow
+  - id: native-malloc-int-overflow
+    patterns:
+      - pattern: malloc($SIZE * $COUNT)
+    message: |
+      malloc(size * count) — integer overflow risk if size or count is user-controlled.
+      Use calloc(count, size) which checks for overflow internally.
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      cwe: ["CWE-190"]
+      category: security
+    languages: [c]
+
+  # Race Conditions
+  - id: native-toctou-access
+    pattern: |
+      access($PATH, ...)
+      ...
+      open($PATH, ...)
+    message: |
+      Time-of-check-time-of-use (TOCTOU) race between access() and open().
+      Use fopen()/open() directly and check the return value.
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      cwe: ["CWE-367"]
+      category: security
+    languages: [c]

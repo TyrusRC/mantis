@@ -47,11 +47,13 @@ def audit(
     mode: Optional[str] = None,
     packs: Optional[list] = None,
     decompiled: bool = False,
+    language: Optional[str] = None,
     llm: bool = False,
     config: Optional[str] = None,
     sast_bin: Optional[str] = None,
     engines=None,
     engines_offline: bool = False,
+    timeout: Optional[int] = None,
 ) -> list[dict]:
     """Audit a source tree and return findings as a list of dicts.
 
@@ -94,6 +96,22 @@ def audit(
 
     cfg = load_config(target, explicit=config, skip_provider_validation=not llm)
     sast = resolve_sast_binary(sast_bin or cfg.sast_bin)
+
+    # language hint: when the caller knows the language (e.g., chimera passing
+    # "c" for Ghidra output), auto-select appropriate packs without inventory.
+    _LANG_PACKS = {
+        "c": ["native", "secrets"], "cpp": ["native", "secrets"],
+        "java": ["mobile-android", "web", "secrets"],
+        "kotlin": ["mobile-android", "secrets"],
+        "swift": ["mobile-ios", "secrets"],
+        "python": ["web", "secrets"],
+        "javascript": ["web", "secrets"], "typescript": ["web", "secrets"],
+        "go": ["web", "secrets"],
+    }
+    if language and not packs and not override:
+        lang_packs = _LANG_PACKS.get(language.lower())
+        if lang_packs:
+            override = resolve_pack_override(lang_packs, REPO_ROOT / "rules" / "packs")
 
     inv = take_inventory(target, decompiled=decompiled)
     selected = packs_for(mode, inv, explicit=override)
