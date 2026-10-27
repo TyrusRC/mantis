@@ -2,7 +2,7 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-110 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, and taint analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
+737 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
 
 ## Requirements
 
@@ -133,8 +133,27 @@ findings = audit("decompiled_out", decompiled=True)   # auto stack detection
 #                message, metadata (cwe/owasp/masvs...), verdict}
 ```
 
-C/C++ has no dedicated rule pack, but the `secrets` pack still surfaces
-hardcoded keys/credentials in Ghidra pseudo-C.
+### Native C/C++ and malware analysis
+
+The `native` pack (23 rules) covers decompiled C/C++ from Ghidra, r2ghidra, or IDA Hex-Rays — the chimera RE→SAST bridge:
+
+- **decompiled-c-vulns** (16 rules): buffer overflows (`gets`, `strcpy`, `sprintf`, `scanf`), format string (`printf(var)`), command injection (`system(var)`, `popen`), use-after-free, hardcoded credentials, insecure random (`rand`/`srand`), integer overflow, TOCTOU race conditions
+- **malware-patterns** (7 rules): process injection (`WriteProcessMemory` + `CreateRemoteThread`), shellcode execution via callback (`EnumSystemLocalesA`, `GrayStringA`), dynamic API resolution (PEB walk + `GetProcAddress` hash), anti-debug (`IsDebuggerPresent`, `CheckRemoteDebuggerPresent`), registry persistence (`RegSetValueEx` on Run keys), keylogging (`GetAsyncKeyState`/`SetWindowsHookEx`), suspicious network (`InternetOpenA` + `HttpSendRequest` chains) — all tagged with MITRE ATT&CK technique IDs
+
+```bash
+# CLI
+mantis audit ./ghidra_output --pack native --skip-llm
+mantis audit ./r2_decompiled --pack native --language c --skip-llm
+
+# Programmatic (chimera integration)
+from mantis import audit
+findings = audit("decompiled_output", packs=["native"], language="c")
+findings = audit("decompiled_output", packs=["native", "secrets"], language="c", timeout=120)
+```
+
+The `language` parameter tells mantis the source language directly (skipping
+extension-based detection), and `timeout` caps the OpenGrep run — both are
+useful for chimera's automated decompile→audit pipeline.
 
 Reports land under `<target>/.mantis/runs/<ts>-<sha>.md` with stable pointers at
 `<target>/.mantis/latest.md` and `<target>/security-audit-report.md`. With `--fix`,
@@ -248,6 +267,7 @@ falls back to a top-level layout for legacy installs.
 | `sca` | dependency / lockfile rules |
 | `mobile`, `mobile-ios`, `mobile-android` | by language and path |
 | `web`, `llm`, `taint` | by path |
+| `native` | decompiled C/C++ vulns + malware patterns (chimera RE bridge) |
 
 Compose a pack:
 
