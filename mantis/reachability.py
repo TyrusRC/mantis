@@ -17,6 +17,7 @@ import re
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
+    from mantis.assetmap import AssetMap
     from mantis.callgraph import CallGraph
 
 
@@ -51,15 +52,17 @@ def classify_reachability(
     sink_func: str,
     chunks: list,
     callgraph: Optional["CallGraph"] = None,
+    asset_map: Optional["AssetMap"] = None,
 ) -> str:
     """Return 'yes', 'no', or 'unknown'.
 
-    Path heuristic always runs first — anything in test/spec/example
-    dirs is dead regardless of call graph (we don't want to chase
-    callers in tests). Otherwise:
-    - If a Python call graph is supplied AND the sink_func is in it,
-      walk from sink to entry points; that result wins.
-    - Else fall back to per-caller path inspection of the slice chunks.
+    Path heuristic always runs first -- anything in test/spec/example
+    dirs is dead regardless of call graph.
+
+    Priority for live paths:
+    1. Python call graph (ast-based, precise).
+    2. Asset map entry-point detection (regex-based, all languages).
+    3. Per-caller path inspection of slice chunks.
     """
     if _is_dead_path(finding.path):
         return "no"
@@ -69,7 +72,13 @@ def classify_reachability(
         cg_result = reaches_entrypoint(callgraph, sink_func)
         if cg_result in ("yes", "no"):
             return cg_result
-        # cg returned 'unknown' -> fall through to path heuristic.
+
+    if asset_map is not None:
+        if asset_map.has_entry_point(finding.path):
+            return "yes"
+        for c in chunks:
+            if getattr(c, "role", "") == "caller" and asset_map.has_entry_point(c.file):
+                return "yes"
 
     callers = [c for c in chunks if getattr(c, "role", "") == "caller"]
     if not callers:

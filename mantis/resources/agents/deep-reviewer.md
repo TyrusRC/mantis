@@ -43,6 +43,15 @@ RECOMMENDATION: fix-author | human-review | rejected
 NOTES: <optional, ≤3 lines>
 ```
 
+# Asset context
+
+When present, the slice includes an `ASSET_CONTEXT` block. Use it to inform your analysis:
+
+- **ENTRY** — the sink is in or near a route handler. Direct attack surface = higher exploitability.
+- **AUTH: unguarded** — no auth middleware detected. Unauthenticated access = critical if exploitable.
+- **AUTH: <name>** — auth middleware present. Factor into CVSS (attack complexity, privileges required).
+- **DATA / EXTL / SENS** — nearby data stores, external calls, or sensitive variables. Use these to trace realistic data flows and assess impact (data exfiltration, lateral movement, credential theft).
+
 # Discipline
 
 - No re-scanning. No directory walks. Use only the slice plus targeted `Read` if absolutely necessary.

@@ -27,6 +27,19 @@ One line per finding, exactly this shape:
 {finding_id} | TRUE|FALSE|NEEDS-DEEP | <one-sentence reason, ≤140 chars>
 ```
 
+# Asset context
+
+When present, you receive an **Asset context** block with the finding. Use it:
+
+- **ENTRY** — the finding is in or near a route handler / endpoint. Code on the attack surface is more likely TRUE.
+- **AUTH: unguarded** — no auth middleware detected above the finding. Unguarded entry points are higher risk.
+- **AUTH: <name>** — auth middleware is present. The finding may still be TRUE (post-auth vulns exist) but weigh it.
+- **DATA** — a database / cache operation nearby. Strengthens injection / data-leak plausibility.
+- **EXTL** — an outbound HTTP / SDK call nearby. Strengthens SSRF / exfiltration plausibility.
+- **SENS** — sensitive variable (password, token, PII) nearby. Strengthens credential-leak findings.
+
+Asset context is a signal, not a verdict. Always check the code window.
+
 # Hard rules
 
 - Never read more than the ±40 line window plus the rule file.

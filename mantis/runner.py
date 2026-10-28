@@ -24,6 +24,7 @@ from mantis.deep import DeepResult, deep_review_many
 from mantis.fix import FixResult, fix_all
 from mantis.inventory import packs_for, take_inventory
 from mantis.report import RunMeta, write_report
+from mantis.assetmap import AssetMap, build_asset_map
 from mantis.scan import (
     Finding, ScanError, compose_pack_files, dedupe_findings,
     filter_valid_rule_files,
@@ -131,6 +132,12 @@ class Pipeline:
             print(f"[mantis] packs override: {', '.join(self.packs)}")
         print(f"[mantis] packs   = {', '.join(packs)}")
 
+        # Stage 0b: asset map
+        print("[mantis] stage 0b: asset map")
+        asset_map = build_asset_map(self.target, stack=inv.stack)
+        print(f"[mantis] assets: {asset_map.summary()} "
+              f"({asset_map.indexed_files} files indexed)")
+
         # Stage 1: SAST scan
         print("[mantis] stage 1: SAST scan")
         try:
@@ -194,7 +201,8 @@ class Pipeline:
         if not raw_findings:
             self._write(packs, mode_label, time.monotonic() - t0,
                         notes or ["no findings"], status,
-                        [], [], [], [], [], None, [], [])
+                        [], [], [], [], [], None, [], [],
+                        asset_map=asset_map)
             print("[mantis] done — no findings.")
             return 0
 
@@ -268,7 +276,8 @@ class Pipeline:
         if provider:
             tmode = self.config.triage_mode or "single"
             print(f"[mantis] stage 5: triage ({len(filtered)} findings, {tmode}-chain)")
-            triage_results = triage_all(filtered, self.agents, provider, self.target, mode=tmode)
+            triage_results = triage_all(filtered, self.agents, provider, self.target,
+                                       mode=tmode, asset_map=asset_map)
         else:
             if self.skip_llm:
                 placeholder_verdict = "RAW"
@@ -319,7 +328,7 @@ class Pipeline:
         # Stage 6 + 7: slice and deep review
         if slice_input and not skip_deep:
             print(f"[mantis] stage 6: slice ({len(slice_input)} candidates)")
-            slices = [extract_slice(r.finding, self.target) for r in slice_input]
+            slices = [extract_slice(r.finding, self.target, asset_map=asset_map) for r in slice_input]
 
             reachable = [s for s in slices if s.reachability != "no"]
             if m == "bugbounty":
@@ -385,7 +394,8 @@ class Pipeline:
                     raw_findings, filtered, triage_results, slices, deep_results,
                     fix_worktree, fix_results, toast_results,
                     cluster_siblings=cluster_siblings,
-                    suppressed_findings=suppressed_findings)
+                    suppressed_findings=suppressed_findings,
+                    asset_map=asset_map)
         # Match the report's "Confirmed" column: triage verdict TRUE.
         # Deep-review verdicts further refine these but aren't a separate bucket
         # in the user-facing summary table.
@@ -448,7 +458,8 @@ class Pipeline:
     def _write(self, packs, mode_label, duration, notes, status,
                raw_findings, filtered, triage_results, slices, deep_results,
                fix_worktree, fix_results, toast_results=None,
-               cluster_siblings=None, suppressed_findings=None):
+               cluster_siblings=None, suppressed_findings=None,
+               asset_map=None):
         toast_results = toast_results or []
         tokens_in = sum(r.tokens_in for r in triage_results) + sum(r.tokens_in for r in deep_results)
         tokens_out = sum(r.tokens_out for r in triage_results) + sum(r.tokens_out for r in deep_results)
@@ -483,6 +494,7 @@ class Pipeline:
             toast_results=toast_results,
             cluster_siblings=cluster_siblings,
             suppressed_findings=suppressed_findings,
+            asset_map=asset_map,
         )
         update_pointers(self.target, out_path)
         print(f"[mantis] stage 9: wrote {out_path}")

@@ -211,25 +211,56 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
 ## Pipeline
 
 ```
-0  inventory      detect stack, lockfiles, entrypoints
-1  static wide    opengrep with the selected pack
-2  SCA            lockfile dependency-CVE rules
-3  secrets        high-confidence secrets pack
-4  deobf gate     route minified/packed files to the deobfuscator
-5  triage         fast tier per finding (single or dual chain)
-6  slice          depth-limited callgraph, entrypoint reachability
-7  deep review    deep tier on reachable TRUE / NEEDS-DEEP slices
-8  fix            patch in worktree, re-run scanner   (only with --fix)
-9  report         write <target>/.mantis/runs/<ts>-<sha>.md (+ latest.md symlink)
+0   inventory     detect stack, lockfiles, entrypoints
+0b  asset map     regex-scan for entry points, auth middleware, data stores,
+                  external calls, sensitive data across all supported languages;
+                  feeds triage context, reachability, slice annotations, and the
+                  auto-generated STRIDE threat model in the report
+1   static wide   opengrep with the selected pack
+2   SCA           lockfile dependency-CVE rules
+3   secrets       high-confidence secrets pack
+4   deobf gate    route minified/packed files to the deobfuscator
+5   triage        fast tier per finding (single or dual chain) — now receives
+                  asset context (nearest entry point, auth status, nearby stores)
+6   slice         depth-limited callgraph, entrypoint reachability (asset map
+                  extends reachability to non-Python languages)
+7   deep review   deep tier on reachable TRUE / NEEDS-DEEP slices — slice text
+                  includes ASSET_CONTEXT block
+8   fix           patch in worktree, re-run scanner   (only with --fix)
+9   report        write <target>/.mantis/runs/<ts>-<sha>.md (+ latest.md symlink);
+                  includes auto-generated STRIDE threat model section
 ```
 
 Stages 6–8 are conditionally skipped based on mode and flags. Triage and
 slicing run in isolated contexts to keep the orchestrator's window small.
 
+### Asset map (stage 0b)
+
+The asset map scans the target tree in a single pass per file, matching
+language-specific regex patterns for:
+
+| Asset kind | Examples |
+|---|---|
+| Entry points | Flask/FastAPI/Django routes, Express/Koa handlers, Spring `@*Mapping`, Go `http.HandleFunc`, Rails routes, Laravel `Route::`, ASP.NET `[Http*]`, Actix/Axum, iOS lifecycle, Android `onCreate` |
+| Trust boundaries | `@login_required`, `passport.authenticate`, `@PreAuthorize`, `[Authorize]`, `before_action :authenticate`, JWT verification |
+| Data stores | Django ORM, SQLAlchemy, Prisma, Sequelize, JDBC, GORM, ActiveRecord, Eloquent, EF Core, Redis |
+| External calls | `requests`, `fetch`, `axios`, `HttpClient`, `http.Get`, `RestTemplate`, `Net::HTTP`, Guzzle |
+| Sensitive data | Variable names matching password/token/api\_key/credit\_card/ssn patterns |
+
+The map enriches every downstream stage:
+
+- **Triage** receives a compact `Asset context` block (entry point, auth status, nearby data stores/external calls) so the fast-tier model makes better TRUE/FALSE/NEEDS-DEEP decisions
+- **Reachability** uses asset-map entry points to classify non-Python findings (previously only Python had call-graph-based reachability; others fell back to path heuristics)
+- **Slice** appends an `ASSET_CONTEXT` block to the slice text for the deep reviewer
+- **Report** includes an auto-generated **STRIDE threat model** section: attack surface summary, unguarded entry points table, STRIDE threat matrix, and high-risk paths (unguarded endpoints touching data stores or external calls)
+
 ## Repository layout
 
 ```
 mantis/                       standalone CLI Python package
+mantis/asset_patterns.py      regex patterns for asset map (entry points, auth, data stores, etc.)
+mantis/assetmap.py            stage 0b: asset map scanner + query API
+mantis/threatmodel.py         STRIDE threat model generator
 mantis/resources/agents/      subagent definitions (model: + tier: frontmatter)
 mantis/resources/commands/    slash command for MCP mode
 mantis/resources/rules/       opengrep YAML rules (Semgrep schema) + pack specs + manifest

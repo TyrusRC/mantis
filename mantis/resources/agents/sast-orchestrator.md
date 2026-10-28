@@ -29,6 +29,7 @@ The SAST scanner is **OpenGrep** by default; **Semgrep** is used only if the use
 | # | Stage | Skipped in | Notes |
 |---|---|---|---|
 | 0 | Inventory | never | detect stack, lockfiles, entrypoints, pick pack |
+| 0b | Asset map | never | scan for entry points, auth middleware, data stores, external calls across all languages; feeds triage + reachability + slice context |
 | 1 | Static wide | never | `opengrep --json --config <rule-file> ... <path>` (one --config per rule file; one --severity per level) |
 | 2 | SCA | when `mode=web` or `mode=llm` and no lockfile present | `rules/sca/` + `rules/cross-platform/library-dependency-cve-detection.yaml` |
 | 3 | Secrets | never | high-confidence secrets only |

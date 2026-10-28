@@ -15,6 +15,10 @@ from mantis.agents import Agent
 from mantis.providers import Provider
 from mantis.scan import Finding
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mantis.assetmap import AssetMap
+
 
 Verdict = Literal["TRUE", "FALSE", "NEEDS-DEEP", "RAW", "ERROR"]
 
@@ -57,19 +61,26 @@ def read_window(path: Path, line: int, radius: int = WINDOW_LINES) -> str:
     return "\n".join(out)
 
 
-def build_user_prompt(finding: Finding, window: str) -> str:
+def build_user_prompt(finding: Finding, window: str,
+                      asset_context: str = "") -> str:
     finding_id = finding.id
-    return (
-        f"Finding ID: {finding_id}\n"
-        f"Rule: {finding.rule_id}\n"
-        f"Severity: {finding.severity}  Confidence: {finding.confidence}\n"
-        f"Path: {finding.path}:{finding.start_line}-{finding.end_line}\n"
-        f"Message: {finding.message}\n\n"
-        f"Code window (target line marked with `>>`):\n"
-        f"```\n{window}\n```\n\n"
-        f"Output exactly one line:\n"
-        f"`{finding_id} | TRUE|FALSE|NEEDS-DEEP | <one-sentence reason, <=140 chars>`"
-    )
+    parts = [
+        f"Finding ID: {finding_id}",
+        f"Rule: {finding.rule_id}",
+        f"Severity: {finding.severity}  Confidence: {finding.confidence}",
+        f"Path: {finding.path}:{finding.start_line}-{finding.end_line}",
+        f"Message: {finding.message}",
+    ]
+    if asset_context:
+        parts.append("")
+        parts.append(f"Asset context:\n  {asset_context}")
+    parts.append("")
+    parts.append(f"Code window (target line marked with `>>`):")
+    parts.append(f"```\n{window}\n```")
+    parts.append("")
+    parts.append(f"Output exactly one line:")
+    parts.append(f"`{finding_id} | TRUE|FALSE|NEEDS-DEEP | <one-sentence reason, <=140 chars>`")
+    return "\n".join(parts)
 
 
 def parse_verdict(text: str) -> tuple[Verdict, str]:
@@ -88,10 +99,12 @@ def triage_finding(
     agent_body: str,
     finding: Finding,
     target_root: Path,
+    asset_map: Optional["AssetMap"] = None,
 ) -> TriageResult:
     abs_path = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     window = read_window(abs_path, finding.start_line)
-    user = build_user_prompt(finding, window)
+    ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
+    user = build_user_prompt(finding, window, asset_context=ctx)
 
     try:
         resp = provider.complete(
@@ -136,16 +149,19 @@ def triage_all(
     *,
     max_findings: Optional[int] = None,
     mode: str = "single",
+    asset_map: Optional["AssetMap"] = None,
 ) -> list[TriageResult]:
     triage_agent = find_agent(agents, "triage-analyst")
     capped = findings[:max_findings] if max_findings else findings
     if mode == "dual":
         return [
-            triage_finding_dual(provider, triage_agent.body, f, target_root)
+            triage_finding_dual(provider, triage_agent.body, f, target_root,
+                                asset_map=asset_map)
             for f in capped
         ]
     return [
-        triage_finding(provider, triage_agent.body, f, target_root)
+        triage_finding(provider, triage_agent.body, f, target_root,
+                       asset_map=asset_map)
         for f in capped
     ]
 
@@ -201,10 +217,12 @@ def triage_finding_dual(
     agent_body: str,
     finding: Finding,
     target_root: Path,
+    asset_map: Optional["AssetMap"] = None,
 ) -> TriageResult:
     abs_path = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     window = read_window(abs_path, finding.start_line)
-    user = build_user_prompt(finding, window)
+    ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
+    user = build_user_prompt(finding, window, asset_context=ctx)
 
     tp_verdict: Verdict = "ERROR"
     fp_verdict: Verdict = "ERROR"

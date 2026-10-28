@@ -305,6 +305,7 @@ def write_report(
     toast_results: Optional[list] = None,
     cluster_siblings: Optional[dict[str, int]] = None,
     suppressed_findings: Optional[list[Finding]] = None,
+    asset_map=None,
 ) -> Path:
     duration = f"{int(meta.duration_seconds // 60)}m {int(meta.duration_seconds % 60)}s"
     tokens_in_k = meta.tokens_in / 1000
@@ -339,6 +340,11 @@ def write_report(
     parts.append("")
     parts.append(_mapping_summary(triage_results))
     parts.append("")
+    if asset_map is not None:
+        tm = asset_map.threat_model()
+        if tm:
+            parts.append(tm)
+            parts.append("")
     parts.append(_findings_section(triage_results, cluster_siblings or {}))
     parts.append("")
     if suppressed_findings:

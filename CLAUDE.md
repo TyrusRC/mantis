@@ -11,9 +11,20 @@ Two execution modes, one pipeline:
 - **MCP mode** (default in Claude Code): `./install.sh` copies agents and the `/audit` slash command into the target project's `.claude/`. The orchestrator subagent dispatches the pipeline using Claude Code's host session. No API key, no model name configuration.
 - **Standalone CLI mode**: `mantis audit <path>` runs the same pipeline directly, calling a user-configured LLM provider (Anthropic, Google Gemini, OpenAI, OpenRouter, Ollama). The user supplies the API key and chooses which model maps to each tier. No model names are hardcoded.
 
+Stage 0b (asset map) runs automatically between inventory and SAST scan. It regex-scans source files across all supported languages for entry points, auth middleware, data stores, external calls, and sensitive data. The resulting `AssetMap` feeds:
+- **Triage**: compact asset context injected into the prompt (entry point, auth status, nearby data stores)
+- **Reachability**: entry-point detection for non-Python languages (extends the Python-only call graph)
+- **Slice**: `ASSET_CONTEXT` block appended to the slice text for the deep reviewer
+- **Report**: auto-generated STRIDE threat model section
+
+Pattern definitions live in `mantis/asset_patterns.py`; threat model generation in `mantis/threatmodel.py`.
+
 Layout:
 
 - `mantis/` — standalone CLI Python package (loads agents, runs pipeline, routes to configured provider)
+- `mantis/asset_patterns.py` — regex pattern definitions for the asset map scanner (entry points, middleware, data stores, external calls, sensitive data across all supported languages)
+- `mantis/assetmap.py` — stage 0b: asset map builder and query API
+- `mantis/threatmodel.py` — STRIDE-based threat model generation from the asset map
 - `mantis/resources/agents/` — subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
 - `mantis/resources/commands/` — one slash command (`/audit`), MCP-mode only
 - `mantis/resources/rules/` — OpenGrep YAML rules (Semgrep schema) + pack specs + manifest

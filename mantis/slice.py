@@ -15,7 +15,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from typing import TYPE_CHECKING
+
 from mantis.scan import Finding
+
+if TYPE_CHECKING:
+    from mantis.assetmap import AssetMap
 
 
 SLICE_TOKEN_BUDGET = 4000
@@ -77,6 +82,7 @@ class Slice:
     sanitizers: list[str] = field(default_factory=list)
     insufficient_reason: Optional[str] = None
     total_chars: int = 0
+    asset_context: str = ""
 
     @property
     def insufficient(self) -> bool:
@@ -91,8 +97,10 @@ class Slice:
             f"REACHABLE_FROM_ENTRYPOINT: {self.reachability}",
             f"SANITIZERS_FOUND: {', '.join(self.sanitizers) if self.sanitizers else 'none'}",
             f"DEPTH_USED: callers={self.depth_callers} callees={self.depth_callees}",
-            "",
         ]
+        if self.asset_context:
+            lines.append(f"ASSET_CONTEXT:\n  {self.asset_context}")
+        lines.append("")
         for i, c in enumerate(self.chunks, 1):
             lines.append(f"[{i}] {c.file}:{c.start_line}-{c.end_line}  role={c.role}  func={c.func}")
             lines.append(c.code)
@@ -392,7 +400,8 @@ def _which(name: str) -> bool:
 
 # --- main entry point ---
 
-def extract_slice(finding: Finding, target_root: Path) -> Slice:
+def extract_slice(finding: Finding, target_root: Path,
+                  asset_map: Optional["AssetMap"] = None) -> Slice:
     sink_file = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     text = _read_text(sink_file)
     if not text:
@@ -480,7 +489,11 @@ def extract_slice(finding: Finding, target_root: Path) -> Slice:
                 break
 
     from mantis.reachability import classify_reachability
-    reachability = classify_reachability(finding, sink_func, chunks, callgraph=_callgraph_for(target_root))
+    reachability = classify_reachability(
+        finding, sink_func, chunks,
+        callgraph=_callgraph_for(target_root), asset_map=asset_map)
+
+    ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
 
     return Slice(
         finding=finding,
@@ -492,6 +505,7 @@ def extract_slice(finding: Finding, target_root: Path) -> Slice:
         depth_callees=0,
         reachability=reachability,
         total_chars=used_chars,
+        asset_context=ctx,
     )
 
 
