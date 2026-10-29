@@ -6,16 +6,6 @@ Hybrid SAST + LLM toolkit for local code-security audits.
 
 Stage 0b auto-generates a **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls, sensitive data) that enriches every downstream stage. A **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any provider. Local only.
 
-Tested against five deliberately vulnerable apps (96 total findings, SAST-only, no LLM):
-
-| Target | Stack | Findings | Key catches |
-|---|---|---|---|
-| [Commando-X/vuln-bank](https://github.com/Commando-X/vuln-bank) | Flask/PostgreSQL | 69 | SQLi (f-string + execute_query + taint), JWT none/hardcoded, SSRF, CORS wildcard, plaintext passwords, Flask debug |
-| [CrowdStrike/vulnapp](https://github.com/CrowdStrike/vulnapp) | Go net/http | 8 | OS command injection (variable shell binary), path traversal, K8s run-as-root, SSRF |
-| [josh2073/vulnapp](https://github.com/josh2073/vulnapp) | Flask/SQLite | 6 | Hardcoded secret key, 4x SQLi (taint), Flask debug mode |
-| [anasachoury/VulnApp](https://github.com/anasachoury/VulnApp) | Flutter/Dart | 4 | SharedPreferences sensitive storage, deeplink no validation, print() data leak, exported component |
-| [appsecco/vulnerable-apps](https://github.com/appsecco/vulnerable-apps) | Python2 + Node.js | 9 | eval() RCE (Node + Python), pickle deserialization, urllib SSRF, remote file inclusion |
-
 ## Requirements
 
 - Python 3.10+
