@@ -3,10 +3,10 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 750
+  total_rules: 752
   total_files: 116
   by_severity:
-    WARNING: 318
+    WARNING: 320
     ERROR: 351
     INFO: 81
   by_language:
@@ -28,11 +28,11 @@ summary:
     dockerfile: 5
     hcl: 28
     c: 28
-    go: 9
+    go: 11
     php: 9
     csharp: 6
   by_category:
-    security: 718
+    security: 720
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -65,7 +65,7 @@ summary:
     MASVS-AUTH-3: 1
   by_confidence:
     HIGH: 399
-    MEDIUM: 243
+    MEDIUM: 245
     LOW: 90
     VERY_HIGH: 18
   parse_errors: []
@@ -12981,6 +12981,45 @@ rules:
   confidence: HIGH
   pack:
   - web
+  source: null
+- file: rules/web/owasp-top10-2025-injection-go.yaml
+  id: go-a03-cmd-injection-exec-var-shell
+  severity: WARNING
+  languages:
+  - go
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-injection-go.yaml
+  id: go-a03-exec-env-injection
+  severity: WARNING
+  languages:
+  - go
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
   source: null
 - file: rules/web/owasp-top10-2025-injection-go.yaml
   id: go-a10-ssrf-http-from-request

@@ -32,8 +32,11 @@ rules:
           - pattern: exec.Command("sh", "-c", $X)
           - pattern: exec.Command("bash", "-c", $X)
           - pattern: exec.CommandContext($CTX, "sh", "-c", $X)
+          - pattern: exec.CommandContext($CTX, "bash", "-c", $X)
       - pattern-not: exec.Command("sh", "-c", "...")
       - pattern-not: exec.Command("bash", "-c", "...")
+      - pattern-not: exec.CommandContext($CTX, "sh", "-c", "...")
+      - pattern-not: exec.CommandContext($CTX, "bash", "-c", "...")
     message: |
       Dynamic shell invocation via exec.Command("sh"/"bash", "-c", ...).
       If the third arg is user-influenced this is RCE (CWE-78). Use
@@ -46,6 +49,46 @@ rules:
       cwe: "CWE-78: OS Command Injection"
       confidence: HIGH
       pack: [web]
+
+  - id: go-a03-cmd-injection-exec-var-shell
+    patterns:
+      - pattern-either:
+          - pattern: exec.Command($SHELL, $ARGS...)
+          - pattern: exec.CommandContext($CTX, $SHELL, $ARGS...)
+      - pattern-not: exec.Command("...", ...)
+      - pattern-not: exec.CommandContext($CTX, "...", ...)
+    message: |
+      Shell binary resolved from a variable. If the binary path or
+      arguments are derived from user input, config, or external data
+      this is OS command injection (CWE-78). Hardcode the binary path
+      and validate all arguments.
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: MEDIUM
+      pack: [web, deep, bugbounty]
+
+  - id: go-a03-exec-env-injection
+    patterns:
+      - pattern: |
+          os.Setenv($KEY, $VAL)
+      - pattern-not: os.Setenv("...", "...")
+    message: |
+      Environment variable set from a non-literal value. If the key or
+      value is user-controlled and consumed by a child process, this is
+      an environment injection vector (CWE-78). Validate and sanitize
+      both key and value.
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: MEDIUM
+      pack: [web, deep]
 
   - id: go-a10-ssrf-http-from-request
     patterns:

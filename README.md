@@ -2,7 +2,9 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-737 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
+752 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). Auto-generated **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls) enrich every stage. **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
+
+Tested against [Commando-X/vuln-bank](https://github.com/Commando-X/vuln-bank) (Flask banking app, 70+ intentional vulns) and [CrowdStrike/vulnapp](https://github.com/CrowdStrike/vulnapp) (Go shell2http with OS command injection, path traversal, K8s misconfig).
 
 ## Requirements
 
@@ -223,7 +225,8 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
 5   triage        fast tier per finding (single or dual chain) — now receives
                   asset context (nearest entry point, auth status, nearby stores)
 6   slice         depth-limited callgraph, entrypoint reachability (asset map
-                  extends reachability to non-Python languages)
+                  extends reachability to non-Python languages); BM25 fallback
+                  links findings to entry points when grep-based callers miss
 7   deep review   deep tier on reachable TRUE / NEEDS-DEEP slices — slice text
                   includes ASSET_CONTEXT block
 8   fix           patch in worktree, re-run scanner   (only with --fix)
@@ -260,6 +263,7 @@ The map enriches every downstream stage:
 mantis/                       standalone CLI Python package
 mantis/asset_patterns.py      regex patterns for asset map (entry points, auth, data stores, etc.)
 mantis/assetmap.py            stage 0b: asset map scanner + query API
+mantis/bm25.py                BM25 scorer for finding-to-entry-point linking
 mantis/threatmodel.py         STRIDE threat model generator
 mantis/resources/agents/      subagent definitions (model: + tier: frontmatter)
 mantis/resources/commands/    slash command for MCP mode
