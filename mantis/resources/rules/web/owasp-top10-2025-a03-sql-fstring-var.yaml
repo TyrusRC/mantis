@@ -1,0 +1,66 @@
+rules:
+  - id: web-a03-sql-fstring-to-var-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      SQL query built with an f-string and stored in a variable that is later
+      executed. Use parameterized queries instead.
+
+      OWASP Top 10:2025 -- A03 Injection
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  $QUERY = f"...{$X}..."
+                  ...
+                  $FUNC($QUERY, ...)
+              - metavariable-regex:
+                  metavariable: $QUERY
+                  regex: (?i).*query.*|.*sql.*|.*stmt.*
+          - patterns:
+              - pattern: |
+                  $QUERY = f"...{$X}..."
+                  ...
+                  $OBJ.execute($QUERY, ...)
+          - patterns:
+              - pattern: |
+                  $QUERY = f"...{$X}..."
+                  ...
+                  $OBJ.execute($QUERY)
+          - patterns:
+              - pattern: |
+                  $QUERY = "..." + $X + "..."
+                  ...
+                  $OBJ.execute($QUERY, ...)
+          - patterns:
+              - pattern: |
+                  $QUERY = "..." + $X + "..."
+                  ...
+                  $OBJ.execute($QUERY)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]
+
+  - id: web-a03-execute-query-fstring-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      SQL query built with an f-string passed to a query execution helper.
+      Use parameterized queries instead.
+
+      OWASP Top 10:2025 -- A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: execute_query(f"...{$X}...", ...)
+          - pattern: execute_query(f"...{$X}...")
+          - pattern: execute_transaction(f"...{$X}...", ...)
+          - pattern: execute_transaction(f"...{$X}...")
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]

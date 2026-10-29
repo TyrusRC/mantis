@@ -1,0 +1,48 @@
+rules:
+  - id: web-a04-python-random-for-security
+    languages: [python]
+    severity: ERROR
+    message: |
+      The `random` module is not cryptographically secure. For tokens,
+      passwords, PINs, account numbers, card numbers, or API keys, use
+      `secrets.token_hex()`, `secrets.token_urlsafe()`, or
+      `secrets.SystemRandom`.
+
+      OWASP Top 10:2025 -- A04 Insecure Design
+    patterns:
+      - pattern-either:
+          - pattern: random.choice(...)
+          - pattern: random.choices(...)
+          - pattern: random.randint(...)
+          - pattern: random.random()
+          - pattern: random.sample(...)
+    paths:
+      exclude:
+        - "**/test/**"
+        - "**/tests/**"
+        - "**/*_test.py"
+    metadata:
+      category: security
+      owasp: "A04:2025 Insecure Design"
+      cwe: "CWE-330"
+      confidence: MEDIUM
+      pack: [web, deep]
+
+  - id: web-a04-flask-secret-key-hardcoded
+    languages: [python]
+    severity: ERROR
+    message: |
+      Flask secret_key set to a string literal. Use os.environ or a
+      secrets manager. A predictable secret_key allows session forgery.
+
+      OWASP Top 10:2025 -- A04 Insecure Design
+    patterns:
+      - pattern-either:
+          - pattern: $APP.secret_key = "..."
+          - pattern: $APP.config["SECRET_KEY"] = "..."
+    metadata:
+      category: security
+      owasp: "A04:2025 Insecure Design"
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]

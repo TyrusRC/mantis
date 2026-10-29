@@ -1,0 +1,40 @@
+rules:
+  - id: web-a05-cors-wildcard-flask
+    languages: [python]
+    severity: WARNING
+    message: |
+      Flask-CORS initialized with no origin restrictions. This allows any
+      website to make authenticated cross-origin requests. Restrict to
+      known origins: CORS(app, origins=["https://yourdomain.com"]).
+
+      OWASP Top 10:2025 -- A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: CORS($APP)
+          - pattern: 'CORS($APP, origins="*")'
+          - pattern: 'CORS($APP, resources={..., "origins": "*", ...})'
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-942"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]
+
+  - id: web-a05-flask-debug-in-run
+    languages: [python]
+    severity: ERROR
+    message: |
+      Flask app.run(debug=True) exposes the Werkzeug interactive debugger
+      and enables code execution. Never use debug=True in production.
+
+      OWASP Top 10:2025 -- A05 Security Misconfiguration
+    patterns:
+      - pattern-either:
+          - pattern: $APP.run(..., debug=True, ...)
+          - pattern: $APP.run(debug=True)
+    metadata:
+      category: security
+      owasp: "A05:2025 Security Misconfiguration"
+      cwe: "CWE-489"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]

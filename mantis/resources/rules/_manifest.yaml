@@ -3,18 +3,18 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 737
-  total_files: 110
+  total_rules: 750
+  total_files: 116
   by_severity:
-    WARNING: 316
-    ERROR: 340
+    WARNING: 318
+    ERROR: 351
     INFO: 81
   by_language:
     java: 112
     kotlin: 92
     xml: 84
     generic: 99
-    python: 50
+    python: 63
     javascript: 81
     typescript: 81
     dart: 30
@@ -32,7 +32,7 @@ summary:
     php: 9
     csharp: 6
   by_category:
-    security: 705
+    security: 718
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -64,8 +64,8 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 387
-    MEDIUM: 242
+    HIGH: 399
+    MEDIUM: 243
     LOW: 90
     VERY_HIGH: 18
   parse_errors: []
@@ -11905,6 +11905,46 @@ rules:
   - deep
   - bugbounty
   source: null
+- file: rules/web/owasp-top10-2025-a03-sql-fstring-var.yaml
+  id: web-a03-sql-fstring-to-var-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-89
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-sql-fstring-var.yaml
+  id: web-a03-execute-query-fstring-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-89
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a03-ssti-flask.yaml
   id: web-a03-ssti-flask-render-template-string
   severity: ERROR
@@ -12027,6 +12067,85 @@ rules:
   - deep
   - bugbounty
   source: null
+- file: rules/web/owasp-top10-2025-a04-plaintext-password.yaml
+  id: web-a04-password-no-hash-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-256
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a04-plaintext-password.yaml
+  id: web-a04-sql-password-plaintext-compare
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-256
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a04-weak-random-security.yaml
+  id: web-a04-python-random-for-security
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-330
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a04-weak-random-security.yaml
+  id: web-a04-flask-secret-key-hardcoded
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A04:2025 Insecure Design
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a05-cors-csrf-cookies.yaml
   id: web-a05-cors-allow-origin-wildcard-node
   severity: ERROR
@@ -12127,6 +12246,47 @@ rules:
   pack:
   - web
   - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-wildcard-flask.yaml
+  id: web-a05-cors-wildcard-flask
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-942
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a05-cors-wildcard-flask.yaml
+  id: web-a05-flask-debug-in-run
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-489
+  owasp_mobile: null
+  owasp: A05:2025 Security Misconfiguration
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a05-security-misconfig.yaml
   id: web-a05-django-debug-true
@@ -12357,6 +12517,66 @@ rules:
   - bugbounty
   - secrets
   source: null
+- file: rules/web/owasp-top10-2025-a07-jwt-hardcoded-none.yaml
+  id: web-a07-jwt-hardcoded-secret
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-jwt-hardcoded-none.yaml
+  id: web-a07-jwt-none-algorithm
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-347
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-jwt-hardcoded-none.yaml
+  id: web-a07-jwt-no-verify-signature
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-347
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a08-deserialization-python.yaml
   id: web-a08-insecure-deserialization-pickle
   severity: ERROR
@@ -12534,6 +12754,45 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a10-ssrf-requests.yaml
+  id: web-a10-ssrf-requests-get-user-url
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-918
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a10-ssrf-requests.yaml
+  id: web-a10-requests-verify-false
+  severity: WARNING
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-295
+  owasp_mobile: null
+  owasp: A02:2025 Cryptographic Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
   pack:
   - web
   - deep

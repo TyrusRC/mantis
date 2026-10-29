@@ -495,6 +495,20 @@ def extract_slice(finding: Finding, target_root: Path,
 
     ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
 
+    # BM25 fallback: when no caller was found and reachability is 'yes'
+    # (default), try to link the finding to the most relevant entry point
+    # via term overlap on the code window.
+    if not chunks_have_callers(chunks) and asset_map and reachability == "yes":
+        bm25_links = _bm25_link(finding, target_root, asset_map)
+        if bm25_links and ctx:
+            ctx += "\n  BM25: " + "; ".join(
+                f"{did} ({sc:.1f})" for did, sc in bm25_links[:3]
+            )
+        elif bm25_links:
+            ctx = "BM25: " + "; ".join(
+                f"{did} ({sc:.1f})" for did, sc in bm25_links[:3]
+            )
+
     return Slice(
         finding=finding,
         sink_func=sink_func,
@@ -514,6 +528,34 @@ def _extract_line_range(text: str, start: int, end: int) -> str:
     start_idx = max(0, start - 1)
     end_idx = min(len(lines), end)
     return "\n".join(lines[start_idx:end_idx])
+
+
+def chunks_have_callers(chunks: list[SliceChunk]) -> bool:
+    return any(c.role == "caller" for c in chunks)
+
+
+_BM25_INDEX_CACHE: dict[Path, object] = {}
+
+
+def _bm25_link(finding, target_root: Path, asset_map) -> list[tuple[str, float]]:
+    """BM25 fallback: rank entry points by term overlap with finding window."""
+    key = target_root.resolve()
+    if key not in _BM25_INDEX_CACHE:
+        from mantis.bm25 import build_entry_point_index
+        _BM25_INDEX_CACHE[key] = build_entry_point_index(asset_map, target_root)
+    idx = _BM25_INDEX_CACHE[key]
+    if not idx:
+        return []
+    sink_file = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
+    text = _read_text(sink_file)
+    if not text:
+        return []
+    lines = text.splitlines()
+    start = max(0, finding.start_line - 20)
+    end = min(len(lines), finding.start_line + 20)
+    window = "\n".join(lines[start:end])
+    from mantis.bm25 import link_finding_to_entry_points
+    return link_finding_to_entry_points(window, idx, top_k=3)
 
 
 _CALLGRAPH_CACHE: dict[Path, object] = {}

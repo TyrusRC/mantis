@@ -1,0 +1,64 @@
+rules:
+  - id: web-a07-jwt-hardcoded-secret
+    languages: [python]
+    severity: ERROR
+    message: |
+      JWT secret is a hardcoded string literal. Use a strong random secret
+      loaded from environment variables or a secrets manager.
+
+      OWASP Top 10:2025 -- A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: jwt.encode($PAYLOAD, "...", ...)
+          - pattern: jwt.decode($TOKEN, "...", ...)
+          - patterns:
+              - pattern: $SECRET = "..."
+              - metavariable-regex:
+                  metavariable: $SECRET
+                  regex: (?i).*jwt.*secret.*|.*secret.*key.*
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-798"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]
+
+  - id: web-a07-jwt-none-algorithm
+    languages: [python]
+    severity: ERROR
+    message: |
+      JWT algorithms list includes 'none', allowing unsigned tokens. An
+      attacker can forge tokens by setting alg=none. Remove 'none' from
+      the algorithms list.
+
+      OWASP Top 10:2025 -- A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: jwt.decode(..., algorithms=[..., "none", ...])
+          - pattern: 'ALGORITHMS = [..., "none", ...]'
+          - pattern: "algorithms=[..., 'none', ...]"
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-347"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]
+
+  - id: web-a07-jwt-no-verify-signature
+    languages: [python]
+    severity: ERROR
+    message: |
+      JWT decoded with signature verification disabled. An attacker can
+      forge arbitrary tokens. Never set verify to False.
+
+      OWASP Top 10:2025 -- A07 Identification and Authentication Failures
+    patterns:
+      - pattern-either:
+          - pattern: 'jwt.decode(..., options={..., "verify_signature": False, ...})'
+          - pattern: 'jwt.decode(..., options={"verify_signature": False})'
+    metadata:
+      category: security
+      owasp: "A07:2025 Identification and Authentication Failures"
+      cwe: "CWE-347"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]

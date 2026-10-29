@@ -1,0 +1,47 @@
+rules:
+  - id: web-a10-ssrf-requests-get-user-url
+    languages: [python]
+    severity: ERROR
+    message: |
+      Server-side HTTP request to a user-controlled URL. Validate the URL
+      against an allowlist of hosts/schemes, block private IP ranges, and
+      never pass verify=False.
+
+      OWASP Top 10:2025 -- A10 SSRF
+    patterns:
+      - pattern-either:
+          - pattern: requests.get($URL, ..., verify=False, ...)
+          - pattern: requests.post($URL, ..., verify=False, ...)
+          - pattern: requests.get($URL, ..., allow_redirects=True, ...)
+          - pattern: requests.post($URL, ..., allow_redirects=True, ...)
+          - patterns:
+              - pattern: requests.get($URL, ...)
+              - pattern-not: requests.get("...", ...)
+          - patterns:
+              - pattern: requests.post($URL, ...)
+              - pattern-not: requests.post("...", ...)
+          - patterns:
+              - pattern: httpx.get($URL, ...)
+              - pattern-not: httpx.get("...", ...)
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]
+
+  - id: web-a10-requests-verify-false
+    languages: [python]
+    severity: WARNING
+    message: |
+      TLS certificate verification disabled with verify=False. This enables
+      MITM attacks. Remove verify=False or use a custom CA bundle.
+
+      OWASP Top 10:2025 -- A10 SSRF / A02 Crypto Failures
+    pattern: requests.$METHOD(..., verify=False, ...)
+    metadata:
+      category: security
+      owasp: "A02:2025 Cryptographic Failures"
+      cwe: "CWE-295"
+      confidence: HIGH
+      pack: [web, deep]
