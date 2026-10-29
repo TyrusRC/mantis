@@ -1197,7 +1197,10 @@ rules:
         - "**/App.tsx"
         - "**/App.jsx"
         - "**/App.js"
-        - "**/src/**/*.{js,jsx,ts,tsx}"
+        - "**/src/**/*.js"
+        - "**/src/**/*.jsx"
+        - "**/src/**/*.ts"
+        - "**/src/**/*.tsx"
       exclude:
         - "**/node_modules/**"
         - "**/build/**"

@@ -45,6 +45,11 @@ ENTRYPOINTS: [{file}:{line} {symbol}, ...]
 REACHABLE_FROM_ENTRYPOINT: yes|no|unknown
 SANITIZERS_FOUND: [{name}, ...] | none
 DEPTH_USED: callers={n} callees={m}
+ASSET_CONTEXT:
+  ENTRY: <nearest entry point> (line N)
+  AUTH: <guard name> | unguarded
+  DATA: <data store operation> (line N)
+  EXTL: <external call> (line N)
 
 [1] {file}:{start}-{end}  role=sink  func={symbol}
 <code>

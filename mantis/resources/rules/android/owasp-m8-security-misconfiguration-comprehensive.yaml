@@ -86,7 +86,7 @@ rules:
       cwe: "CWE-489: Active Debug Code"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-RESILIENCE-2"
-      confidence: VERY_HIGH
+      confidence: HIGH
       playstore_rejection_risk: HIGH
 
   - id: m8-android-signing-config-hardcoded-credentials
@@ -189,7 +189,7 @@ rules:
       category: security
       cwe: "CWE-798: Use of Hard-coded Credentials"
       owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   - id: m8-android-build-config-api-keys
     patterns:
@@ -528,7 +528,7 @@ rules:
       category: security
       cwe: "CWE-494: Download of Code Without Integrity Check"
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   - id: m8-android-dependency-dynamic-version
     patterns:

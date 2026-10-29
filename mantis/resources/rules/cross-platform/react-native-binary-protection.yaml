@@ -583,7 +583,7 @@ rules:
       category: security
       cwe: "CWE-489: Active Debug Code"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      confidence: VERY_HIGH
+      confidence: HIGH
       false_positive_likelihood: VERY_LOW
 
   # ============ CONSOLE LOGGING ============

@@ -83,20 +83,22 @@ class BM25Index:
 
 
 def build_entry_point_index(asset_map, target_root) -> BM25Index:
-    """Index entry-point file windows for BM25 ranking against findings."""
+    """Index each entry-point's code window for BM25 ranking against findings."""
     from pathlib import Path
     idx = BM25Index()
-    seen_files: set[str] = set()
+    file_cache: dict[str, list[str]] = {}
     for ep in asset_map.entry_points:
-        if ep.file in seen_files:
+        if ep.file not in file_cache:
+            fpath = Path(target_root) / ep.file
+            try:
+                text = fpath.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                file_cache[ep.file] = []
+                continue
+            file_cache[ep.file] = text.splitlines()
+        lines = file_cache[ep.file]
+        if not lines:
             continue
-        seen_files.add(ep.file)
-        fpath = Path(target_root) / ep.file
-        try:
-            text = fpath.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        lines = text.splitlines()
         start = max(0, ep.line - 20)
         end = min(len(lines), ep.line + 30)
         window = "\n".join(lines[start:end])

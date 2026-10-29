@@ -42,7 +42,7 @@ rules:
       owasp: "A03:2025 Injection"
       cwe: "CWE-89"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]
 
   - id: web-a03-execute-query-fstring-python
     languages: [python]
@@ -63,4 +63,4 @@ rules:
       owasp: "A03:2025 Injection"
       cwe: "CWE-89"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]

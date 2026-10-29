@@ -269,7 +269,7 @@ rules:
       category: security
       cwe: "CWE-1104: Use of Unmaintained Third Party Components"
       owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
 
 
@@ -339,7 +339,7 @@ rules:
       cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-NETWORK-1"
-      confidence: VERY_HIGH
+      confidence: HIGH
       platform: ios
 
   - id: react-native-ios-url-scheme-insecure

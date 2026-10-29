@@ -3,18 +3,18 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 759
+  total_rules: 758
   total_files: 120
   by_severity:
-    WARNING: 322
-    ERROR: 356
+    WARNING: 323
+    ERROR: 354
     INFO: 81
   by_language:
     java: 112
     kotlin: 92
     xml: 84
     generic: 99
-    python: 67
+    python: 66
     javascript: 82
     typescript: 82
     dart: 32
@@ -32,7 +32,7 @@ summary:
     php: 9
     csharp: 6
   by_category:
-    security: 727
+    security: 726
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -66,10 +66,9 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 404
+    HIGH: 421
     MEDIUM: 247
     LOW: 90
-    VERY_HIGH: 18
   parse_errors: []
 rules:
 - file: rules/android/android-advanced-pentesting-patterns.yaml
@@ -972,7 +971,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/android-manifest-security-enhanced.yaml
@@ -989,7 +988,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/android-manifest-security-enhanced.yaml
@@ -1040,7 +1039,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/android-manifest-security-enhanced.yaml
@@ -2259,7 +2258,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/owasp-m5-m9-additional-patterns.yaml
@@ -2553,7 +2552,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/owasp-m8-security-misconfiguration-comprehensive.yaml
@@ -2570,7 +2569,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/owasp-m8-security-misconfiguration-comprehensive.yaml
@@ -2620,7 +2619,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/android/owasp-m8-security-misconfiguration-comprehensive.yaml
@@ -3617,7 +3616,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/flutter-binary-protections.yaml
@@ -3633,7 +3632,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/flutter-binary-protections.yaml
@@ -3803,7 +3802,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/flutter-config-security.yaml
@@ -5369,7 +5368,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m8-security-misconfiguration.yaml
@@ -5453,7 +5452,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m8-security-misconfiguration.yaml
@@ -5469,7 +5468,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/owasp-m8-security-misconfiguration.yaml
@@ -5843,7 +5842,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protection.yaml
@@ -5961,7 +5960,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protections.yaml
@@ -6081,7 +6080,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-config-security.yaml
@@ -6098,7 +6097,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/cross-platform/react-native-config-security.yaml
@@ -10105,7 +10104,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: VERY_HIGH
+  confidence: HIGH
   pack: []
   source: null
 - file: rules/ios/owasp-m8-security-misconfiguration-comprehensive.yaml
@@ -11675,6 +11674,7 @@ rules:
   confidence: MEDIUM
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12004,6 +12004,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12024,6 +12025,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12044,6 +12046,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12125,6 +12128,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12227,6 +12231,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12247,12 +12252,13 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a04-weak-random-security.yaml
   id: web-a04-python-random-for-security
-  severity: ERROR
+  severity: WARNING
   languages:
   - python
   category: security
@@ -12407,27 +12413,6 @@ rules:
   confidence: HIGH
   pack:
   - web
-  - deep
-  - bugbounty
-  source: null
-- file: rules/web/owasp-top10-2025-a05-cors-wildcard-flask.yaml
-  id: web-a05-flask-debug-in-run
-  severity: ERROR
-  languages:
-  - python
-  category: security
-  cwe:
-  - CWE-489
-  owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack:
-  - web
-  - fast
   - deep
   - bugbounty
   source: null
@@ -12677,6 +12662,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12697,6 +12683,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12717,6 +12704,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12918,6 +12906,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   - bugbounty
   source: null
@@ -12938,6 +12927,7 @@ rules:
   confidence: HIGH
   pack:
   - web
+  - fast
   - deep
   source: null
 - file: rules/web/owasp-top10-2025-a10-ssrf.yaml

@@ -149,6 +149,10 @@ Write `./security-audit-report.md` (or `<path>/security-audit-report.md`). Schem
 OWASP coverage: list categories with at least one matching rule, then list categories with no rule pack.
 MASVS: <ids matched>  CWE: <top 5>  CVE: <list>
 
+## Threat Model (auto-generated)
+STRIDE-based threats from the asset map: attack surface summary, unguarded entry points,
+threat matrix, high-risk paths (unguarded endpoints touching data stores or external calls).
+
 ## Findings
 ### Critical
 - **<rule-id>** — `<file>:<line>`

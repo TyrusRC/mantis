@@ -69,7 +69,7 @@ rules:
       cwe: "CWE-319: Cleartext Transmission"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-NETWORK-1"
-      confidence: VERY_HIGH
+      confidence: HIGH
       platform: ios
 
   - id: flutter-ios-custom-url-scheme-insecure
@@ -351,7 +351,7 @@ rules:
       category: security
       cwe: "CWE-494: Download Without Integrity Check"
       owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   - id: flutter-gradle-allow-insecure-protocol
     patterns:
@@ -377,7 +377,7 @@ rules:
     metadata:
       category: security
       owasp-mobile-2024: "M8: Security Misconfiguration"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   # ============ FLUTTER BUILD CONFIGURATION ============
 

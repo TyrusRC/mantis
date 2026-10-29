@@ -163,7 +163,7 @@ rules:
       cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-NETWORK-1"
-      confidence: VERY_HIGH
+      confidence: HIGH
       appstore_rejection_risk: HIGH
 
   - id: m8-ios-ats-forward-secrecy-disabled

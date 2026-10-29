@@ -120,7 +120,7 @@ rules:
       category: security
       cwe: "CWE-89: SQL Injection"
       owasp-mobile-2024: "M4: Insufficient Input/Output Validation"
-      confidence: VERY_HIGH
+      confidence: HIGH
       false_positive_rate: VERY_LOW
       improvement_notes: |
         - High confidence rule (string concat is always bad)

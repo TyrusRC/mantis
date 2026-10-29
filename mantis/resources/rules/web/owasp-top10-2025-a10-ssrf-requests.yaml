@@ -28,7 +28,7 @@ rules:
       owasp: "A10:2025 Server-Side Request Forgery"
       cwe: "CWE-918"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]
 
   - id: web-a10-requests-verify-false
     languages: [python]
@@ -44,4 +44,4 @@ rules:
       owasp: "A02:2025 Cryptographic Failures"
       cwe: "CWE-295"
       confidence: HIGH
-      pack: [web, deep]
+      pack: [web, fast, deep]

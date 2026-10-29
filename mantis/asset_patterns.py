@@ -22,7 +22,7 @@ _CS = frozenset({"csharp"})
 _RS = frozenset({"rust"})
 _ALL = frozenset(EXT_TO_LANG.values())
 
-EXT_EXTRA = {".cs": "csharp"}
+EXT_EXTRA: dict[str, str] = {}  # .cs now in EXT_TO_LANG; kept for API compat
 
 PatDef = tuple[re.Pattern, str, str, frozenset[str]]
 
@@ -224,7 +224,7 @@ PATTERN_DEFS: list[PatDef] = [
        "external", "py-http", _PY),
     _p(r"(?:urllib\.request\.urlopen|urlopen)\s*\(",
        "external", "urllib", _PY),
-    _p(r"(?:boto3|client|resource)\s*\.\s*(?P<name>\w+)\s*\(",
+    _p(r"boto3\s*\.\s*(?P<name>client|resource|Session)\s*\(",
        "external", "aws-sdk", _PY),
 
     # JS/TS -- fetch, axios, http
@@ -262,11 +262,11 @@ PATTERN_DEFS: list[PatDef] = [
     _p(r"(?:^|[\s(,{=:])\s*(?P<name>password|passwd|secret|api_key|apikey|api_secret|"
        r"access_token|refresh_token|private_key|client_secret|auth_token|"
        r"session_token|jwt_secret|encryption_key|master_key)\s*[=:,)\]}]",
-       "sensitive", "credential-var", _ALL | _CS,
+       "sensitive", "credential-var", _ALL,
        re.IGNORECASE),
     _p(r"(?:^|[\s(,{=:])\s*(?P<name>credit_card|card_number|cvv|ssn|"
        r"social_security|date_of_birth|phone_number|bank_account)\s*[=:,)\]}]",
-       "sensitive", "pii-var", _ALL | _CS,
+       "sensitive", "pii-var", _ALL,
        re.IGNORECASE),
 ]
 

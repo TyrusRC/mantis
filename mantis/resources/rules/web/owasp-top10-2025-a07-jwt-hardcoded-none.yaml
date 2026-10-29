@@ -15,13 +15,13 @@ rules:
               - pattern: $SECRET = "..."
               - metavariable-regex:
                   metavariable: $SECRET
-                  regex: (?i).*jwt.*secret.*|.*secret.*key.*
+                  regex: (?i)^(jwt[_]?secret|jwt[_]?key)$
     metadata:
       category: security
       owasp: "A07:2025 Identification and Authentication Failures"
       cwe: "CWE-798"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]
 
   - id: web-a07-jwt-none-algorithm
     languages: [python]
@@ -42,7 +42,7 @@ rules:
       owasp: "A07:2025 Identification and Authentication Failures"
       cwe: "CWE-347"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]
 
   - id: web-a07-jwt-no-verify-signature
     languages: [python]
@@ -61,4 +61,4 @@ rules:
       owasp: "A07:2025 Identification and Authentication Failures"
       cwe: "CWE-347"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]

@@ -294,7 +294,7 @@ rules:
       cwe: "CWE-295: Improper Certificate Validation"
       owasp-mobile-2024: "M5: Insecure Communication"
       masvs: "MASVS-NETWORK-2"
-      confidence: VERY_HIGH
+      confidence: HIGH
       playstore_rejection_risk: MEDIUM
 
   - id: android-network-cleartext-base-config
@@ -411,7 +411,7 @@ rules:
       cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-NETWORK-1"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   - id: android-network-domain-cleartext-broad
     patterns:
@@ -769,7 +769,7 @@ rules:
       cwe: "CWE-732: Incorrect Permission Assignment for Critical Resource"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-PLATFORM-1"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   # ============ PERMISSION SECURITY ============
 

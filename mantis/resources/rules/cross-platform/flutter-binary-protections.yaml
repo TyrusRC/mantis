@@ -325,7 +325,7 @@ rules:
       cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       mastg-test: "MASTG-TEST-0226: Testing for Code Obfuscation"
-      confidence: VERY_HIGH
+      confidence: HIGH
       false_positive_likelihood: VERY_LOW
 
   - id: flutter-m7-debug-info-not-split
@@ -361,7 +361,7 @@ rules:
     metadata:
       category: security
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      confidence: VERY_HIGH
+      confidence: HIGH
 
   # ============================================================================
   # SECTION 2: DEBUG MODE & DEVELOPMENT ARTIFACTS

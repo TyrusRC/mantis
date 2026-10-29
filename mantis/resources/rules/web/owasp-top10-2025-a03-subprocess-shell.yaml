@@ -50,4 +50,4 @@ rules:
       owasp: "A10:2025 Server-Side Request Forgery"
       cwe: "CWE-918"
       confidence: HIGH
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]

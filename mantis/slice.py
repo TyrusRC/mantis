@@ -40,6 +40,7 @@ EXT_TO_LANG = {
     ".rb": "ruby",
     ".php": "php",
     ".rs": "rust",
+    ".cs": "csharp",
 }
 
 # Sister extensions a language is commonly called from. Used by the caller

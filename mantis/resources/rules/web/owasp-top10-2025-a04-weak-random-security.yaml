@@ -1,7 +1,7 @@
 rules:
   - id: web-a04-python-random-for-security
     languages: [python]
-    severity: ERROR
+    severity: WARNING
     message: |
       The `random` module is not cryptographically secure. For tokens,
       passwords, PINs, account numbers, card numbers, or API keys, use

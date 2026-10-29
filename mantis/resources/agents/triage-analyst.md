@@ -19,14 +19,6 @@ Your only job: classify it. You do not propose fixes. You do not explore the cod
    - **FALSE** — match is in a comment, test file, mock, dead code, framework-safe API, or input is sanitized inline.
    - **NEEDS-DEEP** — cannot decide without dataflow / callgraph analysis. Escalate.
 
-# Output
-
-One line per finding, exactly this shape:
-
-```
-{finding_id} | TRUE|FALSE|NEEDS-DEEP | <one-sentence reason, ≤140 chars>
-```
-
 # Asset context
 
 When present, you receive an **Asset context** block with the finding. Use it:
@@ -39,6 +31,14 @@ When present, you receive an **Asset context** block with the finding. Use it:
 - **SENS** — sensitive variable (password, token, PII) nearby. Strengthens credential-leak findings.
 
 Asset context is a signal, not a verdict. Always check the code window.
+
+# Output
+
+One line per finding, exactly this shape:
+
+```
+{finding_id} | TRUE|FALSE|NEEDS-DEEP | <one-sentence reason, ≤140 chars>
+```
 
 # Hard rules
 

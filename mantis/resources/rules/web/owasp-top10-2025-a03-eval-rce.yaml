@@ -46,4 +46,4 @@ rules:
       owasp: "A03:2025 Injection"
       cwe: "CWE-94"
       confidence: MEDIUM
-      pack: [web, deep, bugbounty]
+      pack: [web, fast, deep, bugbounty]

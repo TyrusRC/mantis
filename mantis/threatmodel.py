@@ -52,12 +52,17 @@ def build_threat_model(amap: "AssetMap") -> str:
     if not amap.nodes:
         return ""
 
+    guard_cache: dict[tuple[str, int], tuple[bool, str]] = {}
     entries: list[ThreatEntry] = []
     for node in amap.nodes:
         stride_threats = _STRIDE_MAP.get(node.kind)
         if not stride_threats:
             continue
-        guarded, guard_name = amap.is_guarded(node.file, node.line)
+        key = (node.file, node.line)
+        if key not in guard_cache:
+            g, gn = amap.is_guarded(node.file, node.line)
+            guard_cache[key] = (g, gn or "")
+        guarded, guard_name = guard_cache[key]
         for category, threat in stride_threats:
             entries.append(ThreatEntry(
                 asset=node.name,
@@ -66,7 +71,7 @@ def build_threat_model(amap: "AssetMap") -> str:
                 category=category,
                 threat=threat,
                 guarded=guarded,
-                guard_name=guard_name or "",
+                guard_name=guard_name,
             ))
 
     if not entries:
