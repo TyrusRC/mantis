@@ -3,21 +3,21 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 752
-  total_files: 116
+  total_rules: 759
+  total_files: 120
   by_severity:
-    WARNING: 320
-    ERROR: 351
+    WARNING: 322
+    ERROR: 356
     INFO: 81
   by_language:
     java: 112
     kotlin: 92
     xml: 84
     generic: 99
-    python: 63
-    javascript: 81
-    typescript: 81
-    dart: 30
+    python: 67
+    javascript: 82
+    typescript: 82
+    dart: 32
     yaml: 33
     ruby: 41
     swift: 121
@@ -32,7 +32,7 @@ summary:
     php: 9
     csharp: 6
   by_category:
-    security: 720
+    security: 727
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -47,10 +47,12 @@ summary:
     'M3: Insecure Authentication/Authorization': 52
     'M2: Inadequate Supply Chain Security, M9: Insecure Data Storage': 1
     'M7: Insufficient Binary Protections': 73
+    M9: 1
+    M7: 1
     'M1: Improper Platform Usage': 10
   by_masvs:
     MASVS-RESILIENCE-4: 2
-    MASVS-NETWORK-1: 21
+    MASVS-NETWORK-1: 22
     MASVS-NETWORK-2: 2
     MASVS-PLATFORM-1: 5
     MASVS-CODE-4: 3
@@ -64,8 +66,8 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 399
-    MEDIUM: 245
+    HIGH: 404
+    MEDIUM: 247
     LOW: 90
     VERY_HIGH: 18
   parse_errors: []
@@ -3748,6 +3750,44 @@ rules:
   cvss: null
   confidence: LOW
   pack: []
+  source: null
+- file: rules/cross-platform/flutter-cleartext-http.yaml
+  id: flutter-cleartext-http-endpoint
+  severity: WARNING
+  languages:
+  - dart
+  category: security
+  cwe:
+  - CWE-319
+  owasp_mobile: M9
+  owasp: null
+  masvs: MASVS-NETWORK-1
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - mobile
+  - deep
+  source: null
+- file: rules/cross-platform/flutter-cleartext-http.yaml
+  id: flutter-print-sensitive-data
+  severity: WARNING
+  languages:
+  - dart
+  category: security
+  cwe:
+  - CWE-532
+  owasp_mobile: M7
+  owasp: null
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - mobile
+  - deep
   source: null
 - file: rules/cross-platform/flutter-config-security.yaml
   id: flutter-ios-ats-disabled
@@ -11596,6 +11636,48 @@ rules:
   - deep
   - bugbounty
   source: null
+- file: rules/web/owasp-top10-2025-a03-eval-rce.yaml
+  id: web-a03-node-eval-user-input
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - CWE-94
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-eval-rce.yaml
+  id: web-a03-python-eval-exec-user-input
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-94
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a03-injection-java.yaml
   id: java-a03-sql-injection-statement-concat
   severity: ERROR
@@ -11945,6 +12027,26 @@ rules:
   - deep
   - bugbounty
   source: null
+- file: rules/web/owasp-top10-2025-a03-sql-percent-format.yaml
+  id: web-a03-sql-percent-format-python
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-89
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
+  source: null
 - file: rules/web/owasp-top10-2025-a03-ssti-flask.yaml
   id: web-a03-ssti-flask-render-template-string
   severity: ERROR
@@ -11984,6 +12086,47 @@ rules:
   pack:
   - web
   - deep
+  source: null
+- file: rules/web/owasp-top10-2025-a03-subprocess-shell.yaml
+  id: web-a03-subprocess-shell-true-concat
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-78
+  owasp_mobile: null
+  owasp: A03:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a03-subprocess-shell.yaml
+  id: web-a03-urllib-urlopen-user-input
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - CWE-918
+  owasp_mobile: null
+  owasp: A10:2025 Server-Side Request Forgery
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - deep
+  - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a04-insecure-design.yaml
   id: web-a04-idor-direct-id-query-python

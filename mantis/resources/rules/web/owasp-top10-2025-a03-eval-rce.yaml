@@ -1,0 +1,49 @@
+rules:
+  - id: web-a03-node-eval-user-input
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      User input passed to eval(). This is remote code execution. Use
+      JSON.parse() for data, or a sandboxed evaluator if dynamic code
+      execution is genuinely needed.
+
+      OWASP Top 10:2025 -- A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: eval($REQ.query.$PARAM)
+          - pattern: eval(req.query.$PARAM)
+          - pattern: eval(req.body.$PARAM)
+          - pattern: eval(req.params.$PARAM)
+          - patterns:
+              - pattern: eval($X)
+              - pattern-not: eval("...")
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-94"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-python-eval-exec-user-input
+    languages: [python]
+    severity: ERROR
+    message: |
+      Dynamic code execution via eval() or exec(). If the argument
+      includes user input this is RCE. Avoid eval/exec entirely; use
+      ast.literal_eval() for safe data parsing.
+
+      OWASP Top 10:2025 -- A03 Injection
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: eval($X)
+              - pattern-not: eval("...")
+          - patterns:
+              - pattern: exec($X)
+              - pattern-not: exec("...")
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-94"
+      confidence: MEDIUM
+      pack: [web, deep, bugbounty]

@@ -1,0 +1,53 @@
+rules:
+  - id: web-a03-subprocess-shell-true-concat
+    languages: [python]
+    severity: ERROR
+    message: |
+      Shell command built from string concatenation with shell=True.
+      Use subprocess.run([binary, arg1, arg2], shell=False) and never
+      pass user input to a shell.
+
+      OWASP Top 10:2025 -- A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.check_output("..." + $X + "...", shell=True, ...)
+          - pattern: subprocess.check_output("..." + $X, shell=True, ...)
+          - pattern: subprocess.Popen("..." + $X + "...", shell=True, ...)
+          - pattern: subprocess.Popen("..." + $X, shell=True, ...)
+          - pattern: subprocess.run("..." + $X + "...", shell=True, ...)
+          - pattern: subprocess.run("..." + $X, shell=True, ...)
+          - pattern: subprocess.call("..." + $X + "...", shell=True, ...)
+          - pattern: subprocess.call("..." + $X, shell=True, ...)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-78"
+      confidence: HIGH
+      pack: [web, fast, deep, bugbounty]
+
+  - id: web-a03-urllib-urlopen-user-input
+    languages: [python]
+    severity: ERROR
+    message: |
+      urllib.urlopen() or urllib.request.urlopen() called with a dynamic
+      URL. If the URL is user-controlled, this is SSRF (CWE-918). Validate
+      against an allowlist of schemes and hosts.
+
+      OWASP Top 10:2025 -- A03 Injection / A10 SSRF
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: urllib.urlopen($URL)
+              - pattern-not: urllib.urlopen("...")
+          - patterns:
+              - pattern: urllib.request.urlopen($URL)
+              - pattern-not: urllib.request.urlopen("...")
+          - patterns:
+              - pattern: urlopen($URL)
+              - pattern-not: urlopen("...")
+    metadata:
+      category: security
+      owasp: "A10:2025 Server-Side Request Forgery"
+      cwe: "CWE-918"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]

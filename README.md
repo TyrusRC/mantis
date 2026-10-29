@@ -2,9 +2,17 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-752 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). Auto-generated **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls) enrich every stage. **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
+759 OpenGrep rules covering full OWASP Web Top 10 2025 (A01–A10), OWASP LLM Top 10, mobile (Android + iOS), IaC (Terraform, Dockerfile, Kubernetes), cloud (AWS SDK), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists (authentication, cryptography, session management, business logic, LLM). Auto-generated **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls) enrich every stage. **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any litellm-supported provider. Local only.
 
-Tested against [Commando-X/vuln-bank](https://github.com/Commando-X/vuln-bank) (Flask banking app, 70+ intentional vulns) and [CrowdStrike/vulnapp](https://github.com/CrowdStrike/vulnapp) (Go shell2http with OS command injection, path traversal, K8s misconfig).
+Tested against five deliberately vulnerable apps:
+
+| Target | Stack | Findings | Key catches |
+|---|---|---|---|
+| [Commando-X/vuln-bank](https://github.com/Commando-X/vuln-bank) | Flask/PostgreSQL | 71 | 30 SQLi (f-string + execute_query), JWT none/hardcoded, SSRF, CORS wildcard, weak RNG, plaintext passwords |
+| [CrowdStrike/vulnapp](https://github.com/CrowdStrike/vulnapp) | Go net/http | 8 | OS command injection (exec.Command variable shell), path traversal, K8s run-as-root |
+| [josh2073/vulnapp](https://github.com/josh2073/vulnapp) | Flask/SQLite | 8 | Hardcoded secret key, 4x SQLi (taint), Flask debug mode |
+| [anasachoury/VulnApp](https://github.com/anasachoury/VulnApp) | Flutter/Dart | 4 | SharedPreferences sensitive storage, deeplink no validation, print() data leak, exported component |
+| [appsecco/vulnerable-apps](https://github.com/appsecco/vulnerable-apps) | Python2 + Node.js | 9 | eval() RCE (Node + Python), pickle deserialization, urllib SSRF, remote file inclusion |
 
 ## Requirements
 

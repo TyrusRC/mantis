@@ -1,0 +1,35 @@
+rules:
+  - id: web-a03-sql-percent-format-python
+    languages: [python]
+    severity: ERROR
+    message: |
+      SQL query built with %-formatting or .format(). Use parameterized
+      queries (cursor.execute(sql, (param,))) to prevent injection.
+
+      OWASP Top 10:2025 -- A03 Injection
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute("...%s..." % $X)
+          - pattern: $CUR.execute("...%s..." % ($X, ...))
+          - pattern: $CUR.execute("...{}...".format($X))
+          - patterns:
+              - pattern: |
+                  $QUERY = "...%s..." % $X
+                  ...
+                  $OBJ.execute($QUERY, ...)
+          - patterns:
+              - pattern: |
+                  $QUERY = "...%s..." % $X
+                  ...
+                  $OBJ.execute($QUERY)
+          - patterns:
+              - pattern: |
+                  $QUERY = "...%s..." % ($X, ...)
+                  ...
+                  $OBJ.execute($QUERY)
+    metadata:
+      category: security
+      owasp: "A03:2025 Injection"
+      cwe: "CWE-89"
+      confidence: HIGH
+      pack: [web, deep, bugbounty]

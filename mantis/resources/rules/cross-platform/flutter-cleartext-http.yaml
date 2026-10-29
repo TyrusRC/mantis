@@ -1,0 +1,55 @@
+rules:
+  - id: flutter-cleartext-http-endpoint
+    languages: [dart]
+    severity: WARNING
+    message: |
+      HTTP URL (not HTTPS) used for network requests. All API traffic
+      should use HTTPS to prevent MitM interception of credentials,
+      tokens, and user data.
+
+      OWASP Mobile 2024 -- M9 Insecure Data Storage / MASVS-NETWORK-1
+    patterns:
+      - pattern-either:
+          - pattern: '"http://..."'
+          - pattern: "'http://...'"
+          - pattern: 'Uri.parse("http://...")'
+    paths:
+      include:
+        - "**/*.dart"
+      exclude:
+        - "**/test/**"
+        - "**/tests/**"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M9"
+      masvs-v2: "MASVS-NETWORK-1"
+      cwe: "CWE-319"
+      confidence: HIGH
+      pack: [mobile, deep]
+
+  - id: flutter-print-sensitive-data
+    languages: [dart]
+    severity: WARNING
+    message: |
+      Sensitive data (response, token, password) logged via print().
+      Debug output is readable via logcat on Android and Console on iOS.
+      Remove logging of sensitive data before release.
+
+      OWASP Mobile 2024 -- M7 Insufficient Privacy Controls
+    patterns:
+      - pattern-either:
+          - pattern: print("...$RESP...")
+          - pattern: print($RESP.body)
+          - pattern: print($RESP.data)
+    paths:
+      include:
+        - "**/*.dart"
+      exclude:
+        - "**/test/**"
+        - "**/tests/**"
+    metadata:
+      category: security
+      owasp-mobile-2024: "M7"
+      cwe: "CWE-532"
+      confidence: MEDIUM
+      pack: [mobile, deep]
