@@ -132,11 +132,20 @@ class Pipeline:
             print(f"[mantis] packs override: {', '.join(self.packs)}")
         print(f"[mantis] packs   = {', '.join(packs)}")
 
-        # Stage 0b: asset map
+        # Stage 0b: asset map + context graph
         print("[mantis] stage 0b: asset map")
         asset_map = build_asset_map(self.target, stack=inv.stack)
         print(f"[mantis] assets: {asset_map.summary()} "
               f"({asset_map.indexed_files} files indexed)")
+
+        from mantis.context_graph import build_context_graph
+        ctx_graph = build_context_graph(self.target, stack=inv.stack)
+        if ctx_graph:
+            print(f"[mantis] context graph: {len(ctx_graph.nodes)} nodes, "
+                  f"{len(ctx_graph.edges)} edges "
+                  f"({ctx_graph.indexed_files} files, tree-sitter)")
+        else:
+            print("[mantis] context graph: skipped (tree-sitter not installed)")
 
         # Stage 1: SAST scan
         print("[mantis] stage 1: SAST scan")
@@ -277,7 +286,8 @@ class Pipeline:
             tmode = self.config.triage_mode or "single"
             print(f"[mantis] stage 5: triage ({len(filtered)} findings, {tmode}-chain)")
             triage_results = triage_all(filtered, self.agents, provider, self.target,
-                                       mode=tmode, asset_map=asset_map)
+                                       mode=tmode, asset_map=asset_map,
+                                       context_graph=ctx_graph)
         else:
             if self.skip_llm:
                 placeholder_verdict = "RAW"
@@ -328,7 +338,9 @@ class Pipeline:
         # Stage 6 + 7: slice and deep review
         if slice_input and not skip_deep:
             print(f"[mantis] stage 6: slice ({len(slice_input)} candidates)")
-            slices = [extract_slice(r.finding, self.target, asset_map=asset_map) for r in slice_input]
+            slices = [extract_slice(r.finding, self.target,
+                                   asset_map=asset_map, context_graph=ctx_graph)
+                      for r in slice_input]
 
             reachable = [s for s in slices if s.reachability != "no"]
             if m == "bugbounty":

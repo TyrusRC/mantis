@@ -18,6 +18,7 @@ from mantis.scan import Finding
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mantis.assetmap import AssetMap
+    from mantis.context_graph import ContextGraph
 
 
 Verdict = Literal["TRUE", "FALSE", "NEEDS-DEEP", "RAW", "ERROR"]
@@ -100,10 +101,20 @@ def triage_finding(
     finding: Finding,
     target_root: Path,
     asset_map: Optional["AssetMap"] = None,
+    context_graph: Optional["ContextGraph"] = None,
 ) -> TriageResult:
     abs_path = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     window = read_window(abs_path, finding.start_line)
     ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
+    if context_graph and ctx:
+        from mantis.slice import find_enclosing_function, _detect_language
+        text = abs_path.read_text(encoding="utf-8", errors="replace") if abs_path.is_file() else ""
+        lang = _detect_language(abs_path)
+        enc = find_enclosing_function(text, finding.start_line, lang) if text else None
+        if enc:
+            hops = context_graph.hop_count_to_entry(enc[0], finding.path)
+            if hops is not None:
+                ctx += f"\n  HOPS: {hops} from entry point (tree-sitter call graph)"
     user = build_user_prompt(finding, window, asset_context=ctx)
 
     try:
@@ -150,18 +161,19 @@ def triage_all(
     max_findings: Optional[int] = None,
     mode: str = "single",
     asset_map: Optional["AssetMap"] = None,
+    context_graph: Optional["ContextGraph"] = None,
 ) -> list[TriageResult]:
     triage_agent = find_agent(agents, "triage-analyst")
     capped = findings[:max_findings] if max_findings else findings
     if mode == "dual":
         return [
             triage_finding_dual(provider, triage_agent.body, f, target_root,
-                                asset_map=asset_map)
+                                asset_map=asset_map, context_graph=context_graph)
             for f in capped
         ]
     return [
         triage_finding(provider, triage_agent.body, f, target_root,
-                       asset_map=asset_map)
+                       asset_map=asset_map, context_graph=context_graph)
         for f in capped
     ]
 
@@ -218,6 +230,7 @@ def triage_finding_dual(
     finding: Finding,
     target_root: Path,
     asset_map: Optional["AssetMap"] = None,
+    context_graph: Optional["ContextGraph"] = None,
 ) -> TriageResult:
     abs_path = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     window = read_window(abs_path, finding.start_line)

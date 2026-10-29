@@ -21,6 +21,7 @@ from mantis.scan import Finding
 
 if TYPE_CHECKING:
     from mantis.assetmap import AssetMap
+    from mantis.context_graph import ContextGraph
 
 
 SLICE_TOKEN_BUDGET = 4000
@@ -402,7 +403,8 @@ def _which(name: str) -> bool:
 # --- main entry point ---
 
 def extract_slice(finding: Finding, target_root: Path,
-                  asset_map: Optional["AssetMap"] = None) -> Slice:
+                  asset_map: Optional["AssetMap"] = None,
+                  context_graph: Optional["ContextGraph"] = None) -> Slice:
     sink_file = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     text = _read_text(sink_file)
     if not text:
@@ -492,7 +494,8 @@ def extract_slice(finding: Finding, target_root: Path,
     from mantis.reachability import classify_reachability
     reachability = classify_reachability(
         finding, sink_func, chunks,
-        callgraph=_callgraph_for(target_root), asset_map=asset_map)
+        callgraph=_callgraph_for(target_root), asset_map=asset_map,
+        context_graph=context_graph)
 
     ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
 

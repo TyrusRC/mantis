@@ -217,7 +217,10 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
 0b  asset map     regex-scan for entry points, auth middleware, data stores,
                   external calls, sensitive data across all supported languages;
                   feeds triage context, reachability, slice annotations, and the
-                  auto-generated STRIDE threat model in the report
+                  auto-generated STRIDE threat model in the report. When
+                  tree-sitter is installed, also builds a context graph with
+                  typed call edges (EXTRACTED/INFERRED) for precise multi-language
+                  reachability and hop-count-to-entry-point in triage context
 1   static wide   opengrep with the selected pack
 2   SCA           lockfile dependency-CVE rules
 3   secrets       high-confidence secrets pack
@@ -264,6 +267,7 @@ mantis/                       standalone CLI Python package
 mantis/asset_patterns.py      regex patterns for asset map (entry points, auth, data stores, etc.)
 mantis/assetmap.py            stage 0b: asset map scanner + query API
 mantis/bm25.py                BM25 scorer for finding-to-entry-point linking
+mantis/context_graph.py       optional tree-sitter call graph (typed edges, BFS reachability)
 mantis/threatmodel.py         STRIDE threat model generator
 mantis/resources/agents/      subagent definitions (model: + tier: frontmatter)
 mantis/resources/commands/    slash command for MCP mode

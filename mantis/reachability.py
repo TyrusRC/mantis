@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from mantis.assetmap import AssetMap
     from mantis.callgraph import CallGraph
+    from mantis.context_graph import ContextGraph
 
 
 _DEAD_PATH_TOKENS = (
@@ -53,6 +54,7 @@ def classify_reachability(
     chunks: list,
     callgraph: Optional["CallGraph"] = None,
     asset_map: Optional["AssetMap"] = None,
+    context_graph: Optional["ContextGraph"] = None,
 ) -> str:
     """Return 'yes', 'no', or 'unknown'.
 
@@ -60,12 +62,18 @@ def classify_reachability(
     dirs is dead regardless of call graph.
 
     Priority for live paths:
+    0. Context graph (tree-sitter, multi-language, precise edges).
     1. Python call graph (ast-based, precise).
     2. Asset map entry-point detection (regex-based, all languages).
     3. Per-caller path inspection of slice chunks.
     """
     if _is_dead_path(finding.path):
         return "no"
+
+    if context_graph is not None and sink_func:
+        cg_result = context_graph.reaches_entry_point(sink_func, finding.path)
+        if cg_result in ("yes", "no"):
+            return cg_result
 
     if callgraph is not None and sink_func and finding.path.endswith(".py"):
         from mantis.callgraph import reaches_entrypoint

@@ -30,6 +30,8 @@ When present, you receive an **Asset context** block with the finding. Use it:
 - **EXTL** — an outbound HTTP / SDK call nearby. Strengthens SSRF / exfiltration plausibility.
 - **SENS** — sensitive variable (password, token, PII) nearby. Strengthens credential-leak findings.
 
+- **HOPS: N** — the finding is N call-graph hops from an entry point (tree-sitter precision). Lower = more directly reachable = higher risk.
+
 Asset context is a signal, not a verdict. Always check the code window.
 
 # Output

@@ -19,12 +19,15 @@ Stage 0b (asset map) runs automatically between inventory and SAST scan. It rege
 
 Pattern definitions live in `mantis/asset_patterns.py`; threat model generation in `mantis/threatmodel.py`.
 
+When tree-sitter is installed (`pip install tree-sitter-language-pack`), stage 0b also builds a **context graph** (`mantis/context_graph.py`) — a real call graph with typed edges (EXTRACTED/INFERRED) built from tree-sitter AST parsing. This gives precise multi-language reachability (BFS from finding to entry point with hop counting) and replaces the grep-based caller discovery. Falls back gracefully to the regex asset map when tree-sitter is unavailable.
+
 Layout:
 
 - `mantis/` — standalone CLI Python package (loads agents, runs pipeline, routes to configured provider)
 - `mantis/asset_patterns.py` — regex pattern definitions for the asset map scanner (entry points, middleware, data stores, external calls, sensitive data across all supported languages)
 - `mantis/assetmap.py` — stage 0b: asset map builder and query API
 - `mantis/threatmodel.py` — STRIDE-based threat model generation from the asset map
+- `mantis/context_graph.py` — optional tree-sitter-based call graph with typed edges (EXTRACTED/INFERRED)
 - `mantis/resources/agents/` — subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
 - `mantis/resources/commands/` — one slash command (`/audit`), MCP-mode only
 - `mantis/resources/rules/` — OpenGrep YAML rules (Semgrep schema) + pack specs + manifest
