@@ -127,10 +127,16 @@ class ContextGraph:
         """
         start_ids = [
             nid for nid, n in self.nodes.items()
-            if n.name == func_name and n.file == file and n.kind == "function"
+            if n.name == func_name and n.file == file
+            and n.kind in ("function", "route")
         ]
         if not start_ids:
             return "unknown"
+
+        # If the function itself is a route, it's directly reachable
+        for sid in start_ids:
+            if self.nodes[sid].kind == "route":
+                return "yes"
 
         visited: set[str] = set(start_ids)
         frontier: deque[tuple[str, int]] = deque((sid, 0) for sid in start_ids)
@@ -157,10 +163,15 @@ class ContextGraph:
         """Return the shortest hop count from func to any entry point, or None."""
         start_ids = [
             nid for nid, n in self.nodes.items()
-            if n.name == func_name and n.file == file and n.kind == "function"
+            if n.name == func_name and n.file == file
+            and n.kind in ("function", "route")
         ]
         if not start_ids:
             return None
+
+        for sid in start_ids:
+            if self.nodes[sid].kind == "route":
+                return 0
 
         visited: set[str] = set(start_ids)
         frontier: deque[tuple[str, int]] = deque((sid, 0) for sid in start_ids)
@@ -185,6 +196,60 @@ class ContextGraph:
 # ---------------------------------------------------------------------------
 # Tree-sitter-based extraction
 # ---------------------------------------------------------------------------
+
+_ROUTE_DECORATOR_PATTERNS = {
+    "route", "get", "post", "put", "delete", "patch", "options", "head",
+    "websocket", "api_view", "require_http_methods",
+}
+
+_ENTRYPOINT_NAMES = {
+    "main", "handler", "lambda_handler", "handle_request",
+    "viewDidLoad", "onCreate", "onStartCommand", "onReceive",
+}
+
+
+def _is_route_function(node, language: str, source_bytes: bytes) -> bool:
+    """Check if a function node is a route handler (decorated or named)."""
+    # Check function name against known entry point names
+    name = _extract_function_name(node)
+    if name and name in _ENTRYPOINT_NAMES:
+        return True
+
+    # Python/JS: check for decorators above the function
+    if language in ("python",):
+        # In Python tree-sitter, decorated_definition wraps the function
+        parent = node.parent
+        if parent and parent.type == "decorated_definition":
+            for child in parent.children:
+                if child.type == "decorator":
+                    dec_text = source_bytes[child.start_byte:child.end_byte].decode("utf-8", errors="replace")
+                    dec_lower = dec_text.lower()
+                    if any(p in dec_lower for p in _ROUTE_DECORATOR_PATTERNS):
+                        return True
+                    if ".route(" in dec_lower or "handlefunc" in dec_lower:
+                        return True
+
+    # Go: check for http.ResponseWriter parameter
+    if language == "go":
+        params = node.child_by_field_name("parameters") if hasattr(node, 'child_by_field_name') else None
+        if params:
+            params_text = source_bytes[params.start_byte:params.end_byte].decode("utf-8", errors="replace")
+            if "http.ResponseWriter" in params_text or "http.Request" in params_text:
+                return True
+
+    # Java/Kotlin: check for annotations
+    if language in ("java", "kotlin"):
+        for child in (node.parent.children if node.parent else []):
+            if child.type in ("annotation", "marker_annotation"):
+                ann_text = source_bytes[child.start_byte:child.end_byte].decode("utf-8", errors="replace")
+                ann_lower = ann_text.lower()
+                if any(p in ann_lower for p in ("getmapping", "postmapping", "requestmapping",
+                                                 "putmapping", "deletemapping", "patchmapping",
+                                                 "@get", "@post", "@put", "@delete", "@path")):
+                    return True
+
+    return False
+
 
 def _extract_function_name(node) -> Optional[str]:
     """Get function name from a tree-sitter function node."""
@@ -260,8 +325,9 @@ def _extract_file_ts(text: str, language: str, rel_path: str) -> tuple[list[Grap
                 nid = f"{rel_path}:{name}"
                 start = node.start_point[0] + 1
                 end = node.end_point[0] + 1
+                kind = "route" if _is_route_function(node, language, source_bytes) else "function"
                 nodes.append(GraphNode(
-                    id=nid, kind="function", name=name,
+                    id=nid, kind=kind, name=name,
                     file=rel_path, line=start, end_line=end,
                 ))
                 func_ranges.append((nid, start, end, name))
