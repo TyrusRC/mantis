@@ -2,7 +2,7 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-762 OpenGrep rules across 11 languages (Python, JavaScript/TypeScript, Java, Kotlin, Swift, Go, Ruby, PHP, C#, Dart, C/C++). Covers full OWASP Web Top 10 2025 (A01--A10), OWASP LLM Top 10, mobile (Android + iOS + Flutter + React Native), IaC (Terraform, Dockerfile, Kubernetes), cloud SDK misuse (AWS/GCP/Azure), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists.
+762 OpenGrep rules across 11 languages (Python, JavaScript/TypeScript, Java, Kotlin, Swift, Go, Ruby, PHP, C#, Dart, C/C++). Covers OWASP Web Top 10 2025 A01--A09 (A10, mishandling of exceptional conditions, has no rules yet), OWASP LLM Top 10, mobile (Android + iOS + Flutter + React Native), IaC (Terraform, Dockerfile, Kubernetes), cloud SDK misuse (AWS/GCP/Azure), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists.
 
 Stage 0b auto-generates a **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls, sensitive data) that enriches every downstream stage. A **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any provider. Local only.
 
@@ -38,6 +38,18 @@ For MCP mode (Claude Code), copy agents and the slash command into a target proj
 ./install.sh /path/to/target/project
 ```
 
+The installer also ships inside the wheel. With a pipx/pip install, `mantis doctor`
+prints `resources at <dir>`; run the installer from there:
+
+```bash
+bash <dir>/install.sh /path/to/target/project
+```
+
+It links rules, scripts, and checklists under the target's `.claude/sast-*`, and adds a
+small allowlist (the exact `opengrep scan`, `.claude/sast-scripts/*.py`, and read-only
+`git` commands the pipeline runs) to the target's untracked `.claude/settings.local.json`,
+so unattended `/audit` runs don't stall on permission prompts. Existing entries are kept.
+
 ## Updating
 
 `mantis` checks PyPI once per 24h on startup and prints a one-line nudge
@@ -56,7 +68,7 @@ installs are skipped (you maintain them via git).
 ### MCP (inside Claude Code)
 
 ```
-/audit [path] [mode] [--fix] [--lite] [focus:<area>]
+/audit [path] [mode] [--fix] [--lite] [--experimental-toast] [focus:<area>]
 ```
 
 | Invocation | Behavior |
@@ -66,11 +78,12 @@ installs are skipped (you maintain them via git).
 | `/audit deep` | every rule, full pipeline |
 | `/audit bugbounty` | exploit-first, gates on entrypoint reachability |
 | `/audit cve` | SCA / lockfile dependency scan only |
-| `/audit mobile` \| `web` \| `desktop` \| `llm` | scope to a single rule pack |
+| `/audit mobile` \| `mobile-ios` \| `mobile-android` \| `web` \| `desktop` \| `llm` \| `taint` | scope to a single rule pack |
 | `/audit secrets` \| `iac` \| `cloud` | hardcoded creds / Terraform+Dockerfile+K8s / AWS-GCP-Azure SDK misuse |
 | `/audit deep focus:auth` | full pipeline, deep review only on auth-tagged findings |
 | `/audit --fix` | apply patches in a worktree, re-verify |
 | `/audit --lite` | skip slicing and deep review |
+| `/audit bugbounty --experimental-toast` | also run the ToAST hunter on confirmed slices |
 
 `focus:<area>` accepts: `auth`, `crypto`, `injection`, `storage`, `network`,
 `webview`, `secrets`, `privacy`, `ipc`, `business-logic`, `prompt-injection`.
@@ -93,7 +106,7 @@ mantis update [--check]               # query PyPI, upgrade in place
 |---|---|
 | `--since <ref>` | scan only files changed vs. a git ref (`main`, `HEAD~1`, `uncommitted`, `staged`) |
 | `--format md\|json\|sarif\|all` | write structured output alongside the markdown report |
-| `--no-cache` | bypass the per-file SAST result cache |
+| `--no-cache` | bypass the per-file SAST cache and the LLM response cache (`~/.cache/mantis/llm`) |
 | `--skip-llm` | SAST + inventory only; no provider needed |
 | `--lite` | skip slicing + deep review |
 | `--fix` | apply patches in a worktree, re-verify |
@@ -223,18 +236,22 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
                   tree-sitter is installed, also builds a context graph with
                   typed call edges (EXTRACTED/INFERRED) for precise multi-language
                   reachability and hop-count-to-entry-point in triage context
-1   static wide   opengrep with the selected pack (SCA lockfile and secrets
+1   static wide   opengrep with the selected pack and --taint-intrafile
+                  (cross-function flows within a file; SCA lockfile and secrets
                   rules are packs here), plus the extra engines
                   (bandit/gosec/njsscan/eslint-security/checkov/trivy/grype)
                   when installed; opt out with --engines none
-5   triage        fast tier per finding (single or dual chain) — now receives
-                  asset context (nearest entry point, auth status, nearby stores)
+5   triage        fast tier per finding (single or dual chain) — receives
+                  asset context (nearest entry point, auth status, nearby stores);
+                  an unparseable or failed verdict is sliced like NEEDS-DEEP and
+                  marks the run incomplete, never silently passes --fail-on
 5b  haruspex      optional advisory TP-likelihood ranking (MANTIS_HARUSPEX_URL)
 6   slice         depth-limited callgraph, entrypoint reachability (asset map
                   extends reachability to non-Python languages); BM25 fallback
                   links findings to entry points when grep-based callers miss
-7   deep review   deep tier on reachable TRUE / NEEDS-DEEP slices — slice text
-                  includes ASSET_CONTEXT block
+7   deep review   deep tier on TRUE / NEEDS-DEEP slices whose reachability is
+                  yes or unknown (yes only in bugbounty), highest severity first
+                  under the budget — slice text includes ASSET_CONTEXT block
 7b  toast         experimental 3-sample hunt for rule-less bugs (bugbounty,
                   --experimental-toast)
 8   fix           patch in worktree; rule hit count must drop and the pack
@@ -278,9 +295,9 @@ mantis/threatmodel.py         STRIDE threat model generator
 mantis/resources/agents/      subagent definitions (model: + tier: frontmatter)
 mantis/resources/commands/    slash command for MCP mode
 mantis/resources/rules/       opengrep YAML rules (Semgrep schema) + pack specs + manifest
-mantis/resources/scripts/     build_manifest.py, pack_compose.py
+mantis/resources/scripts/     build_manifest.py, pack_compose.py, project_findings.py, asset_map.py
 mantis/resources/checklists/  OWASP Testing Guide chapters for the deep-reviewer
-install.sh                    install agents/commands into a target (MCP mode)
+mantis/resources/install.sh   install agents/commands into a target (MCP mode; ./install.sh wraps it)
 setup.sh                      install opengrep + mantis CLI
 doctor.sh                     verify install
 CLAUDE.md                     conventions for future contributors / Claude sessions
@@ -338,6 +355,41 @@ Optional, off unless set: `MANTIS_HARUSPEX_URL` enables Haruspex triage ranking
 (stage 5b), which POSTs each finding's rule id, path, message and an ~80-line
 code window to that endpoint. It is intended for a loopback Haruspex instance;
 pointing it at a remote host sends source off the machine.
+
+## Auditing untrusted code
+
+The audited repository is treated as hostile input.
+
+- **No code from the target runs.** git is invoked with hooks and fsmonitor
+  disabled. checkov runs from a private cwd and HOME, so a planted
+  `.checkov.yaml` cannot load external checks. ESLint uses mantis's own config
+  and formatter, never the target's.
+- **Prompt injection.** Code sent to an LLM is wrapped in nonce-tagged
+  delimiters that a comment cannot close. When the code contains text aimed at
+  the reviewer ("false positive", "ignore previous instructions", hidden
+  Unicode), a FALSE triage verdict is escalated to NEEDS-DEEP and a deep-review
+  rejection is downgraded to partial.
+- **Secrets.** Key-shaped values and quoted secret assignments are masked
+  before a window or slice leaves the machine. A `--fix` patch whose context
+  lines contain a live secret therefore fails to apply; rotate those by hand.
+- **Report.** Scanner messages, LLM replies and repo paths are written as inert
+  single-line Markdown: no forged headings, table rows or raw HTML.
+- **MCP install.** `install.sh` grants its command allowlist only when every
+  `.claude/sast-*` dir is one it installed; a pre-existing dir from the target
+  is left untouched and no permissions are granted.
+
+- **Scanner suppressions.** OpenGrep runs with `--disable-nosem`, so
+  `nosemgrep` lines still reach triage, tagged `(nosemgrep in source)`. It also
+  runs with `--x-ignore-semgrepignore-files`, because a planted `.semgrepignore`
+  of `*` would otherwise empty the scan; OpenGrep's default vendored/test
+  excludes are re-applied explicitly. Your own suppressions go in
+  `.mantisignore`. The extra engines' markers (`# nosec` for bandit and gosec)
+  are still honoured.
+
+Standalone runs cache LLM replies for deterministic calls under
+`~/.cache/mantis/llm` (keyed on model, prompts and parameters), so re-auditing an
+unchanged tree costs no tokens. Sampling calls (ToAST) are never cached.
+`--no-cache` bypasses it.
 
 ## Contributing
 
