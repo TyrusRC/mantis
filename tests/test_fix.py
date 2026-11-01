@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from mantis.fix import (
     fix_all,
 )
 from mantis.providers import LLMResponse
-from mantis.scan import Finding
+from mantis.scan import Finding, run_scan
 from mantis.slice import Slice, SliceChunk
 
 
@@ -237,7 +238,8 @@ def test_author_fix_applied_on_verify_success(tmp_path, monkeypatch):
         "@@ -1,2 +1,2 @@\n def f():\n-    bad()\n+    safe()\n"
     )
     monkeypatch.setattr("mantis.fix.verify_fix", lambda *a, **k: (True, "fixed"))
-    monkeypatch.setattr("mantis.fix._find_rule_file", lambda *a, **k: None)
+    monkeypatch.setattr("mantis.fix._find_rule_file", lambda *a, **k: tmp_path / "r.yaml")
+    monkeypatch.setattr("mantis.fix.scan_counts", lambda *a, **k: {})
     result = author_fix(_DiffProvider(diff), "sys", _slice(), _deep(),
                         wt, "opengrep", tmp_path / "rules")
     assert result.status == "applied"
@@ -261,3 +263,69 @@ def test_fix_all_worktree_failure_returns_failures(tmp_path):
     assert len(results) == 1
     assert results[0].status == "failed"
     assert "worktree" in results[0].notes
+
+
+# ---- author_fix against a real scanner (real prefixed rule ids, absolute paths) ----
+
+_needs_opengrep = pytest.mark.skipif(shutil.which("opengrep") is None,
+                                     reason="opengrep not installed")
+
+_RULES = """rules:
+  - id: t-bad-call
+    severity: ERROR
+    languages: [python]
+    message: bad call
+    metadata: {category: security, cwe: CWE-1, confidence: HIGH}
+    pattern: bad()
+  - id: t-evil-call
+    severity: ERROR
+    languages: [python]
+    message: evil call
+    metadata: {category: security, cwe: CWE-1, confidence: HIGH}
+    pattern: evil()
+"""
+
+
+def _real_fix(tmp_path, hunk):
+    rules_root = tmp_path / "rules"
+    rules_root.mkdir()
+    rule_file = rules_root / "t.yaml"
+    rule_file.write_text(_RULES)
+    # Decoy: the manifest also mentions every rule id.
+    (rules_root / "_manifest.yaml").write_text("rules:\n  - id: t-bad-call\n")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git(repo)
+    [finding] = run_scan(repo, [rule_file], "opengrep").findings
+    wt = ensure_worktree(repo)
+    sl = Slice(finding=finding, sink_func="f", sink_file=finding.path,
+               sink_line=finding.start_line,
+               chunks=[SliceChunk(file=finding.path, start_line=1, end_line=2,
+                                  role="sink", func="f", code="def f():\n    bad()")],
+               reachability="yes")
+    diff = "diff --git a/app.py b/app.py\n--- a/app.py\n+++ b/app.py\n" + hunk
+    result = author_fix(_DiffProvider(diff), "sys", sl, _deep(), wt, "opengrep",
+                        rules_root, repo=repo, pack_rule_files=[rule_file])
+    assert (repo / "app.py").read_text() == "def f():\n    bad()\n"  # user tree untouched
+    return result, wt
+
+
+@_needs_opengrep
+def test_real_fix_is_applied(tmp_path):
+    result, wt = _real_fix(tmp_path, "@@ -1,2 +1,2 @@\n def f():\n-    bad()\n+    safe()\n")
+    assert result.status == "applied", result.verification or result.notes
+    assert "safe()" in (wt / "app.py").read_text()
+
+
+@_needs_opengrep
+def test_fix_that_only_moves_the_sink_is_reverted(tmp_path):
+    result, wt = _real_fix(tmp_path, "@@ -1,2 +1,3 @@\n def f():\n+    pass\n     bad()\n")
+    assert result.status == "reverted", result.verification or result.notes
+    assert "pass" not in (wt / "app.py").read_text()
+
+
+@_needs_opengrep
+def test_fix_that_introduces_pack_finding_is_reverted(tmp_path):
+    result, wt = _real_fix(tmp_path, "@@ -1,2 +1,2 @@\n def f():\n-    bad()\n+    evil()\n")
+    assert result.status == "reverted", result.verification or result.notes
+    assert "t-evil-call" in result.verification

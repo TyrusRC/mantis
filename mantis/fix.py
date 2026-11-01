@@ -4,8 +4,8 @@ For each confirmed finding:
 1. Ensure a sibling git worktree exists.
 2. Dispatch the fix-author agent with the slice + rule file path.
 3. Apply the returned unified diff via `git apply`.
-4. Re-run the SAST scan in the worktree against the changed file with
-   the original rule; verify the rule no longer fires.
+4. Scan the changed files with the original rule + pack before and after
+   the patch; verify the rule's hit count dropped and nothing new fired.
 5. If verification fails, revert the change and record the failure.
 
 Mantis never modifies the user's working tree — all edits happen in the
@@ -15,9 +15,12 @@ from __future__ import annotations
 
 import re
 import subprocess
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+import yaml
 
 from mantis.agents import Agent
 from mantis.deep import DeepResult
@@ -97,23 +100,42 @@ def check_uncommitted(repo: Path) -> list[str]:
     return out
 
 
+def _same_rule(scanner_id: str, rule_id: str) -> bool:
+    # OpenGrep prefixes check_id with the rule file's dotted directory path
+    # (relative to cwd), so the same rule surfaces as `rules.web.<id>` or
+    # `mantis.resources.rules.web.<id>` depending on where the scan ran.
+    return scanner_id == rule_id or scanner_id.endswith("." + rule_id)
+
+
 def _find_rule_file(rule_id: str, rules_root: Path) -> Optional[Path]:
     if not rules_root.is_dir():
         return None
-    # Match by exact rule id in the file body.
     for path in rules_root.rglob("*.yaml"):
-        if "packs" in path.parts:
+        if "packs" in path.parts or path.name.startswith("_"):
             continue
         try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
             continue
-        if rule_id in text:
-            return path
+        rules = doc.get("rules") if isinstance(doc, dict) else None
+        for r in rules or []:
+            if isinstance(r, dict) and r.get("id") and _same_rule(rule_id, str(r["id"])):
+                return path
     return None
 
 
-def build_fix_user_prompt(slice_obj: Slice, rule_file: Optional[Path], worktree: Path) -> str:
+def _rel_path(path: str, repo: Optional[Path]) -> str:
+    p = Path(path)
+    if p.is_absolute() and repo is not None:
+        try:
+            return str(p.resolve().relative_to(repo.resolve()))
+        except ValueError:
+            pass
+    return path
+
+
+def build_fix_user_prompt(slice_obj: Slice, rule_file: Optional[Path], worktree: Path,
+                          rel_path: Optional[str] = None) -> str:
     finding = slice_obj.finding
     finding_id = finding.id
     rule_excerpt = ""
@@ -126,7 +148,7 @@ def build_fix_user_prompt(slice_obj: Slice, rule_file: Optional[Path], worktree:
     parts = [
         f"FINDING_ID: {finding_id}",
         f"WORKTREE: {worktree}",
-        f"FILE_TO_PATCH: {finding.path}",
+        f"FILE_TO_PATCH: {rel_path or finding.path}",
         f"RULE_ID: {finding.rule_id}",
         "",
         "SLICE:",
@@ -200,66 +222,59 @@ def revert_files(worktree: Path, files: list[str]) -> None:
                    capture_output=True, text=True, check=False)
 
 
-def verify_fix(worktree: Path, finding: Finding, sast_bin: str,
-               rule_file: Optional[Path],
-               *, pre_pack_count: Optional[int] = None,
-               pack_rule_files: Optional[list[Path]] = None) -> tuple[bool, str]:
-    """Return (rule_no_longer_fires_AND_no_regression, message).
+def scan_counts(worktree: Path, files: list[str], rule_files: list[Path],
+                sast_bin: str) -> Counter:
+    """Count findings per (scanner rule id, relative path) over `files` in the worktree.
 
-    Verifies two things:
-      1) The original rule no longer fires on the changed file.
-      2) (Optional) Running the full pack against the changed file does
-         not introduce NEW findings beyond what was present pre-fix.
+    Raises FixError on scanner failure so callers fail closed.
     """
-    target_file = worktree / finding.path
-    if not target_file.is_file():
-        return False, f"target file missing in worktree: {finding.path}"
-    if not rule_file or not rule_file.is_file():
-        return False, "could not locate rule file for verification"
+    present = [f for f in dict.fromkeys(files) if (worktree / f).is_file()]
+    if not present:
+        return Counter()
+    cmd = [sast_bin, "--quiet"]
+    for rf in dict.fromkeys(rule_files):
+        cmd.extend(["--config", str(rf)])
+    cmd += ["--json", *present]
     try:
-        res = subprocess.run(
-            [sast_bin, "--quiet", "--config", str(rule_file), "--json", str(target_file)],
-            capture_output=True, text=True, timeout=120, check=False,
-        )
+        res = subprocess.run(cmd, cwd=worktree, capture_output=True, text=True,
+                             timeout=300, check=False)
     except (subprocess.TimeoutExpired, OSError) as e:
-        return False, f"scanner failed: {e}"
-
+        raise FixError(f"scanner failed: {e}") from e
     if res.returncode >= 2 and not res.stdout.strip():
-        return False, f"scanner error: {res.stderr.strip()[:200]}"
-
+        raise FixError(f"scanner error: {res.stderr.strip()[:200]}")
     try:
-        new_out = parse_scan_output(res.stdout)
+        out = parse_scan_output(res.stdout)
     except Exception as e:  # ScanError, etc.
-        return False, f"parse error: {e}"
+        raise FixError(f"parse error: {e}") from e
+    return Counter((nf.rule_id, nf.path) for nf in out.findings)
 
-    still_firing = any(
-        nf.rule_id == finding.rule_id and nf.start_line == finding.start_line
-        for nf in new_out.findings
-    )
-    if still_firing:
-        return False, "original rule still fires on the same line"
 
-    # Optional pack-wide regression check.
-    if pack_rule_files and pre_pack_count is not None:
-        cmd = [sast_bin, "--quiet"]
-        for rf in pack_rule_files:
-            cmd.extend(["--config", str(rf)])
-        cmd += ["--json", str(target_file)]
-        try:
-            pack_res = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=300, check=False,
-            )
-            pack_out = parse_scan_output(pack_res.stdout)
-            if len(pack_out.findings) > pre_pack_count:
-                return False, (
-                    f"patch introduces regression: pack finding count {pre_pack_count} "
-                    f"-> {len(pack_out.findings)}"
-                )
-        except Exception:
-            # Pack-wide check is best-effort; do not block the fix on its failure.
-            pass
+def verify_fix(worktree: Path, rel_path: str, rule_id: str, sast_bin: str,
+               rule_files: list[Path], files: list[str],
+               before: Counter) -> tuple[bool, str]:
+    """Return (fixed_AND_no_regression, message).
 
-    return True, "rule no longer fires"
+    `before` is `scan_counts` over the same files/rules taken before the
+    patch was applied. Counting (instead of matching the original line)
+    means a patch that merely moves the sink does not pass.
+    """
+    try:
+        after = scan_counts(worktree, files, rule_files, sast_bin)
+    except FixError as e:
+        return False, str(e)
+
+    def hits(c: Counter) -> int:
+        return sum(n for (rid, p), n in c.items() if p == rel_path and _same_rule(rid, rule_id))
+
+    if hits(before) == 0:
+        return False, "original finding not reproduced before patch; cannot verify"
+    if hits(after) >= hits(before):
+        return False, f"original rule still fires ({hits(before)} -> {hits(after)})"
+    new = after - before
+    if new:
+        listed = ", ".join(f"{rid} @ {p}" for rid, p in sorted(new))
+        return False, f"patch introduces new finding(s): {listed}"
+    return True, f"rule no longer fires ({hits(before)} -> {hits(after)}); no new findings"
 
 
 def author_fix(
@@ -270,6 +285,9 @@ def author_fix(
     worktree: Path,
     sast_bin: str,
     rules_root: Path,
+    *,
+    repo: Optional[Path] = None,
+    pack_rule_files: Optional[list[Path]] = None,
 ) -> FixResult:
     finding = slice_obj.finding
     finding_id = deep.finding_id
@@ -279,7 +297,8 @@ def author_fix(
                          notes=f"deep verdict was {deep.verdict!r}, not confirmed")
 
     rule_file = _find_rule_file(finding.rule_id, rules_root)
-    user = build_fix_user_prompt(slice_obj, rule_file, worktree)
+    rel_path = _rel_path(finding.path, repo)
+    user = build_fix_user_prompt(slice_obj, rule_file, worktree, rel_path)
 
     try:
         resp = provider.complete(
@@ -300,6 +319,17 @@ def author_fix(
                          tokens_in=resp.tokens_in, tokens_out=resp.tokens_out)
 
     changed = files_in_diff(diff)
+    verify_files = [rel_path, *changed]
+    verify_rules = [rule_file, *(pack_rule_files or [])] if rule_file else []
+    before: Counter = Counter()
+    if verify_rules:
+        try:
+            before = scan_counts(worktree, verify_files, verify_rules, sast_bin)
+        except FixError as e:
+            return FixResult(finding_id=finding_id, status="failed", diff=diff,
+                             files_changed=changed, notes=f"pre-patch scan failed: {e}",
+                             tokens_in=resp.tokens_in, tokens_out=resp.tokens_out)
+
     ok, msg = apply_patch(diff, worktree)
     if not ok:
         return FixResult(
@@ -308,7 +338,11 @@ def author_fix(
             tokens_in=resp.tokens_in, tokens_out=resp.tokens_out,
         )
 
-    verified, verify_msg = verify_fix(worktree, finding, sast_bin, rule_file)
+    if verify_rules:
+        verified, verify_msg = verify_fix(worktree, rel_path, finding.rule_id, sast_bin,
+                                          verify_rules, verify_files, before)
+    else:
+        verified, verify_msg = False, "could not locate rule file for verification"
     if not verified:
         revert_files(worktree, changed)
         return FixResult(
@@ -331,6 +365,7 @@ def fix_all(
     repo: Path,
     sast_bin: str,
     rules_root: Path,
+    pack_rule_files: Optional[list[Path]] = None,
 ) -> tuple[list[FixResult], Optional[Path]]:
     if not confirmed:
         return [], None
@@ -353,5 +388,6 @@ def fix_all(
     for slice_obj, deep in confirmed:
         results.append(author_fix(
             provider, agent.body, slice_obj, deep, worktree, sast_bin, rules_root,
+            repo=repo, pack_rule_files=pack_rule_files,
         ))
     return results, worktree

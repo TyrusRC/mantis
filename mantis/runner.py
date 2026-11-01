@@ -1,7 +1,8 @@
 """Pipeline orchestrator.
 
-Stages: 0 inventory · 1 SAST scan · 5 triage · 6 slice · 7 deep review ·
-        8 fix (only with --fix) · 9 report.
+Stages: 0 inventory · 0b asset map / context graph · 1 SAST scan (+ engines) ·
+        5 triage · 5b haruspex (opt-in) · 6 slice · 7 deep review ·
+        7b toast (experimental) · 8 fix (only with --fix) · 9 report.
 
 Skipped per flag:
   --lite  -> skip 6, 7, 8
@@ -89,8 +90,8 @@ class Pipeline:
     #: detection for a decompiled/reverse-engineered source tree.
     packs: Optional[list] = None
     decompiled: bool = False
-    #: Opt-in multi-engine SAST (bandit/gosec/njsscan/eslint/checkov + trivy/grype);
-    #: default off, OpenGrep stays primary. See mantis.engines.
+    #: Multi-engine SAST (bandit/gosec/njsscan/eslint/checkov + trivy/grype);
+    #: None = default on ('auto'), 'none' opts out. See mantis.engines.
     engines: Optional[object] = None
     engines_offline: bool = False
 
@@ -394,6 +395,7 @@ class Pipeline:
                 print(f"[mantis] stage 8: fix ({len(confirmed)} confirmed)")
                 fix_results, fix_worktree = fix_all(
                     confirmed, self.agents, provider, self.target, self.sast_bin, RULES_DIR,
+                    pack_rule_files=valid_rules,
                 )
                 applied = sum(1 for r in fix_results if r.status == "applied")
                 print(f"[mantis] fix: {applied}/{len(fix_results)} applied")
