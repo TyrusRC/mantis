@@ -1,6 +1,7 @@
 """Parser for agents/*.md — the source of truth for both MCP and standalone modes."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -9,6 +10,9 @@ import yaml
 
 
 VALID_TIERS = {"fast", "mid", "deep"}
+# Tool-use instructions (Read/Grep/Bash) that only make sense in MCP mode; the
+# standalone CLI hands the model its input directly, so these are dead tokens there.
+_MCP_ONLY = re.compile(r"^<!-- mcp-only -->$.*?^<!-- /mcp-only -->$\n?", re.M | re.S)
 
 
 @dataclass
@@ -73,7 +77,7 @@ def parse_agent(path: Path) -> Agent:
         tier=tier,
         model=model,
         tools=tools,
-        body=body,
+        body=_MCP_ONLY.sub("", body),
         path=path,
     )
 

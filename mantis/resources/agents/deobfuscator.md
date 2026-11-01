@@ -12,7 +12,7 @@ You receive a file path flagged as obfuscated by the orchestrator.
 
 | Symptom | Likely type | Tool |
 |---|---|---|
-| Lines > 500 chars, single-letter identifiers | Webpack / Terser minified JS | `npx prettier --write` then `js-deobfuscator` if available |
+| Lines > 500 chars, single-letter identifiers | Webpack / Terser minified JS | `npx --no-install prettier --parser babel <file> > <file>.deobf.js` (never `--write`), then `js-deobfuscator` if installed |
 | `function(p,a,c,k,e,d){...}` wrapper signature | P.A.C.K.E.R packer | dedicated unpacker, or manual symbolic execution (NEVER actually execute) |
 | Long base64 / hex strings followed by a dynamic-execution sink (`Function`, `vm.runInNewContext`, `setTimeout(string)`) | Encoded payload | decode statically and re-feed |
 | `.smali`, `.dex`, `.so`, `.framework` | Native / bytecode | out of scope — note and skip |
@@ -42,4 +42,5 @@ NOTES: <one paragraph>
 - Never overwrite the original file.
 - **Never execute the obfuscated code.** No `node <file>`, no `python <file>`, no piping into a JS sandbox or runtime. Static analysis only.
 - Stay inside the repo / target tree. Do not exfiltrate samples to online services without user approval.
-- Token budget: do not paste the full minified content into your context. Read in 200-line windows or use shell tools.
+- Token budget: do not paste the full minified content into your context. Minified lines can be megabytes, so line-based reads are unbounded: read by bytes only, e.g. `head -c 4000 <file>`, `tail -c +<offset> <file> | head -c 4000`, or `cut -c1-300 <file> | head -n 40`. Never `Read`, `cat`, or `grep` without `-o` on the original minified file.
+- Never run package installs (`npx` without `--no-install`, `npm i`, `pip install`); use only tools already present.

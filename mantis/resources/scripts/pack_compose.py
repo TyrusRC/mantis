@@ -3,11 +3,12 @@
 
 A pack spec (rules/packs/<name>.yaml) declares filters over rules/_manifest.yaml.
 This script applies the filters and prints the matching rule file paths,
-deduplicated, suitable for piping into Semgrep:
+deduplicated and absolute (so the scanner finds them from any cwd):
 
-    semgrep $(./scripts/pack_compose.py rules/packs/fast.yaml --as-args) <target>
+    pack_compose.py rules/packs/fast.yaml [more specs...] --as-args | xargs opengrep scan --json <target>
 
-Or, with --print-files, just the file paths one per line.
+--as-args shell-quotes each path, so the xargs form survives spaces in the
+install path. Default (or --print-files): one path per line.
 
 Pack spec schema:
 
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import shlex
 import sys
 from pathlib import Path
 
@@ -39,7 +41,9 @@ except ImportError:
     sys.exit(2)
 
 REPO = Path(__file__).resolve().parent.parent
-MANIFEST = REPO / "rules" / "_manifest.yaml"
+# install.sh's copy fallback (no symlinks) lays rules out as .claude/sast-rules.
+RULES = REPO / "rules" if (REPO / "rules").is_dir() else REPO / "sast-rules"
+MANIFEST = RULES / "_manifest.yaml"
 
 
 def load_manifest():
@@ -115,34 +119,37 @@ def compose(spec, manifest):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("spec", help="path to a pack spec yaml under rules/packs/")
+    ap.add_argument("spec", nargs="+",
+                    help="pack spec yaml(s) under rules/packs/; several are unioned")
     ap.add_argument("--as-args", action="store_true",
-                    help="print as `--config <path>` for splicing into a semgrep call")
+                    help="print as `--config <path>` (shell-quoted) for an opengrep call")
     ap.add_argument("--print-files", action="store_true",
                     help="print one rule file path per line (default)")
     args = ap.parse_args()
 
-    spec_path = Path(args.spec)
-    if not spec_path.exists():
-        sys.stderr.write(f"spec not found: {spec_path}\n")
-        sys.exit(2)
-    with spec_path.open() as f:
-        spec = yaml.safe_load(f)
-
     manifest = load_manifest()
-    files = compose(spec, manifest)
+    files: list[str] = []
+    for spec_arg in args.spec:
+        spec_path = Path(spec_arg)
+        if not spec_path.exists():
+            sys.stderr.write(f"spec not found: {spec_path}\n")
+            sys.exit(2)
+        with spec_path.open() as f:
+            spec = yaml.safe_load(f)
+        name = spec.get("name", spec_path.stem)
+        matched = compose(spec, manifest)
+        if not matched:
+            sys.stderr.write(f"no rules matched pack '{name}'\n")
+            sys.exit(1)
+        sys.stderr.write(f"# {len(matched)} rule file(s) in pack '{name}'\n")
+        files.extend(f for f in matched if f not in files)
 
-    if not files:
-        sys.stderr.write(f"no rules matched pack '{spec.get('name', spec_path.stem)}'\n")
-        sys.exit(1)
-
+    paths = [str(RULES / Path(f).relative_to("rules")) for f in files]
     if args.as_args:
-        print(" ".join(f"--config {f}" for f in files))
+        print(" ".join(f"--config {shlex.quote(p)}" for p in paths))
     else:
-        for f in files:
-            print(f)
-    sys.stderr.write(f"# {len(files)} rule file(s) in pack '{spec.get('name', spec_path.stem)}'\n")
-
+        for p in paths:
+            print(p)
 
 if __name__ == "__main__":
     main()

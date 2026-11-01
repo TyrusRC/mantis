@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(opengrep --version)",
+      "Bash(xargs opengrep scan *)",
+      "Bash(opengrep scan *)",
+      "Bash(python3 .claude/sast-scripts/pack_compose.py *)",
+      "Bash(python3 .claude/sast-scripts/project_findings.py *)",
+      "Bash(python3 .claude/sast-scripts/asset_map.py *)",
+      "Bash(sha256sum .claude/sast-rules/_manifest.yaml)",
+      "Bash(git rev-parse *)",
+      "Bash(git status *)",
+      "Bash(git ls-files *)",
+      "Edit(/**/security-audit-report.md)"
+    ]
+  }
+}

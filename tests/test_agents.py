@@ -118,3 +118,13 @@ def test_discover_empty_dir(tmp_path):
 
 def test_discover_nonexistent_dir(tmp_path):
     assert discover_agents(tmp_path / "nope") == []
+
+
+def test_mcp_only_blocks_are_stripped_for_standalone(tmp_path):
+    from mantis.agents import parse_agent
+    p = tmp_path / "a.md"
+    p.write_text("---\nname: a\ntier: fast\nmodel: haiku\n---\nkeep 1\n"
+                 "<!-- mcp-only -->\nRead the file with the Read tool.\n<!-- /mcp-only -->\nkeep 2\n")
+    body = parse_agent(p).body
+    assert "keep 1" in body and "keep 2" in body
+    assert "Read tool" not in body and "mcp-only" not in body

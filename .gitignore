@@ -39,6 +39,7 @@ env/
 .semgrep_logs/
 *.sarif
 *.json
+!mantis/resources/permissions.json
 *.xml
 
 # Test outputs
