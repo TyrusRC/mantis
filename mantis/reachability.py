@@ -1,15 +1,14 @@
 """Reachability gate.
 
-Three layers, in priority order:
-1. Python call-graph (when an indexed CallGraph is supplied).
-2. Coarse path heuristics: test / spec / example / fixture / demo dirs
+Layers, in priority order:
+1. Coarse path heuristics: test / spec / example / fixture / demo dirs
    and *_test.go / *Test.java / *.test.* filenames -> 'no'.
-3. Caller-chunk evaluation: if every caller is in a dead path, 'no';
+2. Context graph (tree-sitter, multi-language) when installed.
+3. Python call-graph (when an indexed CallGraph is supplied).
+4. Asset-map entry points in the sink file or a caller file -> 'yes'.
+5. Caller-chunk evaluation: if every caller is in a dead path, 'no';
    otherwise 'yes'. Default to 'yes' on insufficient info (conservative
    — drop only when clearly dead).
-
-The Python call-graph layer is the only new precision; non-Python
-projects continue to use the path heuristic.
 """
 from __future__ import annotations
 

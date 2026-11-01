@@ -1,10 +1,11 @@
 """Multi-engine SAST layer.
 
 Mantis's OpenGrep pass stays primary; these engines run additional specialised
-tools (bandit/gosec/njsscan/eslint-security/checkov local, trivy/grype opt-in) and
-map their SARIF into mantis's `scan.Finding`, so the findings flow through the
-existing dedup -> suppress -> SARIF -> fail-on -> triage pipeline. Engines are
-opt-in and default-off; a missing/failed engine is skipped, never fatal.
+tools (bandit/gosec/njsscan/eslint-security/checkov local; trivy/grype fetch a
+vuln DB) and map their SARIF into mantis's `scan.Finding`, so the findings flow
+through the existing dedup -> suppress -> SARIF -> fail-on -> triage pipeline.
+Engines run by default when installed (`--engines none` opts out); a
+missing/failed engine is skipped, never fatal.
 """
 
 from __future__ import annotations

@@ -1,9 +1,9 @@
 """Stage 6: slice extraction.
 
 Heuristic slice for a finding: identify the enclosing function, fetch
-a small set of callers via grep, cap the output at 4k tokens. This is
-deliberately a first-cut implementation — proper tree-sitter / SCIP
-support is a future milestone. The interface mirrors slice-extractor.md
+a small set of callers via grep (BM25 fallback), cap the output at 4k
+tokens. Callers come from grep, not the context graph, and callees are not
+followed. The interface mirrors slice-extractor.md
 so the deep-reviewer prompt sees the same shape regardless of mode.
 """
 from __future__ import annotations

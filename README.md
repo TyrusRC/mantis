@@ -160,6 +160,8 @@ useful for chimera's automated decompile→audit pipeline.
 Reports land under `<target>/.mantis/runs/<ts>-<sha>.md` with stable pointers at
 `<target>/.mantis/latest.md` and `<target>/security-audit-report.md`. With `--fix`,
 patches are applied in `../<repo>.audit-fix-<short>/`; the working tree is never modified.
+A patch is kept only if the original rule fires fewer times on the patched file and
+the full pack reports nothing new on the changed files; otherwise it is reverted.
 
 ### Suppressions
 
@@ -221,18 +223,22 @@ Model names are read verbatim from this file. None are hardcoded in the toolkit.
                   tree-sitter is installed, also builds a context graph with
                   typed call edges (EXTRACTED/INFERRED) for precise multi-language
                   reachability and hop-count-to-entry-point in triage context
-1   static wide   opengrep with the selected pack
-2   SCA           lockfile dependency-CVE rules
-3   secrets       high-confidence secrets pack
-4   deobf gate    route minified/packed files to the deobfuscator
+1   static wide   opengrep with the selected pack (SCA lockfile and secrets
+                  rules are packs here), plus the extra engines
+                  (bandit/gosec/njsscan/eslint-security/checkov/trivy/grype)
+                  when installed; opt out with --engines none
 5   triage        fast tier per finding (single or dual chain) — now receives
                   asset context (nearest entry point, auth status, nearby stores)
+5b  haruspex      optional advisory TP-likelihood ranking (MANTIS_HARUSPEX_URL)
 6   slice         depth-limited callgraph, entrypoint reachability (asset map
                   extends reachability to non-Python languages); BM25 fallback
                   links findings to entry points when grep-based callers miss
 7   deep review   deep tier on reachable TRUE / NEEDS-DEEP slices — slice text
                   includes ASSET_CONTEXT block
-8   fix           patch in worktree, re-run scanner   (only with --fix)
+7b  toast         experimental 3-sample hunt for rule-less bugs (bugbounty,
+                  --experimental-toast)
+8   fix           patch in worktree; rule hit count must drop and the pack
+                  must report nothing new on changed files   (only with --fix)
 9   report        write <target>/.mantis/runs/<ts>-<sha>.md (+ latest.md symlink);
                   includes auto-generated STRIDE threat model section
 ```
@@ -327,6 +333,11 @@ run (they are part of the default engine set) — a vulnerability-database fetch
 run fully offline: `--engines none` (OpenGrep only), restrict `--engines` to the
 local engines (`bandit,gosec,njsscan,eslint-security,checkov`), or
 `--engines-offline`.
+
+Optional, off unless set: `MANTIS_HARUSPEX_URL` enables Haruspex triage ranking
+(stage 5b), which POSTs each finding's rule id, path, message and an ~80-line
+code window to that endpoint. It is intended for a loopback Haruspex instance;
+pointing it at a remote host sends source off the machine.
 
 ## Contributing
 

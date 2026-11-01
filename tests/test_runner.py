@@ -13,6 +13,13 @@ from mantis.runner import Pipeline
 REPO = Path(__file__).resolve().parent.parent / "mantis" / "resources"
 
 
+@pytest.fixture(autouse=True)
+def _no_host_engines(monkeypatch):
+    # Extra engines run by default; without this, whatever trivy/grype/checkov
+    # is installed on the host (and its network access) leaks into these tests.
+    monkeypatch.setattr("mantis.engines.run_selected", lambda *a, **k: ([], [], []))
+
+
 @pytest.fixture
 def fake_sast(tmp_path):
     """Create a fake scanner binary that emits a fixed JSON result."""
