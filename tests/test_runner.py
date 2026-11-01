@@ -267,3 +267,37 @@ def test_pipeline_unknown_mode_returns_error(tmp_path, fake_sast, monkeypatch):
         mode="invalid-mode",
     )
     assert pipe.run() == 2
+
+
+def test_triage_errors_fail_the_gate_and_mark_incomplete(tmp_path, fake_sast, monkeypatch):
+    """A provider outage must not let --fail-on pass a run whose findings were never judged."""
+    bin_dir, _ = fake_sast
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    monkeypatch.delenv("AUDIT_SAST_BIN", raising=False)
+
+    class _Garbled(_StubProvider):
+        def complete(self, tier, system, user, max_tokens=4096, temperature=0.2):
+            from mantis.providers import LLMResponse
+            return LLMResponse(text="I think it might be fine?", tokens_in=1, tokens_out=1, model="fake")
+
+    monkeypatch.setattr("mantis.providers.Provider", _Garbled)
+    target = tmp_path / "proj"
+    target.mkdir()
+    (target / "app.py").write_text("x = 1\ny = 2\nz = 3\nq = 4\nbad code here\n")
+
+    from mantis.agents import discover_agents
+    from mantis.sast import resolve_sast_binary
+    pipe = Pipeline(target=target, config=_cfg(), sast_bin=resolve_sast_binary("auto"),
+                    agents=discover_agents(REPO / "agents"), mode="quick", fail_on="low")
+    assert pipe.run() == 1
+    assert "incomplete" in (target / "security-audit-report.md").read_text().lower()
+
+
+def test_error_verdicts_are_sliced_not_dropped():
+    from mantis.scan import Finding
+    from mantis.triage import TriageResult
+    f = Finding(rule_id="r", severity="ERROR", confidence="HIGH", path="a.py",
+                start_line=1, end_line=1, message="m")
+    pipe = Pipeline.__new__(Pipeline)
+    picked = pipe._select_for_slice([TriageResult(f, "ERROR", "unparseable", "")])
+    assert len(picked) == 1

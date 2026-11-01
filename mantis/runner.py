@@ -289,6 +289,13 @@ class Pipeline:
             triage_results = triage_all(filtered, self.agents, provider, self.target,
                                        mode=tmode, asset_map=asset_map,
                                        context_graph=ctx_graph)
+            errored = [r for r in triage_results if r.verdict == "ERROR"]
+            if errored:
+                # Unjudged findings are routed to slice/deep and gate --fail-on;
+                # the run is not a clean result.
+                notes.append(f"triage errored on {len(errored)} finding(s) "
+                             f"(first: {errored[0].reason[:120]}); treated as NEEDS-DEEP")
+                status = "incomplete"
         else:
             if self.skip_llm:
                 placeholder_verdict = "RAW"
@@ -316,7 +323,9 @@ class Pipeline:
             for r in triage_results:
                 f = r.finding
                 try:
-                    window = _hx_window(_HxPath(f.path), f.start_line)
+                    hx_path = _HxPath(f.path)
+                    window = _hx_window(hx_path if hx_path.is_absolute() else self.target / hx_path,
+                                        f.start_line)
                 except Exception:
                     window = ""
                 state = f"{f.rule_id} at {f.path}:{f.start_line} — {f.message}\n{window}"
@@ -343,9 +352,16 @@ class Pipeline:
                                    asset_map=asset_map, context_graph=ctx_graph)
                       for r in slice_input]
 
-            reachable = [s for s in slices if s.reachability != "no"]
+            unreadable = [s for s in slices if s.insufficient]
+            if unreadable:
+                notes.append(f"{len(unreadable)} slice(s) could not be built "
+                             f"(e.g. {unreadable[0].insufficient_reason}); not sent to deep review")
+            slices_ok = [s for s in slices if not s.insufficient]
+            reachable = [s for s in slices_ok if s.reachability != "no"]
             if m == "bugbounty":
-                reachable = [s for s in slices if s.reachability == "yes"]
+                reachable = [s for s in slices_ok if s.reachability == "yes"]
+            # The deep budget below cuts the tail: spend it on the worst findings first.
+            reachable.sort(key=lambda s: _finding_priority(s.finding))
             print(f"[mantis] reachable slices: {len(reachable)}/{len(slices)}")
 
             if reachable and provider:
@@ -420,7 +436,7 @@ class Pipeline:
 
         if self.fail_on:
             from mantis.suppressions import severity_at_or_above
-            gate_verdicts = {"TRUE", "NEEDS-DEEP", "RAW"}
+            gate_verdicts = {"TRUE", "NEEDS-DEEP", "RAW", "ERROR"}
             offenders = [
                 r for r in triage_results
                 if r.verdict in gate_verdicts
@@ -451,12 +467,16 @@ class Pipeline:
         except Exception as e:
             return None, f"provider import failed: {e}"
         try:
-            return Provider(self.config), None
+            provider = Provider(self.config)
         except Exception as e:
             return None, f"{type(e).__name__}: {e}"
+        if not self.no_cache:
+            from mantis.providers import _cache_root
+            provider.cache_dir = _cache_root()
+        return provider, None
 
     def _select_for_slice(self, triage_results: list[TriageResult]) -> list[TriageResult]:
-        return [r for r in triage_results if r.verdict in ("TRUE", "NEEDS-DEEP")]
+        return [r for r in triage_results if r.verdict in ("TRUE", "NEEDS-DEEP", "ERROR")]
 
     def _pair_confirmed(self, slices: list[Slice], deep_results: list[DeepResult]):
         by_id = {s.finding.id: s for s in slices}

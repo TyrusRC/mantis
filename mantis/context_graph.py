@@ -123,7 +123,7 @@ class ContextGraph:
                             max_hops: int = 6) -> str:
         """BFS from func back through callers to find an entry point.
 
-        Returns 'yes', 'no', or 'unknown'.
+        Returns 'yes' when a route is reached, otherwise 'unknown'.
         """
         start_ids = [
             nid for nid, n in self.nodes.items()
@@ -156,7 +156,10 @@ class ContextGraph:
                         return "yes"
                     frontier.append((caller_id, depth + 1))
 
-        return "no" if visited else "unknown"
+        # No route found is not proof of unreachability: the graph only records
+        # calls, not references (callbacks, route registration, framework hooks),
+        # and the search is hop-limited. Leave the decision to later layers.
+        return "unknown"
 
     def hop_count_to_entry(self, func_name: str, file: str,
                            max_hops: int = 6) -> Optional[int]:

@@ -16,7 +16,7 @@ import subprocess
 from dataclasses import asdict
 from pathlib import Path
 
-from mantis.scan import Finding, ScanOutput, run_scan
+from mantis.scan import Finding, ScanOutput, run_scan, scanner_flags
 
 
 _SCANNABLE_EXT = {
@@ -154,8 +154,11 @@ def run_scan_cached(
     pack_h = hash_pack(rule_files)
     scanner = Path(sast_bin).name
     sv = scanner_version(sast_bin)
-    # fold scanner version into pack hash so a scanner upgrade invalidates entries
-    pack_h = hashlib.sha256((pack_h + sv).encode("utf-8")).hexdigest()
+    # Fold scanner version, severity filter and scan flags into the key: an upgrade,
+    # more severities, or new flags (taint) must not reuse a narrower result set.
+    sev_key = ",".join(sorted(s.upper() for s in severities))
+    flags = " ".join(scanner_flags(sast_bin))
+    pack_h = hashlib.sha256((pack_h + sv + "|" + sev_key + "|" + flags).encode("utf-8")).hexdigest()
 
     cached: list[Finding] = []
     missed: list[Path] = []
@@ -169,6 +172,10 @@ def run_scan_cached(
             miss_paths_str.add(str(p))
             stats["misses"] += 1
         else:
+            # Entries are keyed by content, so an identical file elsewhere (a copy,
+            # a worktree, another repo) shares it: rebase onto the file loaded now.
+            for f in loaded:
+                f.path = str(p)
             cached.extend(loaded)
             stats["hits"] += 1
 

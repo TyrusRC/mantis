@@ -148,7 +148,7 @@ def _safe_rel(p: Path, target: Path) -> str:
 
 
 def reaches_entrypoint(graph: CallGraph, start_func: str, *, max_hops: int = 6) -> str:
-    """Return 'yes' / 'no' / 'unknown' for reachability from any entrypoint."""
+    """Return "yes" when an entrypoint reaches `start_func`, else "unknown"."""
     if not start_func or start_func not in graph.defs:
         return "unknown"
     if start_func in graph.entrypoints:
@@ -171,7 +171,9 @@ def reaches_entrypoint(graph: CallGraph, start_func: str, *, max_hops: int = 6) 
         if not next_frontier:
             break
         frontier = next_frontier
-    return "no" if visited else "unknown"
+    # No path is not proof of unreachability (callbacks and framework hooks are
+    # references, not calls; search is hop-limited). Later layers decide.
+    return "unknown"
 
 
 def _enclosing_func(graph: CallGraph, file_rel: str, line: int) -> Optional[str]:

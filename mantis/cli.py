@@ -128,7 +128,7 @@ def _build_parser() -> argparse.ArgumentParser:
     audit.add_argument(
         "--no-cache",
         action="store_true",
-        help="Bypass the per-file SAST result cache. Useful when debugging rules.",
+        help="Bypass the per-file SAST cache and the LLM response cache. Useful when debugging rules or prompts.",
     )
     audit.add_argument(
         "--fail-on",

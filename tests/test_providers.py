@@ -185,3 +185,96 @@ def test_complete_gives_up_after_max_retries(fake_litellm, monkeypatch):
     sys.modules["litellm"].completion = boom
     with pytest.raises(RuntimeError, match="503"):
         Provider(_cfg()).complete("fast", None, "u")
+
+
+# ---- request shape + resilience ----
+
+def test_drops_unsupported_params_and_sets_timeout(fake_litellm):
+    Provider(_cfg()).complete("fast", None, "u")
+    call = fake_litellm["calls"][-1]
+    assert call["drop_params"] is True      # reasoning models reject temperature
+    assert call["timeout"] > 0
+
+
+def test_litellm_cost_map_is_local(fake_litellm):
+    import os
+    Provider(_cfg())
+    assert os.environ.get("LITELLM_LOCAL_MODEL_COST_MAP") == "True"
+
+
+def test_context_overflow_mentioning_max_tokens_is_not_retried_uncapped(fake_litellm):
+    def boom(**kw):
+        fake_litellm["calls"].append(kw)
+        raise RuntimeError("prompt + max_tokens exceeds the model context window")
+    sys.modules["litellm"].completion = boom
+    with pytest.raises(RuntimeError):
+        Provider(_cfg()).complete("fast", None, "u", max_tokens=100)
+    assert all("max_tokens" in c for c in fake_litellm["calls"])
+
+
+def test_rate_limit_honours_retry_after(fake_litellm, monkeypatch):
+    slept = []
+    monkeypatch.setattr("mantis.providers.time.sleep", slept.append)
+
+    class RateLimited(Exception):
+        status_code = 429
+        response = types.SimpleNamespace(headers={"retry-after": "7"})
+
+    n = {"i": 0}
+    def flaky(**kw):
+        n["i"] += 1
+        if n["i"] == 1:
+            raise RateLimited("slow down")
+        return {"choices": [{"message": {"content": "ok"}}], "usage": {}}
+    sys.modules["litellm"].completion = flaky
+    assert Provider(_cfg()).complete("fast", None, "u").text == "ok"
+    assert slept == [7.0]
+
+
+def test_empty_reply_cut_by_length_retries_with_bigger_budget(fake_litellm):
+    fake_litellm["responses"].append({
+        "choices": [{"message": {"content": ""}, "finish_reason": "length"}], "usage": {}})
+    fake_litellm["responses"].append({
+        "choices": [{"message": {"content": "x | TRUE | ok"}}], "usage": {}})
+    out = Provider(_cfg()).complete("fast", None, "u", max_tokens=200)
+    assert out.text == "x | TRUE | ok"
+    assert fake_litellm["calls"][1]["max_tokens"] > 200
+
+
+def test_empty_reply_without_length_cut_raises(fake_litellm):
+    fake_litellm["responses"].append({
+        "choices": [{"message": {"content": ""}, "finish_reason": "content_filter"}], "usage": {}})
+    with pytest.raises(ProviderError, match="content_filter"):
+        Provider(_cfg()).complete("fast", None, "u")
+
+
+def test_model_routed_by_configured_provider(fake_litellm):
+    # Unprefixed "gemini-*" goes to Vertex in litellm; with provider=google the
+    # user means the Gemini API (GEMINI_API_KEY).
+    from mantis.providers import route_model
+    assert route_model("gemini-2.5-flash", "google") == "gemini/gemini-2.5-flash"
+    assert route_model("vertex_ai/gemini-2.5-flash", "google") == "vertex_ai/gemini-2.5-flash"
+    assert route_model("anthropic/claude-x", "openrouter") == "openrouter/anthropic/claude-x"
+    assert route_model("openrouter/anthropic/claude-x", "openrouter") == "openrouter/anthropic/claude-x"
+    assert route_model("qwen2.5-coder:7b", "ollama") == "ollama/qwen2.5-coder:7b"
+    assert route_model("ollama_chat/qwen", "ollama") == "ollama_chat/qwen"
+    assert route_model("claude-x", "anthropic") == "claude-x"
+    assert route_model("gemini-2.5-flash", None) == "gemini-2.5-flash"
+    p = Provider(_cfg(provider="google", models={"fast": "gemini-2.5-flash"}))
+    p.complete("fast", "s", "u")
+    assert fake_litellm["calls"][-1]["model"] == "gemini/gemini-2.5-flash"
+
+
+def test_response_cache_replays_deterministic_calls_only(fake_litellm, tmp_path):
+    p = Provider(_cfg())
+    p.cache_dir = tmp_path
+    a = p.complete("fast", "s", "u", temperature=0.0)
+    b = p.complete("fast", "s", "u", temperature=0.0)
+    assert len(fake_litellm["calls"]) == 1
+    assert b.text == a.text and b.tokens_in == 0 and b.tokens_out == 0
+    p.complete("fast", "s", "other", temperature=0.0)
+    assert len(fake_litellm["calls"]) == 2
+    # Sampling ensembles (ToAST) need distinct draws: never cached.
+    p.complete("fast", "s", "u", temperature=0.6)
+    p.complete("fast", "s", "u", temperature=0.6)
+    assert len(fake_litellm["calls"]) == 4

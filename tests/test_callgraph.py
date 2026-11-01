@@ -84,9 +84,21 @@ def test_reaches_entrypoint_no_when_only_called_by_self(tmp_path):
         "    pass\n"
     )
     g = index_project(tmp_path)
-    # orphan and sibling are not called from main; only orphan -> sibling
-    # but orphan has no callers from main.
-    assert reaches_entrypoint(g, "sibling") == "no"
+    # No call path found is NOT proof of unreachability: the graph only sees
+    # calls, not references (callbacks, route registration, framework hooks).
+    assert reaches_entrypoint(g, "sibling") == "unknown"
+
+
+def test_callback_registered_function_is_not_marked_unreachable(tmp_path):
+    (tmp_path / "app.py").write_text(
+        "def main():\n"
+        "    app.add_url_rule('/run', view_func=run_cmd)\n"
+        "\n"
+        "def run_cmd():\n"
+        "    os.system(request.args['c'])\n"
+    )
+    g = index_project(tmp_path)
+    assert reaches_entrypoint(g, "run_cmd") != "no"
 
 
 def test_reaches_unknown_for_missing_func(tmp_path):
