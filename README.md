@@ -2,7 +2,7 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-758 OpenGrep rules across 10 languages (Python, JavaScript/TypeScript, Java, Kotlin, Swift, Go, Ruby, PHP, C#, Rust, Dart, C/C++). Covers full OWASP Web Top 10 2025 (A01--A10), OWASP LLM Top 10, mobile (Android + iOS + Flutter + React Native), IaC (Terraform, Dockerfile, Kubernetes), cloud SDK misuse (AWS/GCP/Azure), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists.
+762 OpenGrep rules across 11 languages (Python, JavaScript/TypeScript, Java, Kotlin, Swift, Go, Ruby, PHP, C#, Dart, C/C++). Covers full OWASP Web Top 10 2025 (A01--A10), OWASP LLM Top 10, mobile (Android + iOS + Flutter + React Native), IaC (Terraform, Dockerfile, Kubernetes), cloud SDK misuse (AWS/GCP/Azure), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists.
 
 Stage 0b auto-generates a **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls, sensitive data) that enriches every downstream stage. A **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any provider. Local only.
 
@@ -352,6 +352,14 @@ python3 mantis/resources/scripts/build_manifest.py
 ```
 
 Commit the updated `mantis/resources/rules/_manifest.yaml` alongside the rule change.
+
+`tests/test_rules_hygiene.py` guards the rule set: every file must pass
+`opengrep --validate` (a file that fails is skipped whole at scan time), rule ids
+must be unique, and every rule needs `category`, `cwe` and `confidence`. Behaviour
+is pinned by fixtures under `tests/fixtures/rules/<case>/`: a `ruleid: a, b`
+comment names exactly the rules that must fire on that line (or on the next line,
+when the comment stands alone inside a multi-line pattern); unannotated lines must
+stay quiet. Add a case to `_CASES` when you fix or add a rule.
 
 ### Releasing to PyPI
 

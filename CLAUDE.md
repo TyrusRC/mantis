@@ -90,7 +90,7 @@ Agent frontmatter carries both `model: haiku|sonnet|opus` (consumed by Claude Co
 Every rule needs:
 - `id`, `severity` (ERROR / WARNING / INFO), `languages`, `message`, `patterns` or a top-level `pattern`.
 - `metadata` block with at least `category` (security / privacy / performance), `cwe`, `confidence` (HIGH / MEDIUM / LOW).
-- For mobile rules: also `owasp-mobile-2024`, `masvs-v2`, ideally `maswe`.
+- For mobile rules: also `owasp-mobile-2024`, `masvs` (a MASVS v2 control id, e.g. `MASVS-NETWORK-1`; `report.py` also reads the legacy `masvs-v2` key), ideally `maswe`.
 - For web rules: also `owasp` (e.g. `"A03:2025 Injection"`).
 - For LLM rules: also `owasp` with the LLM Top 10 id.
 - For CVE-specific rules: `cve` and ideally `cvss_score`.
