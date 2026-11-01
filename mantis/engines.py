@@ -11,6 +11,7 @@ missing/failed engine is skipped, never fatal.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -94,11 +95,14 @@ class Engine:
     def parse_native(self, stdout: str) -> list[Finding]:
         return []
 
+    def env(self) -> dict | None:
+        return None
+
     def run(self, tree: str) -> EngineResult:
         out = tempfile.NamedTemporaryFile(suffix=".sarif", delete=False).name
         try:
             res = subprocess.run(self.command(tree, out), capture_output=True,
-                                 text=True, timeout=1800)
+                                 text=True, timeout=1800, env=self.env())
         except Exception as exc:  # noqa: BLE001 - any run failure -> recorded error
             Path(out).unlink(missing_ok=True)
             return EngineResult(self.name, error=f"{type(exc).__name__}: {exc}")
@@ -137,27 +141,97 @@ class NjsscanEngine(Engine):
     def command(self, tree, out): return ["njsscan", "--sarif", "-o", out, tree]
 
 
+_ESLINT_CONFIG = Path(__file__).parent / "resources" / "engines" / "eslint.config.cjs"
+
+
+def _node_modules_root(binary: str) -> Path | None:
+    """node_modules dir that owns `binary` (e.g. the global npm root for a global eslint)."""
+    found = shutil.which(binary)
+    if not found:
+        return None
+    for parent in Path(found).resolve().parents:
+        if parent.name == "node_modules":
+            return parent
+    return None
+
+
 class EslintSecurityEngine(Engine):
+    """Runs only with Mantis's own config, formatter and plugin.
+
+    The audited tree's eslint.config.* is JavaScript and `-f <name>` resolves a
+    formatter package from cwd, so either would execute code from the target.
+    """
     name = "eslint-security"; binary = "eslint"; languages = ("javascript", "typescript")
+
+    def _formatter(self) -> Path | None:
+        root = _node_modules_root(self.binary)
+        pkg = root / "@microsoft" / "eslint-formatter-sarif" if root else None
+        if not pkg or not (pkg / "package.json").is_file():
+            return None
+        main = json.loads((pkg / "package.json").read_text()).get("main") or "sarif.js"
+        return pkg / main
+
+    def available(self) -> bool:
+        root = _node_modules_root(self.binary)
+        return bool(root and (root / "eslint-plugin-security").is_dir() and self._formatter())
+
+    def env(self) -> dict:
+        root = _node_modules_root(self.binary)
+        return {**os.environ, "NODE_PATH": str(root)} if root else dict(os.environ)
+
     def command(self, tree, out):
-        return ["eslint", tree, "-f", "@microsoft/sarif", "-o", out]
+        return ["eslint", "-c", str(_ESLINT_CONFIG), "-f", str(self._formatter() or "@microsoft/eslint-formatter-sarif"),
+                "-o", out, tree]
 
 
 class CheckovEngine(Engine):
     name = "checkov"; binary = "checkov"
     languages = ("terraform", "kubernetes", "docker", "yaml")
-    supports_sarif = False  # checkov --output-file-path is a dir; use stdout SARIF
+
     def command(self, tree, out):
-        return ["checkov", "-d", tree, "-o", "sarif", "--compact", "--quiet"]
-    def parse_native(self, stdout):
-        text = (stdout or "").strip(); i = text.find("{")
-        if i < 0:
-            return []
-        try:
-            data = json.loads(text[i:])
-        except ValueError:
-            return []
-        return sarif_to_findings(data, self.name)
+        # `--directory=<tree>` as ONE argv item: checkov only searches the scanned
+        # dir for .checkov.yaml when -d/--directory is a separate argument, and that
+        # file's external-checks-dir executes Python from the audited tree.
+        return ["checkov", f"--directory={tree}", "-o", "sarif",
+                "--output-file-path", out, "--compact", "--quiet"]
+
+    def run(self, tree: str) -> EngineResult:
+        # Private dir as cwd + HOME closes the other two .checkov.yaml lookups and
+        # catches the SARIF file (checkov writes it to a dir, not stdout).
+        with tempfile.TemporaryDirectory(prefix="mantis-checkov-") as work:
+            try:
+                res = subprocess.run(self.command(tree, work), cwd=work,
+                                     env={**os.environ, "HOME": work},
+                                     capture_output=True, text=True, timeout=1800)
+            except Exception as exc:  # noqa: BLE001 - any run failure -> recorded error
+                return EngineResult(self.name, error=f"{type(exc).__name__}: {exc}")
+            sarifs = sorted(Path(work).glob("*.sarif"))
+            if not sarifs:
+                if res.returncode not in (0, 1):  # 1 = checks failed
+                    return EngineResult(self.name, error=(res.stderr or "").strip()[:300]
+                                        or f"checkov rc={res.returncode}, no SARIF")
+                return EngineResult(self.name, [])
+            try:
+                findings = sarif_to_findings(json.loads(sarifs[0].read_text()), self.name)
+            except json.JSONDecodeError:
+                return EngineResult(self.name, error="invalid SARIF output")
+            for f in findings:
+                f.path = _rebase_checkov_uri(f.path, tree)
+            return EngineResult(self.name, findings)
+
+
+def _rebase_checkov_uri(uri: str, tree: str) -> str:
+    """checkov emits URIs relative to the filesystem root minus its first part
+    (`/tmp/x/main.tf` -> `x/main.tf`); anchor them back onto the scanned tree."""
+    if not uri or os.path.isabs(uri):
+        return uri
+    root = Path(tree).resolve()
+    parts = Path(uri).parts
+    for i in range(len(root.parts)):
+        tail = root.parts[i:]
+        if parts[:len(tail)] == tail:
+            return str(root.joinpath(*parts[len(tail):]))
+    return str(root / uri)
 
 
 class TrivyEngine(Engine):

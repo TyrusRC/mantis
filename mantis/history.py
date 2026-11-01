@@ -19,6 +19,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from mantis.gitsafe import GIT
+
 RUN_DIR_NAME = ".mantis"
 RUNS_SUBDIR = "runs"
 LATEST_SYMLINK = "latest.md"
@@ -36,7 +38,7 @@ class RunEntry:
 def _git_short_sha(target: Path) -> str:
     try:
         out = subprocess.run(
-            ["git", "-C", str(target), "rev-parse", "--short=7", "HEAD"],
+            [*GIT, "-C", str(target), "rev-parse", "--short=7", "HEAD"],
             capture_output=True, text=True, timeout=3,
         )
         sha = out.stdout.strip()

@@ -37,6 +37,18 @@ class RunMeta:
 _SEV_ORDER = ("ERROR", "WARNING", "INFO")
 
 
+def _md(text) -> str:
+    """Untrusted text (scanner messages, LLM replies, repo paths) kept to one inert line:
+    no forged headings/table rows, no raw HTML."""
+    s = " ".join(str(text or "").split())
+    return s.replace("|", "\\|").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _code(text) -> str:
+    """For values inside a `code span` (HTML is inert there; a backtick would close it)."""
+    return " ".join(str(text or "").split()).replace("`", "'")
+
+
 def _sev_label(s: str) -> str:
     return {"ERROR": "Critical/High", "WARNING": "Medium", "INFO": "Low"}.get(s, s)
 
@@ -167,15 +179,17 @@ def _findings_section(results: list[TriageResult], cluster_siblings: Optional[di
                 verdict_tag = " (RAW)"
             else:
                 verdict_tag = ""
+            if f.inline_suppressed:
+                verdict_tag += " (nosemgrep in source)"
             n_siblings = cluster_siblings.get(f.id, 0)
             sib_tag = f" (+{n_siblings} similar in same function)" if n_siblings else ""
             if len(group) == 1:
-                out.append(f"- **{f.rule_id}** — `{f.path}:{f.start_line}`{verdict_tag}{sib_tag}")
+                out.append(f"- **{_md(f.rule_id)}** — `{_code(f.path)}:{f.start_line}`{verdict_tag}{sib_tag}")
             else:
-                ids = ", ".join(sorted({r.finding.rule_id for r in group}))
-                out.append(f"- **{f.path}:{f.start_line}**{verdict_tag} — {len(group)} rules: {ids}{sib_tag}")
-            out.append(f"  - {f.message.splitlines()[0] if f.message else '(no message)'}")
-            out.append(f"  - **Triage:** {head.reason}")
+                ids = ", ".join(sorted({_md(r.finding.rule_id) for r in group}))
+                out.append(f"- **{_md(f.path)}:{f.start_line}**{verdict_tag} — {len(group)} rules: {ids}{sib_tag}")
+            out.append(f"  - {_md(f.message.splitlines()[0]) if f.message else '(no message)'}")
+            out.append(f"  - **Triage:** {_md(head.reason)}")
             out.append(f"  - **Mapping:** {_format_metadata_inline(f.metadata or {})}")
         out.append("")
     return "\n".join(out)
@@ -195,29 +209,29 @@ def _deep_section(deep_results: list) -> str:
     if confirmed or partial:
         for d in confirmed + partial:
             out.append("")
-            out.append(f"### {d.finding_id} — {d.verdict}")
+            out.append(f"### {_md(d.finding_id)} — {d.verdict}")
             if d.severity:
-                out.append(f"- **Severity:** {d.severity}")
+                out.append(f"- **Severity:** {_md(d.severity)}")
             if d.cvss_vector or d.cvss_score:
-                out.append(f"- **CVSS:** {d.cvss_vector}" + (f"  (score {d.cvss_score})" if d.cvss_score else ""))
+                out.append(f"- **CVSS:** {_md(d.cvss_vector)}" + (f"  (score {_md(d.cvss_score)})" if d.cvss_score else ""))
             if d.mapping:
-                kvs = "  ".join(f"{k}={v}" for k, v in d.mapping.items())
+                kvs = "  ".join(f"{_md(k)}={_md(v)}" for k, v in d.mapping.items())
                 out.append(f"- **Mapping:** {kvs}")
             if d.impact:
-                out.append(f"- **Impact:** {d.impact}")
+                out.append(f"- **Impact:** {_md(d.impact)}")
             if d.poc:
                 out.append("- **PoC:**")
                 for i, step in enumerate(d.poc, 1):
-                    out.append(f"    {i}. {step}")
+                    out.append(f"    {i}. {_md(step)}")
             if d.recommendation:
-                out.append(f"- **Recommendation:** {d.recommendation}")
+                out.append(f"- **Recommendation:** {_md(d.recommendation)}")
             if d.notes:
-                out.append(f"- Notes: {d.notes}")
+                out.append(f"- Notes: {_md(d.notes)}")
     if insufficient:
         out.append("")
         out.append("### Insufficient slices")
         for d in insufficient[:10]:
-            out.append(f"- {d.finding_id} — {d.insufficient_reason}")
+            out.append(f"- {_md(d.finding_id)} — {_md(d.insufficient_reason)}")
     return "\n".join(out)
 
 
@@ -238,13 +252,13 @@ def _fix_section(fix_results: list, worktree) -> str:
     )
     for r in applied + reverted + failed:
         out.append("")
-        out.append(f"### {r.finding_id} — {r.status}")
+        out.append(f"### {_md(r.finding_id)} — {r.status}")
         if r.files_changed:
-            out.append(f"- Files: {', '.join(r.files_changed)}")
+            out.append(f"- Files: {_md(', '.join(r.files_changed))}")
         if r.verification:
-            out.append(f"- Verification: {r.verification}")
+            out.append(f"- Verification: {_md(r.verification)}")
         if r.notes:
-            out.append(f"- Notes: {r.notes}")
+            out.append(f"- Notes: {_md(r.notes)}")
         if r.diff and r.status in ("applied", "reverted"):
             out.append("")
             out.append("```diff")
@@ -266,15 +280,15 @@ def _toast_section(toast_results: list) -> str:
             continue
         any_new = True
         out.append("")
-        out.append(f"### {tr.finding_id} — {len(tr.new_findings)} candidate(s) (quorum {tr.quorum}/{tr.samples})")
+        out.append(f"### {_md(tr.finding_id)} — {len(tr.new_findings)} candidate(s) (quorum {tr.quorum}/{tr.samples})")
         for i, f in enumerate(tr.new_findings, 1):
-            out.append(f"{i}. **source:** `{f.source}`  →  **sink:** `{f.sink}`")
+            out.append(f"{i}. **source:** `{_code(f.source)}`  →  **sink:** `{_code(f.sink)}`")
             if f.flow:
-                out.append(f"   - flow: {f.flow}")
+                out.append(f"   - flow: {_md(f.flow)}")
             if f.cwe:
-                out.append(f"   - CWE: {f.cwe}")
+                out.append(f"   - CWE: {_md(f.cwe)}")
             if f.impact:
-                out.append(f"   - impact: {f.impact}")
+                out.append(f"   - impact: {_md(f.impact)}")
     if not any_new:
         out.append("")
         out.append("(no candidates reached quorum)")
@@ -288,7 +302,7 @@ def _filtered_section(results: list[TriageResult], packs: list[str]) -> str:
     if errors:
         out.append("\n### Errors")
         for r in errors[:25]:
-            out.append(f"- `{r.finding.rule_id}` at `{r.finding.path}:{r.finding.start_line}` — {r.reason}")
+            out.append(f"- `{_code(r.finding.rule_id)}` at `{_code(r.finding.path)}:{r.finding.start_line}` — {_md(r.reason)}")
     return "\n".join(out)
 
 
@@ -351,7 +365,7 @@ def write_report(
         parts.append("## Suppressed (.mantisignore)")
         parts.append(f"{len(suppressed_findings)} finding(s) skipped before triage:")
         for f in suppressed_findings[:20]:
-            parts.append(f"- `{f.rule_id}` — {f.path}:{f.start_line}")
+            parts.append(f"- `{_code(f.rule_id)}` — {_md(f.path)}:{f.start_line}")
         if len(suppressed_findings) > 20:
             parts.append(f"- ... and {len(suppressed_findings) - 20} more")
         parts.append("")

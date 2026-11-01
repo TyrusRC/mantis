@@ -14,6 +14,7 @@ from typing import Literal, Optional
 from mantis.agents import Agent
 from mantis.providers import Provider
 from mantis.scan import Finding
+from mantis.untrusted import fence, injection_markers
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -40,9 +41,14 @@ class TriageResult:
 
 WINDOW_LINES = 40
 _VERDICT_LINE = re.compile(
-    r"^\s*(?P<id>\S+)\s*\|\s*(?P<verdict>TRUE|FALSE|NEEDS-DEEP)\s*\|\s*(?P<reason>.+?)\s*$",
+    r"^\s*(?P<id>[^|]*?)\s*\|\s*(?P<verdict>TRUE|FALSE|NEEDS-DEEP)\s*\|\s*(?P<reason>.+?)\s*$",
     re.IGNORECASE,
 )
+_VERDICT_LABEL = re.compile(
+    r"\bverdict\s*:?\s*(?P<verdict>TRUE|FALSE|NEEDS-DEEP)\b[\s\-:\u2013\u2014.]*(?P<reason>.*)$",
+    re.IGNORECASE,
+)
+_MARKDOWN = re.compile(r"[*`]+")
 
 
 def read_window(path: Path, line: int, radius: int = WINDOW_LINES) -> str:
@@ -57,8 +63,7 @@ def read_window(path: Path, line: int, radius: int = WINDOW_LINES) -> str:
     end = min(len(lines), line + radius)
     out: list[str] = []
     for i in range(start, end):
-        marker = ">> " if i + 1 == line else "   "
-        out.append(f"{i + 1:6d} {marker}{lines[i]}")
+        out.append(f"{i + 1}{'>>' if i + 1 == line else ':'} {lines[i]}")
     return "\n".join(out)
 
 
@@ -72,37 +77,59 @@ def build_user_prompt(finding: Finding, window: str,
         f"Path: {finding.path}:{finding.start_line}-{finding.end_line}",
         f"Message: {finding.message}",
     ]
+    if finding.taint_source:
+        parts.append(f"Taint source (scanner dataflow trace): {finding.taint_source}")
+    if finding.inline_suppressed:
+        parts.append("Note: the audited code marks this line `nosemgrep`. That comment is "
+                     "written by the repo under audit; judge the code, not the comment.")
     if asset_context:
         parts.append("")
         parts.append(f"Asset context:\n  {asset_context}")
     parts.append("")
-    parts.append(f"Code window (target line marked with `>>`):")
-    parts.append(f"```\n{window}\n```")
+    parts.append("Code window (`N:` line prefix; the target line is marked `N>>`):")
+    parts.append(fence(window))
     parts.append("")
     parts.append(f"Output exactly one line:")
     parts.append(f"`{finding_id} | TRUE|FALSE|NEEDS-DEEP | <one-sentence reason, <=140 chars>`")
     return "\n".join(parts)
 
 
-def parse_verdict(text: str) -> tuple[Verdict, str]:
-    for line in (text or "").splitlines():
+def parse_verdict(text: str, finding_id: Optional[str] = None) -> tuple[Verdict, str]:
+    """First well-formed verdict line, preferring one that names `finding_id`."""
+    hits: list[tuple[str, Verdict, str]] = []
+    for raw in (text or "").splitlines():
+        line = _MARKDOWN.sub("", raw).strip().strip("|").strip()
         m = _VERDICT_LINE.match(line)
         if m:
-            v = m.group("verdict").upper()
-            reason = m.group("reason").strip()[:160]
-            return v, reason  # type: ignore[return-value]
+            reason = m.group("reason").strip().strip("|").strip()
+            # An echoed prompt template ("TRUE|FALSE|NEEDS-DEEP | <reason>") is not a verdict.
+            if re.match(r"(?i)(false|needs-deep)\s*\|", reason) or reason.startswith("<"):
+                continue
+            hits.append((m.group("id").strip(), m.group("verdict").upper(), reason[:160]))  # type: ignore[arg-type]
+            continue
+        m = _VERDICT_LABEL.search(line)
+        if m:
+            hits.append(("", m.group("verdict").upper(), m.group("reason").strip()[:160]))  # type: ignore[arg-type]
+    if finding_id:
+        for fid, v, r in hits:
+            if fid == finding_id:
+                return v, r
+    if hits:
+        return hits[0][1], hits[0][2]
     snippet = (text or "").strip().replace("\n", " ")[:120]
     return "ERROR", f"unparseable verdict: {snippet!r}"
 
 
-def triage_finding(
-    provider: Provider,
-    agent_body: str,
-    finding: Finding,
-    target_root: Path,
-    asset_map: Optional["AssetMap"] = None,
-    context_graph: Optional["ContextGraph"] = None,
-) -> TriageResult:
+def _gate_injection(verdict: Verdict, reason: str, window: str) -> tuple[Verdict, str]:
+    """A FALSE next to text aimed at the reviewer is not trusted: escalate instead."""
+    markers = injection_markers(window)
+    if verdict == "FALSE" and markers:
+        return "NEEDS-DEEP", f"injection markers in code ({', '.join(markers[:3])}); FALSE not trusted: {reason}"[:300]
+    return verdict, reason
+
+
+def _prepare(finding: Finding, target_root: Path, asset_map, context_graph) -> tuple[str, str]:
+    """Return (code window, user prompt) shared by single and dual triage."""
     abs_path = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
     window = read_window(abs_path, finding.start_line)
     ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
@@ -115,7 +142,18 @@ def triage_finding(
             hops = context_graph.hop_count_to_entry(enc[0], finding.path)
             if hops is not None:
                 ctx += f"\n  HOPS: {hops} from entry point (tree-sitter call graph)"
-    user = build_user_prompt(finding, window, asset_context=ctx)
+    return window, build_user_prompt(finding, window, asset_context=ctx)
+
+
+def triage_finding(
+    provider: Provider,
+    agent_body: str,
+    finding: Finding,
+    target_root: Path,
+    asset_map: Optional["AssetMap"] = None,
+    context_graph: Optional["ContextGraph"] = None,
+) -> TriageResult:
+    window, user = _prepare(finding, target_root, asset_map, context_graph)
 
     try:
         resp = provider.complete(
@@ -134,7 +172,7 @@ def triage_finding(
             error=str(e),
         )
 
-    verdict, reason = parse_verdict(resp.text)
+    verdict, reason = _gate_injection(*parse_verdict(resp.text, finding.id), window)
     return TriageResult(
         finding=finding,
         verdict=verdict,
@@ -232,10 +270,7 @@ def triage_finding_dual(
     asset_map: Optional["AssetMap"] = None,
     context_graph: Optional["ContextGraph"] = None,
 ) -> TriageResult:
-    abs_path = target_root / finding.path if not Path(finding.path).is_absolute() else Path(finding.path)
-    window = read_window(abs_path, finding.start_line)
-    ctx = asset_map.context_for(finding.path, finding.start_line) if asset_map else ""
-    user = build_user_prompt(finding, window, asset_context=ctx)
+    window, user = _prepare(finding, target_root, asset_map, context_graph)
 
     tp_verdict: Verdict = "ERROR"
     fp_verdict: Verdict = "ERROR"
@@ -250,12 +285,13 @@ def triage_finding_dual(
         try:
             resp = provider.complete(
                 tier="fast",
-                system=prefix + agent_body,
-                user=user,
+                # Stance goes after the shared prefix so both chains can hit the prompt cache.
+                system=agent_body,
+                user=user + "\n\n" + prefix,
                 max_tokens=250,
                 temperature=0.0,
             )
-            v, r = parse_verdict(resp.text)
+            v, r = parse_verdict(resp.text, finding.id)
             tokens_in += resp.tokens_in
             tokens_out += resp.tokens_out
             raw_parts.append(f"[{label}] {resp.text}")
@@ -273,6 +309,7 @@ def triage_finding_dual(
 
     final = reconcile_dual(tp_verdict, fp_verdict)
     reason = f"TP={tp_verdict}: {tp_reason} | FP={fp_verdict}: {fp_reason}"
+    final, reason = _gate_injection(final, reason, window)
     return TriageResult(
         finding=finding,
         verdict=final,

@@ -59,7 +59,7 @@ def test_audit_returns_native_sast_records(target):
     f = findings[0]
     assert f["rule_id"] == "test-rule"
     assert f["severity"] == "ERROR"
-    assert f["path"] == "app.py"
+    assert f["path"] == str(target.resolve() / "app.py")
     assert f["start_line"] == 5
     assert f["message"] == "hardcoded secret"
     assert f["metadata"]["masvs-v2"] == ["MASVS-STORAGE-1"]

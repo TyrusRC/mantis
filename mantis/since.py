@@ -15,6 +15,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from mantis.gitsafe import GIT
+
 
 class SinceError(Exception):
     pass
@@ -23,7 +25,7 @@ class SinceError(Exception):
 def _git_run(args: list[str], cwd: Path, timeout: int = 5) -> tuple[int, str]:
     try:
         out = subprocess.run(
-            ["git", "-C", str(cwd), *args],
+            [*GIT, "-C", str(cwd), *args],
             capture_output=True, text=True, timeout=timeout,
         )
         return out.returncode, out.stdout

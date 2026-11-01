@@ -34,7 +34,7 @@ class _DualProvider:
         self.calls = []
 
     def complete(self, tier, system, user, max_tokens=4096, temperature=0.2):
-        self.calls.append({"tier": tier, "system_head": system[:200]})
+        self.calls.append({"tier": tier, "system": system, "user": user})
         text = self.responses.pop(0) if self.responses else ""
         return LLMResponse(text=text, tokens_in=5, tokens_out=10, model="fake")
 
@@ -77,9 +77,10 @@ def test_dual_both_chains_called(tmp_path):
     ])
     result = triage_finding_dual(p, "system body", _finding(), tmp_path)
     assert len(p.calls) == 2
-    # First call should have the TP prefix in system head.
-    assert "TRUE POSITIVE" in p.calls[0]["system_head"]
-    assert "FALSE POSITIVE" in p.calls[1]["system_head"]
+    # Same system prompt for both chains (shared cacheable prefix); stance rides in the user turn.
+    assert p.calls[0]["system"] == p.calls[1]["system"] == "system body"
+    assert "TRUE POSITIVE" in p.calls[0]["user"]
+    assert "FALSE POSITIVE" in p.calls[1]["user"]
     # Disagreement -> NEEDS-DEEP
     assert result.verdict == "NEEDS-DEEP"
     assert "TP=TRUE" in result.reason

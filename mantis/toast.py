@@ -22,6 +22,7 @@ from typing import Optional
 from mantis.agents import Agent
 from mantis.providers import Provider
 from mantis.slice import Slice
+from mantis.untrusted import fence
 
 
 DEFAULT_SAMPLES = 3
@@ -112,13 +113,23 @@ def vote_quorum_filter(
     return [by_key[k] for k, n in counter.items() if n >= quorum]
 
 
+def _vote_settled(per_sample: list[list[ToastFinding]], quorum: int, remaining: int) -> bool:
+    """True when no further sample can change which candidates reach quorum."""
+    if remaining >= quorum:
+        return False  # an unseen candidate could still collect a full quorum
+    votes: Counter[tuple[str, str]] = Counter()
+    for sample in per_sample:
+        votes.update({_finding_key(f) for f in sample if f.verdict == "PLAUSIBLE"})
+    return all(n >= quorum or n + remaining < quorum for n in votes.values())
+
+
 def build_user_prompt(slice_obj: Slice) -> str:
     finding = slice_obj.finding
     finding_id = finding.id
     return (
         f"ORIGINAL FINDING (already deep-reviewed; do not re-flag): {finding_id}\n"
         f"Rule: {finding.rule_id}\n\n"
-        f"SLICE:\n{slice_obj.to_text()}\n\n"
+        f"SLICE:\n{fence(slice_obj.to_text(), 'untrusted-slice')}\n\n"
         f"Find NEW vulnerabilities in this slice beyond what the original rule expressed.\n"
         f"Output in the TOAST_FINDINGS format from your instructions."
     )
@@ -157,6 +168,8 @@ def hunt_on_slice(
         result.tokens_in += resp.tokens_in
         result.tokens_out += resp.tokens_out
         per_sample.append(parse_toast_response(resp.text))
+        if _vote_settled(per_sample, quorum, samples - i - 1):
+            break
 
     if not per_sample:
         result.notes = "no successful samples"

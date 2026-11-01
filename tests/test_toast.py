@@ -108,12 +108,13 @@ def test_hunt_on_slice_quorum_reached():
     # Two samples both report the same finding -> quorum=2 keeps it.
     p = _MultiProvider([SAMPLE_RESPONSE] * 3)
     result = hunt_on_slice(p, "system", _slice(), samples=3, quorum=2)
-    assert len(p.calls) == 3
+    # Two agreeing samples settle a 2-of-3 vote; the third cannot change it.
+    assert len(p.calls) == 2
     assert p.calls[0]["tier"] == "deep"
     # Temperature should be > 0 so the samples diverge.
     assert p.calls[0]["temperature"] > 0
     assert len(result.new_findings) == 1
-    assert result.tokens_in == 36
+    assert result.tokens_in == 24
     assert result.notes == ""
 
 
@@ -151,3 +152,11 @@ def test_build_user_prompt_includes_slice_and_disclaimer():
     assert "do not re-flag" in prompt.lower()
     assert "SLICE" in prompt
     assert "TOAST_FINDINGS" in prompt
+
+
+def test_hunt_keeps_sampling_while_a_candidate_can_still_reach_quorum():
+    other = SAMPLE_RESPONSE.replace("eval at", "exec at").replace("logger.info at", "print at")
+    p = _MultiProvider([SAMPLE_RESPONSE, other, SAMPLE_RESPONSE])
+    result = hunt_on_slice(p, "system", _slice(), samples=3, quorum=2)
+    assert len(p.calls) == 3
+    assert len(result.new_findings) == 1

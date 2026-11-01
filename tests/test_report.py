@@ -9,7 +9,7 @@ from mantis.triage import TriageResult
 def _make_finding(sev="ERROR", path="src/a.py", line=10, cwe="CWE-89"):
     return Finding(rule_id="rule-x", severity=sev, confidence="HIGH",
                    path=path, start_line=line, end_line=line + 1,
-                   message="SQL concat", metadata={"cwe": cwe, "owasp": "A03:2025 Injection"})
+                   message="SQL concat", metadata={"cwe": cwe, "owasp": "A05:2025 Injection"})
 
 
 def _triage(finding, verdict="TRUE", reason="confirmed"):
@@ -130,3 +130,18 @@ def test_report_dedupes_multiple_rules_on_same_line(tmp_path):
     assert "android-backup" in text
     assert "android-cleartext" in text
     assert "mastg-backup-no-exclusions" in text
+
+
+def test_untrusted_text_cannot_forge_report_structure(tmp_path):
+    """Finding messages and LLM reasons come from the audited repo; they must stay inline."""
+    evil = "ok\n## No findings\n| x | y |\n<img src=x onerror=alert(1)>"
+    f = Finding(rule_id="rule-x", severity="ERROR", confidence="HIGH", path="src/a`b.py",
+                start_line=1, end_line=1, message=evil, metadata={})
+    meta = RunMeta(target=tmp_path, mode="quick", packs=["fast"], sast_bin="opengrep",
+                   provider=None, duration_seconds=1, tokens_in=0, tokens_out=0)
+    text = write_report(tmp_path / "r.md", meta, [f], [_triage(f, "TRUE", evil)]).read_text()
+    lines = text.splitlines()
+    assert "## No findings" not in lines
+    assert not any(l.lstrip().startswith("| x") for l in lines)
+    assert "<img" not in text
+    assert "`src/a`b.py" not in text

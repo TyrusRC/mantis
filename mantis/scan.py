@@ -12,11 +12,13 @@ accept the flag as repeatable. Their behavior on the comma-list form
 from __future__ import annotations
 
 import json
+import shutil
 import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -40,6 +42,20 @@ class Finding:
     def id(self) -> str:
         """Canonical finding identifier used as a join key across stages."""
         return f"{self.rule_id}@{self.path}:{self.start_line}"
+
+    @property
+    def inline_suppressed(self) -> bool:
+        """The audited source marks this line `nosemgrep`; kept, since the repo is untrusted."""
+        return bool((self.raw.get("extra") or {}).get("is_ignored"))
+
+    @property
+    def taint_source(self) -> str:
+        """`path:line <code>` where a taint rule's flow starts ("" for non-taint rules)."""
+        try:
+            loc, code = ((self.raw.get("extra") or {}).get("dataflow_trace") or {})["taint_source"][1]
+            return f"{loc['path']}:{loc['start']['line']} {' '.join(str(code).split())[:120]}"
+        except (KeyError, TypeError, ValueError, IndexError):
+            return ""
 
 
 class ScanError(Exception):
@@ -132,6 +148,43 @@ def filter_valid_rule_files(
     return valid, invalid
 
 
+# OpenGrep's built-in ignore list (measured on 1.25), re-applied as --exclude
+# because --x-ignore-semgrepignore-files drops it along with the target's file.
+_DEFAULT_EXCLUDES = (
+    ".git", ".svn", ".hg", "node_modules", "build", "dist", "vendor",
+    ".env", ".venv", ".tox", ".npm", ".yarn", "test", "tests",
+    "*.min.js", "*_test.go", "*.test.js", ".mantis",
+)
+
+
+@lru_cache(maxsize=None)
+def _supports(sast_bin: str, flag: str) -> bool:
+    try:
+        out = subprocess.run([sast_bin, "scan", "--help=plain"], capture_output=True,
+                             text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return flag in out
+
+
+def scanner_flags(sast_bin: str) -> list[str]:
+    """OpenGrep-only flags; an `$AUDIT_SAST_BIN` override (e.g. semgrep) may not know them.
+
+    - --taint-intrafile: follow taint across functions within a file.
+    - --disable-nosem: report `nosemgrep` lines (flagged is_ignored) instead of
+      dropping them -- the audited repo writes those comments.
+    - --x-ignore-semgrepignore-files: a planted `.semgrepignore` with `*` would
+      otherwise empty the scan. Internal flag: probed, skipped if absent.
+    """
+    if not Path(sast_bin).name.startswith("opengrep"):
+        return []
+    flags = ["--taint-intrafile", "--disable-nosem"]
+    if _supports(shutil.which(sast_bin) or sast_bin, "--x-ignore-semgrepignore-files"):
+        flags.append("--x-ignore-semgrepignore-files")
+        flags += [f"--exclude={p}" for p in _DEFAULT_EXCLUDES]
+    return flags
+
+
 def run_scan(
     target: Path,
     rule_files: list[Path],
@@ -152,22 +205,26 @@ def run_scan(
     if paths is not None and not paths:
         return ScanOutput()
 
-    cmd: list[str] = [sast_bin, "--quiet"]
+    cmd: list[str] = [sast_bin, "--quiet", *scanner_flags(sast_bin)]
     for f in rule_files:
         cmd.extend(["--config", str(f)])
     cmd.append("--json")
     for sev in severities:
         cmd.extend(["--severity", sev])
-    if paths is not None:
-        for p in paths:
-            cmd.append(str(p))
+    # A directory walk runs from inside the target so ignore patterns only see
+    # in-project paths: scanning /x/build/proj from outside matched `build` and
+    # returned nothing. Explicit file lists bypass ignores, so they keep the cwd.
+    walk = paths is None
+    if walk:
+        cmd.append(".")
     else:
-        cmd.append(str(target))
+        cmd.extend(str(p) for p in paths)
 
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True,
             timeout=timeout_seconds, check=False,
+            cwd=str(target) if walk else None,
         )
     except subprocess.TimeoutExpired as e:
         raise ScanError(f"{sast_bin} timed out after {timeout_seconds}s") from e
@@ -179,7 +236,11 @@ def run_scan(
             f"{sast_bin} failed (rc={result.returncode}): {result.stderr.strip()[:500]}"
         )
 
-    return parse_scan_output(result.stdout)
+    out = parse_scan_output(result.stdout)
+    if walk:
+        for f in out.findings:   # back to the caller's path form (relative stays relative)
+            f.path = os.path.normpath(os.path.join(str(target), f.path))
+    return out
 
 
 def parse_scan_output(stdout: str) -> ScanOutput:

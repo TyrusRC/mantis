@@ -136,3 +136,72 @@ def test_filter_valid_rule_files_runs_concurrently_not_sequentially(monkeypatch)
         f"took {elapsed:.2f}s for {len(files)} files at {delay}s each — "
         "looks sequential, not parallel"
     )
+
+
+def test_opengrep_scans_with_cross_function_taint(tmp_path):
+    # Taint rules ship in most packs; without --taint-intrafile opengrep only
+    # follows flows inside one function.
+    from mantis.scan import run_scan
+    for name in ("opengrep", "semgrep"):
+        argv_log = tmp_path / f"{name}.argv"
+        fake = tmp_path / name
+        fake.write_text(f"#!/bin/sh\necho \"$@\" > {argv_log}\necho '{{\"results\": []}}'\n")
+        fake.chmod(0o755)
+        rule = tmp_path / "r.yaml"; rule.write_text("rules: []\n")
+        run_scan(tmp_path, [rule], str(fake))
+        assert ("--taint-intrafile" in argv_log.read_text()) == (name == "opengrep")
+
+
+def _real_opengrep():
+    import shutil
+    return shutil.which("opengrep")
+
+
+def _eval_rule(tmp_path):
+    rule = tmp_path / "r.yaml"
+    rule.write_text("rules:\n- id: ev\n  languages: [python]\n  severity: ERROR\n"
+                    "  message: ev\n  pattern: eval(...)\n")
+    return rule
+
+
+@pytest.mark.skipif(_real_opengrep() is None, reason="opengrep not installed")
+def test_target_cannot_hide_code_from_the_scanner(tmp_path, monkeypatch):
+    """The audited repo controls .semgrepignore and nosemgrep comments; neither may hide a finding."""
+    from mantis.scan import run_scan
+    rule = _eval_rule(tmp_path)
+    t = tmp_path / "t"
+    (t / "src").mkdir(parents=True)
+    (t / "node_modules").mkdir()
+    (t / ".semgrepignore").write_text("*\n")
+    (t / "src" / "a.py").write_text("eval(x)\neval(y)  # nosemgrep\n")
+    (t / "node_modules" / "b.py").write_text("eval(x)\n")
+    monkeypatch.chdir(t)   # `mantis audit .` — where the planted ignore file applies
+    out = run_scan(Path("."), [rule], "opengrep")
+    got = {(f.path, f.start_line, f.inline_suppressed) for f in out.findings}
+    assert got == {("src/a.py", 1, False), ("src/a.py", 2, True)}   # vendored dirs still skipped
+
+
+def test_taint_source_is_read_from_dataflow_trace():
+    from mantis.scan import parse_scan_output
+    import json as _j
+    r = {"check_id": "c", "path": "a.py", "start": {"line": 6}, "end": {"line": 6},
+         "extra": {"severity": "ERROR", "message": "m", "metadata": {},
+                   "dataflow_trace": {"taint_source": ["CliLoc", [
+                       {"path": "a.py", "start": {"line": 10}, "end": {"line": 10}},
+                       'request.args.get("c")']]}}}
+    f = parse_scan_output(_j.dumps({"results": [r]})).findings[0]
+    assert f.taint_source == 'a.py:10 request.args.get("c")'
+    assert f.inline_suppressed is False
+
+
+@pytest.mark.skipif(_real_opengrep() is None, reason="opengrep not installed")
+def test_project_under_an_ignored_dir_name_is_still_scanned(tmp_path):
+    # Ignore patterns used to match the target's own parents: /x/build/proj scanned nothing.
+    from mantis.scan import run_scan
+    rule = _eval_rule(tmp_path)
+    proj = tmp_path / "build" / "proj"
+    (proj / "tests").mkdir(parents=True)
+    (proj / "a.py").write_text("eval(x)\n")
+    (proj / "tests" / "t.py").write_text("eval(x)\n")
+    out = run_scan(proj, [rule], "opengrep")
+    assert [f.path for f in out.findings] == [str(proj / "a.py")]

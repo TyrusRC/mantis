@@ -24,9 +24,11 @@ import yaml
 
 from mantis.agents import Agent
 from mantis.deep import DeepResult
+from mantis.gitsafe import GIT
 from mantis.providers import Provider
-from mantis.scan import Finding, parse_scan_output
+from mantis.scan import Finding, parse_scan_output, scanner_flags
 from mantis.slice import Slice
+from mantis.untrusted import fence
 
 
 _UNIFIED_DIFF_HEADER = re.compile(r"^(?:diff --git|---|\+\+\+)", re.MULTILINE)
@@ -51,7 +53,7 @@ class FixError(Exception):
 
 
 def _run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=False)
+    return subprocess.run([*GIT, *args], cwd=cwd, capture_output=True, text=True, check=False)
 
 
 def _short_sha(repo: Path) -> str:
@@ -134,31 +136,42 @@ def _rel_path(path: str, repo: Optional[Path]) -> str:
     return path
 
 
+def _matched_rule_yaml(rule_file: Optional[Path], rule_id: str) -> str:
+    """Just the rule that fired, not the whole (often multi-rule) file."""
+    if not rule_file or not rule_file.is_file():
+        return ""
+    try:
+        doc = yaml.safe_load(rule_file.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return ""
+    for r in (doc.get("rules") if isinstance(doc, dict) else None) or []:
+        if isinstance(r, dict) and r.get("id") and _same_rule(rule_id, str(r["id"])):
+            return yaml.safe_dump(r, sort_keys=False, allow_unicode=True)[:4000]
+    return ""
+
+
 def build_fix_user_prompt(slice_obj: Slice, rule_file: Optional[Path], worktree: Path,
                           rel_path: Optional[str] = None) -> str:
     finding = slice_obj.finding
-    finding_id = finding.id
-    rule_excerpt = ""
-    if rule_file and rule_file.is_file():
-        try:
-            rule_excerpt = rule_file.read_text(encoding="utf-8")[:4000]
-        except OSError:
-            rule_excerpt = ""
+    rule_excerpt = _matched_rule_yaml(rule_file, finding.rule_id)
 
+    # NOTE: fence() redacts key-shaped values, so a patch whose context lines hold
+    # a live secret will not apply and is reported as failed. Accepted: secrets
+    # stay on the machine; the fix for those is a manual rotation anyway.
     parts = [
-        f"FINDING_ID: {finding_id}",
+        f"FINDING_ID: {finding.id}",
         f"WORKTREE: {worktree}",
         f"FILE_TO_PATCH: {rel_path or finding.path}",
         f"RULE_ID: {finding.rule_id}",
         "",
         "SLICE:",
-        slice_obj.to_text(),
+        fence(slice_obj.to_text(), "untrusted-slice"),
     ]
     if rule_excerpt:
         parts.append("")
-        parts.append("RULE FILE (so you understand what pattern must stop matching):")
+        parts.append("MATCHED RULE (the pattern that must stop matching):")
         parts.append("```yaml")
-        parts.append(rule_excerpt)
+        parts.append(rule_excerpt.rstrip())
         parts.append("```")
     parts.append("")
     parts.append("Respond with FINDING / PATCH (unified diff) / VERIFY / NOTES per your instructions.")
@@ -205,7 +218,7 @@ def files_in_diff(diff: str) -> list[str]:
 
 def apply_patch(diff: str, worktree: Path) -> tuple[bool, str]:
     res = subprocess.run(
-        ["git", "apply", "--whitespace=nowarn", "-"],
+        [*GIT, "apply", "--whitespace=nowarn", "-"],
         cwd=worktree,
         input=diff,
         capture_output=True,
@@ -218,7 +231,7 @@ def apply_patch(diff: str, worktree: Path) -> tuple[bool, str]:
 def revert_files(worktree: Path, files: list[str]) -> None:
     if not files:
         return
-    subprocess.run(["git", "checkout", "--", *files], cwd=worktree,
+    subprocess.run([*GIT, "checkout", "--", *files], cwd=worktree,
                    capture_output=True, text=True, check=False)
 
 
@@ -231,7 +244,8 @@ def scan_counts(worktree: Path, files: list[str], rule_files: list[Path],
     present = [f for f in dict.fromkeys(files) if (worktree / f).is_file()]
     if not present:
         return Counter()
-    cmd = [sast_bin, "--quiet"]
+    # Same flags as the audit scan, or taint findings never reproduce here.
+    cmd = [sast_bin, "--quiet", *scanner_flags(sast_bin)]
     for rf in dict.fromkeys(rule_files):
         cmd.extend(["--config", str(rf)])
     cmd += ["--json", *present]
