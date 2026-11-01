@@ -1,0 +1,22 @@
+buildscript {
+  repositories {
+    maven { url 'http://repo.example.com/m2' } 
+    maven { url 'https://repo.example.com/m2' } 
+  }
+}
+apply plugin: 'com.android.application' 
+apply plugin: 'evil.plugin' 
+dependencies {
+  implementation 'com.squareup.okhttp:okhttp:2.7.5' 
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0' 
+  implementation 'commons-collections:commons-collections:3.2.1' 
+  implementation 'commons-collections:commons-collections:3.2.2' 
+}
+android {
+  
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+}

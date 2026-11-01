@@ -138,6 +138,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-311: Missing Encryption of Sensitive Data"
       mastg-test: "MASTG-TEST-0058"
       masvs: "MASVS-STORAGE-1"
       owasp-mobile-2024: "M9: Insecure Data Storage"
@@ -216,6 +217,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-549: Missing Password Field Masking"
       mastg-test: "MASTG-TEST-0060"
       masvs: "MASVS-STORAGE-2"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"

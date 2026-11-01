@@ -175,6 +175,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-477: Use of Obsolete Function"
       mastg-id: "MASTG-CRYPTO"
       masvs: "MASVS-CRYPTO-1"
       confidence: LOW

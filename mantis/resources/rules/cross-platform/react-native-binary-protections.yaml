@@ -78,6 +78,7 @@ rules:
         - "**/package.json"
     metadata:
       category: security
+      cwe: "CWE-538: Insertion of Sensitive Information into Externally-Accessible File or Directory"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: HIGH
       false_positive_likelihood: LOW
@@ -143,6 +144,9 @@ rules:
       - metavariable-regex:
           metavariable: $DATA
           regex: (?i).*(password|token|key|secret|credential|auth|pin|ssn|card|bearer).*
+      - pattern-not-inside: |
+          // Test
+          describe('...', () => { ... })
     message: |
       Sensitive data in console statements (OWASP M7).
 
@@ -360,6 +364,7 @@ rules:
       - typescript
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       mastg-test: "MASTG-TEST-0228: Testing Root Detection"
       confidence: LOW
@@ -422,67 +427,11 @@ rules:
         - "**/android/app/build.gradle"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: HIGH
       false_positive_likelihood: LOW
 
-  - id: react-native-m7-missing-integrity-check
-    patterns:
-      - pattern: |
-          export default function App() {
-            ...
-          }
-      - pattern-not-inside: |
-          verifyAppIntegrity()
-      - pattern-not-inside: |
-          IntegrityChecker.verify()
-    message: |
-      Missing app integrity verification (OWASP M7).
-
-      RECOMMENDATION: High-value apps should verify integrity.
-
-      IMPLEMENTATION:
-      ```javascript
-      import DeviceInfo from 'react-native-device-info';
-
-      class IntegrityChecker {
-        static async verify() {
-          const bundleId = DeviceInfo.getBundleId();
-
-          if (bundleId !== 'com.example.app') {
-            return false;
-          }
-
-          // Additional checks via native modules
-          return await this.verifyNativeSignature();
-        }
-      }
-
-      export default function App() {
-        useEffect(() => {
-          if (!__DEV__) {
-            IntegrityChecker.verify().then(valid => {
-              if (!valid) {
-                Alert.alert('Security Error', 'App integrity check failed');
-              }
-            });
-          }
-        }, []);
-
-        return <NavigationContainer>...</NavigationContainer>;
-      }
-      ```
-
-      Reference: OWASP Mobile Tampering Detection
-    severity: INFO
-    languages:
-      - javascript
-      - typescript
-    metadata:
-      category: security
-      owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      confidence: LOW
-      false_positive_likelihood: HIGH
 
   # ============================================================================
   # SECTION 7: SCREENSHOT PROTECTION
@@ -532,6 +481,7 @@ rules:
       - typescript
     metadata:
       category: security
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: MEDIUM

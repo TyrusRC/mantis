@@ -248,6 +248,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: LOW
 
@@ -365,6 +366,7 @@ rules:
       - kotlin
     metadata:
       category: security
+      cwe: "CWE-489: Active Debug Code"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: MEDIUM
 
@@ -422,6 +424,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: privacy
+      cwe: "CWE-250: Execution with Unnecessary Privileges"
       mastg-test: "MASTG-TEST-0024"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: MEDIUM
@@ -447,6 +450,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       mastg-test: "MASTG-TEST-0024"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: MEDIUM

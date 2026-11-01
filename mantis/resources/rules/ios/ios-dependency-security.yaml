@@ -587,6 +587,7 @@ rules:
         - "**/Podfile"
     metadata:
       category: security
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
       confidence: MEDIUM
 
@@ -1183,5 +1184,6 @@ rules:
         - "**/Podfile"
     metadata:
       category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
       confidence: LOW

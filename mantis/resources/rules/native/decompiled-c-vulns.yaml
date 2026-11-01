@@ -139,10 +139,19 @@ rules:
 
   # Use After Free indicators
   - id: native-uaf-free-use
-    pattern: |
-      free($PTR);
-      ...
-      $PTR[$IDX]
+    patterns:
+      - pattern-inside: |
+          free($PTR);
+          ...
+      - pattern-not-inside: |
+          free($PTR);
+          ...
+          $PTR = $NEW;
+          ...
+      - pattern-either:
+          - pattern: $PTR[$IDX]
+          - pattern: $PTR->$FIELD
+          - pattern: '*$PTR'
     message: |
       Potential use-after-free: pointer used after free().
     severity: WARNING
@@ -156,10 +165,10 @@ rules:
   - id: native-hardcoded-key
     patterns:
       - pattern: |
-          char $KEY[] = "..."
+          char $KEY[] = "...";
       - metavariable-regex:
           metavariable: $KEY
-          regex: (key|password|secret|token|apikey|api_key|passwd|pwd|auth)
+          regex: (?i)(key|password|secret|token|apikey|api_key|passwd|pwd|auth)
     message: |
       Hardcoded credential or key in source — extract to environment or config.
     severity: ERROR
@@ -214,10 +223,21 @@ rules:
 
   # Race Conditions
   - id: native-toctou-access
-    pattern: |
-      access($PATH, ...)
-      ...
-      open($PATH, ...)
+    patterns:
+      - pattern-either:
+          - pattern: open($PATH, ...)
+          - pattern: fopen($PATH, ...)
+      - pattern-either:
+          - pattern-inside: |
+              if (<... access($PATH, ...) ...>) { ... }
+          - pattern-inside: |
+              if (<... access($PATH, ...) ...>) $STMT;
+          - pattern-inside: |
+              access($PATH, ...);
+              ...
+          - pattern-inside: |
+              $RC = access($PATH, ...);
+              ...
     message: |
       Time-of-check-time-of-use (TOCTOU) race between access() and open().
       Use fopen()/open() directly and check the return value.

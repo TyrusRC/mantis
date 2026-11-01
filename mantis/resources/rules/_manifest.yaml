@@ -3,23 +3,23 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 758
+  total_rules: 762
   total_files: 120
   by_severity:
-    WARNING: 323
-    ERROR: 354
-    INFO: 81
+    WARNING: 320
+    ERROR: 362
+    INFO: 80
   by_language:
-    java: 112
+    java: 111
     kotlin: 92
-    xml: 84
-    generic: 99
-    python: 66
-    javascript: 82
-    typescript: 82
-    dart: 32
+    xml: 81
+    generic: 98
+    python: 65
+    javascript: 78
+    typescript: 78
+    dart: 31
     yaml: 33
-    ruby: 41
+    ruby: 40
     swift: 121
     json: 27
     bash: 2
@@ -28,11 +28,11 @@ summary:
     dockerfile: 5
     hcl: 28
     c: 28
-    go: 11
-    php: 9
+    php: 8
+    go: 10
     csharp: 6
   by_category:
-    security: 726
+    security: 730
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -43,16 +43,16 @@ summary:
     'M2: Inadequate Supply Chain Security': 133
     'M9: Insecure Data Storage': 31
     'M10: Insufficient Cryptography': 24
-    'M3: Insecure Communication': 8
+    'M3: Insecure Communication': 6
     'M3: Insecure Authentication/Authorization': 52
     'M2: Inadequate Supply Chain Security, M9: Insecure Data Storage': 1
-    'M7: Insufficient Binary Protections': 73
+    'M7: Insufficient Binary Protections': 68
     M9: 1
     M7: 1
     'M1: Improper Platform Usage': 10
   by_masvs:
     MASVS-RESILIENCE-4: 2
-    MASVS-NETWORK-1: 22
+    MASVS-NETWORK-1: 19
     MASVS-NETWORK-2: 2
     MASVS-PLATFORM-1: 5
     MASVS-CODE-4: 3
@@ -66,9 +66,9 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 421
-    MEDIUM: 247
-    LOW: 90
+    HIGH: 419
+    MEDIUM: 255
+    LOW: 88
   parse_errors: []
 rules:
 - file: rules/android/android-advanced-pentesting-patterns.yaml
@@ -947,7 +947,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-319: Cleartext Transmission of Sensitive Information'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: MASVS-NETWORK-1
@@ -1065,7 +1066,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -1586,7 +1588,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-530: Exposure of Backup File to an Unauthorized Control Sphere'
   owasp_mobile: 'M9: Insecure Data Storage'
   owasp: null
   masvs: MASVS-STORAGE-2
@@ -2373,7 +2376,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -2442,7 +2446,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -2458,7 +2463,8 @@ rules:
   languages:
   - kotlin
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -2595,7 +2601,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: MASVS-RESILIENCE-4
@@ -2628,7 +2635,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-1104: Use of Unmaintained Third Party Components'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -2644,7 +2652,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-668: Exposure of Resource to Wrong Sphere'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: MASVS-PLATFORM-1
@@ -2677,7 +2686,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-16: Configuration'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -2693,7 +2703,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-295: Improper Certificate Validation'
   owasp_mobile: 'M5: Insecure Communication'
   owasp: null
   masvs: null
@@ -2709,7 +2720,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-295: Improper Certificate Validation'
   owasp_mobile: 'M5: Insecure Communication'
   owasp: null
   masvs: MASVS-NETWORK-2
@@ -2725,7 +2737,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: MASVS-PRIVACY-1
@@ -2878,7 +2891,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-319: Cleartext Transmission of Sensitive Information'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -2963,7 +2977,8 @@ rules:
   - java
   - kotlin
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-489: Active Debug Code'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -2996,7 +3011,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-250: Execution with Unnecessary Privileges'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -3013,7 +3029,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -3479,7 +3496,8 @@ rules:
   languages:
   - dart
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3495,7 +3513,8 @@ rules:
   languages:
   - dart
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3528,7 +3547,8 @@ rules:
   languages:
   - dart
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3544,7 +3564,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-538: Insertion of Sensitive Information into Externally-Accessible File or Directory'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3560,7 +3581,8 @@ rules:
   languages:
   - dart
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3576,7 +3598,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3592,7 +3615,8 @@ rules:
   languages:
   - dart
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3603,29 +3627,13 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/flutter-binary-protections.yaml
-  id: flutter-m7-build-without-obfuscation
+  id: flutter-m7-debug-info-not-split
   severity: ERROR
   languages:
   - generic
   category: security
   cwe:
   - 'CWE-656: Reliance on Security Through Obscurity'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-binary-protections.yaml
-  id: flutter-m7-debug-info-not-split
-  severity: ERROR
-  languages:
-  - generic
-  category: security
-  cwe: []
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3687,28 +3695,13 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/flutter-binary-protections.yaml
-  id: flutter-m7-missing-root-jailbreak-detection
-  severity: WARNING
-  languages:
-  - dart
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/flutter-binary-protections.yaml
   id: flutter-m7-android-proguard-disabled
   severity: WARNING
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3724,7 +3717,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3740,7 +3734,8 @@ rules:
   languages:
   - dart
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -3828,7 +3823,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: MASVS-PRIVACY-1
@@ -4428,7 +4424,8 @@ rules:
   languages:
   - ruby
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-1104: Use of Unmaintained Third Party Components'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -4444,7 +4441,8 @@ rules:
   languages:
   - ruby
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-1104: Use of Unmaintained Third Party Components'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -4460,7 +4458,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-1104: Use of Unmaintained Third Party Components'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -4606,7 +4605,8 @@ rules:
   - java
   - kotlin
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M1: Improper Platform Usage'
   owasp: null
   masvs: MASVS-PLATFORM-2
@@ -4622,7 +4622,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-16: Configuration'
   owasp_mobile: null
   owasp: null
   masvs: MASVS-PLATFORM-2
@@ -4689,7 +4690,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-16: Configuration'
   owasp_mobile: null
   owasp: null
   masvs: MASVS-PLATFORM-2
@@ -4881,7 +4883,8 @@ rules:
   - bash
   - sh
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-829: Inclusion of Functionality from Untrusted Control Sphere'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -4949,7 +4952,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-829: Inclusion of Functionality from Untrusted Control Sphere'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -5209,7 +5213,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5226,7 +5231,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5243,7 +5249,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5260,7 +5267,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-532: Insertion of Sensitive Information into Log File'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5277,7 +5285,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5294,7 +5303,8 @@ rules:
   - java
   - kotlin
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5310,7 +5320,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5326,7 +5337,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5344,7 +5356,8 @@ rules:
   - kotlin
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -5394,7 +5407,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: MASVS-PRIVACY-1
@@ -5461,7 +5475,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-494: Download Without Integrity Check'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -5477,7 +5492,8 @@ rules:
   languages:
   - bash
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -5811,23 +5827,6 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protection.yaml
-  id: react-native-m7-missing-root-detection
-  severity: WARNING
-  languages:
-  - javascript
-  - typescript
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protection.yaml
   id: react-native-m7-debugger-enabled
   severity: ERROR
   languages:
@@ -5846,30 +5845,13 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protection.yaml
-  id: react-native-m7-console-log-sensitive
-  severity: ERROR
-  languages:
-  - javascript
-  - typescript
-  category: security
-  cwe:
-  - 'CWE-532: Insertion of Sensitive Information into Log File'
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protection.yaml
   id: react-native-m7-source-maps-in-bundle
   severity: WARNING
   languages:
   - json
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-538: Insertion of Sensitive Information into Externally-Accessible File or Directory'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -5885,7 +5867,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -5902,7 +5885,8 @@ rules:
   - javascript
   - typescript
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -5919,7 +5903,8 @@ rules:
   - javascript
   - typescript
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -5935,7 +5920,8 @@ rules:
   languages:
   - json
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-538: Insertion of Sensitive Information into Externally-Accessible File or Directory'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -5988,7 +5974,8 @@ rules:
   - javascript
   - typescript
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -6004,7 +5991,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -6015,30 +6003,14 @@ rules:
   pack: []
   source: null
 - file: rules/cross-platform/react-native-binary-protections.yaml
-  id: react-native-m7-missing-integrity-check
-  severity: INFO
-  languages:
-  - javascript
-  - typescript
-  category: security
-  cwe: []
-  owasp_mobile: 'M7: Insufficient Binary Protections'
-  owasp: null
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: LOW
-  pack: []
-  source: null
-- file: rules/cross-platform/react-native-binary-protections.yaml
   id: react-native-m7-screenshot-allowed-sensitive
   severity: INFO
   languages:
   - javascript
   - typescript
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -7824,7 +7796,8 @@ rules:
   languages:
   - ruby
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -8078,7 +8051,8 @@ rules:
   languages:
   - ruby
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-1104: Use of Unmaintained Third Party Components'
   owasp_mobile: 'M2: Inadequate Supply Chain Security'
   owasp: null
   masvs: null
@@ -8264,7 +8238,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -8280,7 +8255,8 @@ rules:
   languages:
   - c
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -8297,7 +8273,8 @@ rules:
   - swift
   - c
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -8313,7 +8290,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -8329,7 +8307,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -8345,7 +8324,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -8361,7 +8341,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-295: Improper Certificate Validation'
   owasp_mobile: 'M5: Insecure Communication'
   owasp: null
   masvs: null
@@ -8445,7 +8426,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-311: Missing Encryption of Sensitive Data'
   owasp_mobile: 'M9: Insecure Data Storage'
   owasp: null
   masvs: MASVS-STORAGE-1
@@ -8495,7 +8477,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-549: Missing Password Field Masking'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: MASVS-STORAGE-2
@@ -8732,7 +8715,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-477: Use of Obsolete Function'
   owasp_mobile: null
   owasp: null
   masvs: MASVS-CRYPTO-1
@@ -8794,23 +8778,6 @@ rules:
   pack: []
   source: null
 - file: rules/ios/masvs-network-insecure-communication.yaml
-  id: mastg-ios-ats-disabled
-  severity: ERROR
-  languages:
-  - xml
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-insecure-communication.yaml
   id: mastg-ios-http-url-string
   severity: ERROR
   languages:
@@ -8845,23 +8812,6 @@ rules:
   pack: []
   source: null
 - file: rules/ios/masvs-network-insecure-communication.yaml
-  id: mastg-ios-weak-tls-version
-  severity: ERROR
-  languages:
-  - xml
-  category: security
-  cwe:
-  - 'CWE-326: Inadequate Encryption Strength'
-  owasp_mobile: 'M3: Insecure Communication'
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-insecure-communication.yaml
   id: mastg-ios-insecure-ssl-pinning
   severity: WARNING
   languages:
@@ -8876,23 +8826,6 @@ rules:
   cve: []
   cvss: null
   confidence: MEDIUM
-  pack: []
-  source: null
-- file: rules/ios/masvs-network-insecure-communication.yaml
-  id: mastg-ios-webview-ats-exception
-  severity: WARNING
-  languages:
-  - xml
-  category: security
-  cwe:
-  - 'CWE-319: Cleartext Transmission of Sensitive Information'
-  owasp_mobile: null
-  owasp: null
-  masvs: MASVS-NETWORK-1
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
   pack: []
   source: null
 - file: rules/ios/masvs-storage-insecure-nsuserdefaults.yaml
@@ -8952,7 +8885,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-287: Improper Authentication'
   owasp_mobile: 'M3: Insecure Authentication/Authorization'
   owasp: null
   masvs: null
@@ -9172,7 +9106,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-613: Insufficient Session Expiration'
   owasp_mobile: 'M3: Insecure Authentication/Authorization'
   owasp: null
   masvs: null
@@ -9494,7 +9429,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9510,7 +9446,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9526,7 +9463,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9542,7 +9480,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9558,7 +9497,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9574,7 +9514,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9590,7 +9531,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9708,7 +9650,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-477: Use of Obsolete Function'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -9724,7 +9667,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: null
@@ -9740,7 +9684,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9756,7 +9701,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9772,7 +9718,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9788,7 +9735,8 @@ rules:
   languages:
   - swift
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-203: Observable Discrepancy'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: null
@@ -9804,7 +9752,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9820,7 +9769,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9836,7 +9786,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9852,7 +9803,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9868,7 +9820,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-798: Use of Hard-coded Credentials'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9884,7 +9837,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9900,7 +9854,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9916,7 +9871,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9983,7 +9939,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -9999,7 +9956,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -10015,7 +9973,8 @@ rules:
   languages:
   - swift
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -10031,7 +9990,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-693: Protection Mechanism Failure'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -10064,7 +10024,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -10080,7 +10041,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -10130,7 +10092,8 @@ rules:
   languages:
   - xml
   category: privacy
-  cwe: []
+  cwe:
+  - 'CWE-359: Exposure of Private Personal Information to an Unauthorized Actor'
   owasp_mobile: 'M6: Inadequate Privacy Controls'
   owasp: null
   masvs: MASVS-PRIVACY-1
@@ -10163,7 +10126,8 @@ rules:
   languages:
   - xml
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-668: Exposure of Resource to Wrong Sphere'
   owasp_mobile: 'M8: Security Misconfiguration'
   owasp: null
   masvs: MASVS-STORAGE-2
@@ -10179,7 +10143,8 @@ rules:
   languages:
   - generic
   category: security
-  cwe: []
+  cwe:
+  - 'CWE-656: Reliance on Security Through Obscurity'
   owasp_mobile: 'M7: Insufficient Binary Protections'
   owasp: null
   masvs: null
@@ -10708,7 +10673,8 @@ rules:
   languages:
   - c
   category: security
-  cwe: []
+  cwe:
+  - CWE-506
   owasp_mobile: null
   owasp: null
   masvs: null
@@ -10724,7 +10690,8 @@ rules:
   languages:
   - c
   category: security
-  cwe: []
+  cwe:
+  - CWE-506
   owasp_mobile: null
   owasp: null
   masvs: null
@@ -10740,7 +10707,8 @@ rules:
   languages:
   - c
   category: security
-  cwe: []
+  cwe:
+  - CWE-506
   owasp_mobile: null
   owasp: null
   masvs: null
@@ -10756,7 +10724,8 @@ rules:
   languages:
   - c
   category: security
-  cwe: []
+  cwe:
+  - CWE-512
   owasp_mobile: null
   owasp: null
   masvs: null
@@ -10772,7 +10741,8 @@ rules:
   languages:
   - c
   category: security
-  cwe: []
+  cwe:
+  - CWE-506
   owasp_mobile: null
   owasp: null
   masvs: null
@@ -12539,19 +12509,13 @@ rules:
   - sca
   source: null
 - file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
-  id: web-a07-weak-password-hash-md5
+  id: web-a07-weak-password-hash-python
   severity: ERROR
   languages:
   - python
-  - javascript
-  - typescript
-  - java
-  - go
-  - ruby
-  - php
   category: security
   cwe:
-  - CWE-328
+  - CWE-916
   owasp_mobile: null
   owasp: A07:2025 Identification and Authentication Failures
   masvs: null
@@ -12566,19 +12530,14 @@ rules:
   - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
-  id: web-a07-weak-password-hash-sha1
+  id: web-a07-weak-password-hash-javascript
   severity: ERROR
   languages:
-  - python
   - javascript
   - typescript
-  - java
-  - go
-  - ruby
-  - php
   category: security
   cwe:
-  - CWE-328
+  - CWE-916
   owasp_mobile: null
   owasp: A07:2025 Identification and Authentication Failures
   masvs: null
@@ -12593,14 +12552,178 @@ rules:
   - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
-  id: web-a07-session-id-in-url
+  id: web-a07-weak-password-hash-java
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - CWE-916
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-weak-password-hash-ruby
+  severity: ERROR
+  languages:
+  - ruby
+  category: security
+  cwe:
+  - CWE-916
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-weak-password-hash-php
+  severity: ERROR
+  languages:
+  - php
+  category: security
+  cwe:
+  - CWE-916
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-weak-password-hash-go
+  severity: ERROR
+  languages:
+  - go
+  category: security
+  cwe:
+  - CWE-916
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-session-id-in-url-python
   severity: ERROR
   languages:
   - python
+  category: security
+  cwe:
+  - CWE-598
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-session-id-in-url-javascript
+  severity: ERROR
+  languages:
   - javascript
   - typescript
+  category: security
+  cwe:
+  - CWE-598
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-session-id-in-url-java
+  severity: ERROR
+  languages:
   - java
+  category: security
+  cwe:
+  - CWE-598
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-session-id-in-url-ruby
+  severity: ERROR
+  languages:
   - ruby
+  category: security
+  cwe:
+  - CWE-598
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-session-id-in-url-php
+  severity: ERROR
+  languages:
   - php
   category: security
   cwe:
@@ -12611,7 +12734,7 @@ rules:
   maswe: null
   cve: []
   cvss: null
-  confidence: HIGH
+  confidence: MEDIUM
   pack:
   - web
   - fast
@@ -12619,14 +12742,98 @@ rules:
   - bugbounty
   source: null
 - file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
-  id: web-a07-hardcoded-credential-in-auth
+  id: web-a07-hardcoded-credential-in-auth-python
   severity: ERROR
   languages:
   - python
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  - secrets
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-hardcoded-credential-in-auth-javascript
+  severity: ERROR
+  languages:
   - javascript
   - typescript
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  - secrets
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-hardcoded-credential-in-auth-java
+  severity: ERROR
+  languages:
   - java
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  - secrets
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-hardcoded-credential-in-auth-go
+  severity: ERROR
+  languages:
   - go
+  category: security
+  cwe:
+  - CWE-798
+  owasp_mobile: null
+  owasp: A07:2025 Identification and Authentication Failures
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - web
+  - fast
+  - deep
+  - bugbounty
+  - secrets
+  source: null
+- file: rules/web/owasp-top10-2025-a07-auth-failures.yaml
+  id: web-a07-hardcoded-credential-in-auth-ruby
+  severity: ERROR
+  languages:
   - ruby
   category: security
   cwe:

@@ -386,6 +386,7 @@ rules:
         - "**/Info.plist"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       masvs: "MASVS-PRIVACY-1"
       confidence: MEDIUM

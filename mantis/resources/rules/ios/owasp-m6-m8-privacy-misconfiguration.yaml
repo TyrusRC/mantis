@@ -43,6 +43,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-200: Exposure of Sensitive Information"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       mastg-test: "MASTG-TEST-0073"
       confidence: MEDIUM
@@ -62,6 +63,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR, CCPA, Apple Privacy Policy"
       confidence: HIGH
@@ -86,6 +88,7 @@ rules:
         - "**/Info.plist"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: MEDIUM
 
@@ -107,6 +110,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "Apple ATT Framework, GDPR"
       confidence: HIGH
@@ -128,6 +132,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "Apple ATT Framework"
       confidence: HIGH
@@ -149,6 +154,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: LOW
 
@@ -167,6 +173,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR, CCPA"
       confidence: LOW
@@ -346,6 +353,7 @@ rules:
         - "**/*.entitlements"
     metadata:
       category: security
+      cwe: "CWE-477: Use of Obsolete Function"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: MEDIUM
 
@@ -370,6 +378,7 @@ rules:
         - "**/Info.plist"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: LOW
 
@@ -390,6 +399,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-200: Exposure of Sensitive Information"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: MEDIUM
 
@@ -413,6 +423,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-200: Exposure of Sensitive Information"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: LOW
 
@@ -436,6 +447,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR Art. 5, CCPA"
       confidence: HIGH
@@ -455,5 +467,6 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-203: Observable Discrepancy"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       confidence: LOW

@@ -23,18 +23,17 @@ rules:
               - pattern: $X.createXMLStreamReader(...)
               - pattern: $X.createXMLEventReader(...)
     pattern-sanitizers:
-      - pattern: |
-          $X.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-      - pattern: |
-          $X.setFeature("http://xml.org/sax/features/external-general-entities", false)
-      - pattern: |
-          $X.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-      - pattern: |
-          $X.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "")
-      - pattern: |
-          $X.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
-      - pattern: |
-          $X.setExpandEntityReferences(false)
+      # by-side-effect: the setter hardens the factory object itself, not its return value.
+      - by-side-effect: true
+        patterns:
+          - pattern-either:
+              - pattern: '$X.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)'
+              - pattern: '$X.setFeature("http://xml.org/sax/features/external-general-entities", false)'
+              - pattern: '$X.setFeature("http://xml.org/sax/features/external-parameter-entities", false)'
+              - pattern: '$X.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "")'
+              - pattern: '$X.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")'
+              - pattern: '$X.setExpandEntityReferences(false)'
+          - focus-metavariable: $X
     message: |
       XML parser factory used without DTD / external-entity protections.
       Untrusted XML may trigger XXE attacks (CWE-611). Disable DOCTYPE / general /
@@ -250,15 +249,23 @@ rules:
           - pattern: SAXParserFactory.newInstance()
           - pattern: DocumentBuilderFactory.newInstance()
           - pattern: XMLInputFactory.newInstance()
+      # The factory is hardened AFTER creation, so the exclusion must follow it.
       - pattern-not-inside: |
-          $X.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+          $T $F = $FACTORY.newInstance(...);
           ...
+          $F.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       - pattern-not-inside: |
-          $X.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+          $T $F = $FACTORY.newInstance(...);
           ...
+          $F.setFeature("http://xml.org/sax/features/external-general-entities", false);
       - pattern-not-inside: |
-          $X.setXIncludeAware(false);
+          $T $F = $FACTORY.newInstance(...);
           ...
+          $F.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+      - pattern-not-inside: |
+          $T $F = $FACTORY.newInstance(...);
+          ...
+          $F.setProperty(XMLInputFactory.SUPPORT_DTD, false);
     message: |
       XML parser factory created without disabling DOCTYPE / external DTD access.
       Untrusted XML can trigger XXE attacks (CWE-611). Add

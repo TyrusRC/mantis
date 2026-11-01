@@ -202,6 +202,7 @@ rules:
         - "**/Info.plist"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       masvs: "MASVS-PRIVACY-1"
       confidence: MEDIUM
@@ -376,6 +377,7 @@ rules:
         - "**/build.gradle"
     metadata:
       category: security
+      cwe: "CWE-494: Download Without Integrity Check"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: HIGH
 
@@ -430,6 +432,7 @@ rules:
         - "**/node_modules/**"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM
 

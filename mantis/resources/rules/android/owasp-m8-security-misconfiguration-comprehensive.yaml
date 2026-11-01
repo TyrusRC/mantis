@@ -422,6 +422,7 @@ rules:
         - "**/build.gradle.kts"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       masvs: "MASVS-RESILIENCE-4"
       confidence: MEDIUM
@@ -639,6 +640,7 @@ rules:
         - "**/build.gradle.kts"
     metadata:
       category: security
+      cwe: "CWE-1104: Use of Unmaintained Third Party Components"
       owasp-mobile-2024: "M2: Inadequate Supply Chain Security"
       confidence: HIGH
 
@@ -753,6 +755,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: security
+      cwe: "CWE-668: Exposure of Resource to Wrong Sphere"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-PLATFORM-1"
       confidence: HIGH
@@ -951,6 +954,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: security
+      cwe: "CWE-16: Configuration"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: MEDIUM
 
@@ -1037,6 +1041,7 @@ rules:
         - "**/network_security_config.xml"
     metadata:
       category: security
+      cwe: "CWE-295: Improper Certificate Validation"
       owasp-mobile-2024: "M5: Insecure Communication"
       confidence: LOW
 
@@ -1172,6 +1177,7 @@ rules:
         - "**/network_security_config.xml"
     metadata:
       category: security
+      cwe: "CWE-295: Improper Certificate Validation"
       owasp-mobile-2024: "M5: Insecure Communication"
       masvs: "MASVS-NETWORK-2"
       confidence: MEDIUM
@@ -1353,6 +1359,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       masvs: "MASVS-PRIVACY-1"
       compliance: "GDPR, CCPA, Google Play Data Safety"

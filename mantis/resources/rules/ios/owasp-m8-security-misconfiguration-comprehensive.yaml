@@ -382,6 +382,7 @@ rules:
         - "**/Info.plist"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       masvs: "MASVS-PRIVACY-1"
       confidence: LOW
@@ -664,6 +665,7 @@ rules:
         - "**/*.entitlements"
     metadata:
       category: security
+      cwe: "CWE-668: Exposure of Resource to Wrong Sphere"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-STORAGE-2"
       confidence: LOW
@@ -724,5 +726,6 @@ rules:
       - generic
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM

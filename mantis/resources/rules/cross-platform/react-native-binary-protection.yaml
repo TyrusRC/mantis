@@ -267,282 +267,6 @@ rules:
 
   # ============ ROOT DETECTION ============
 
-  - id: react-native-m7-missing-root-detection
-    patterns:
-      - pattern-either:
-          - pattern: |
-              export default function App() {
-                return (
-                  <Provider ...>
-                    ...
-                  </Provider>
-                );
-              }
-          - pattern: |
-              const App = () => {
-                return (
-                  <NavigationContainer>
-                    ...
-                  </NavigationContainer>
-                );
-              };
-      - pattern-not-inside: |
-          RNRootDetection.isRooted()
-      - pattern-not-inside: |
-          JailMonkey.isJailBroken()
-    message: |
-      Missing root/jailbreak detection (OWASP M7: Insufficient Binary Protections).
-      Apps handling sensitive data should detect compromised devices.
-
-      VULNERABLE PATTERN:
-      ```javascript
-      // VULNERABLE: No device security checks
-      export default function App() {
-        return (
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        );
-      }
-      ```
-
-      SECURE IMPLEMENTATION:
-      ```javascript
-      // Install detection library
-      // npm install jail-monkey
-
-      import { useEffect, useState } from 'react';
-      import JailMonkey from 'jail-monkey';
-      import RNExitApp from 'react-native-exit-app';
-
-      const DeviceSecurityCheck = ({ children }) => {
-        const [securityStatus, setSecurityStatus] = useState(null);
-
-        useEffect(() => {
-          checkDeviceSecurity();
-        }, []);
-
-        const checkDeviceSecurity = async () => {
-          const checks = {
-            isJailBroken: JailMonkey.isJailBroken(),
-            canMockLocation: await JailMonkey.canMockLocation(),
-            isOnExternalStorage: JailMonkey.isOnExternalStorage(),
-            isDebuggedMode: JailMonkey.isDebuggedMode(),
-            hookDetected: JailMonkey.hookDetected(),
-          };
-
-          const isSecure = !Object.values(checks).some(check => check === true);
-
-          setSecurityStatus({
-            isSecure,
-            checks,
-          });
-
-          if (!isSecure) {
-            handleInsecureDevice(checks);
-          }
-        };
-
-        const handleInsecureDevice = (checks) => {
-          const reasons = [];
-          if (checks.isJailBroken) reasons.push('Device is rooted/jailbroken');
-          if (checks.canMockLocation) reasons.push('Mock location enabled');
-          if (checks.isOnExternalStorage) reasons.push('App on external storage');
-          if (checks.isDebuggedMode) reasons.push('Debugger detected');
-          if (checks.hookDetected) reasons.push('Hooking framework detected');
-
-          console.warn('Insecure device detected:', reasons);
-
-          // Option 1: Exit app
-          // RNExitApp.exitApp();
-
-          // Option 2: Show warning but allow (with limited features)
-          // showSecurityWarning(reasons);
-
-          // Option 3: Logout and restrict access
-          // logout();
-          // restrictFeatures();
-        };
-
-        if (securityStatus === null) {
-          return <LoadingScreen />;
-        }
-
-        if (!securityStatus.isSecure) {
-          return (
-            <InsecureDeviceScreen
-              checks={securityStatus.checks}
-              onExit={() => RNExitApp.exitApp()}
-            />
-          );
-        }
-
-        return children;
-      };
-
-      export default function App() {
-        return (
-          <DeviceSecurityCheck>
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
-          </DeviceSecurityCheck>
-        );
-      }
-
-      // components/InsecureDeviceScreen.js
-      const InsecureDeviceScreen = ({ checks, onExit }) => {
-        const reasons = [];
-        if (checks.isJailBroken) reasons.push('• Device is rooted/jailbroken');
-        if (checks.canMockLocation) reasons.push('• Mock location enabled');
-        if (checks.isDebuggedMode) reasons.push('• Debugger detected');
-
-        return (
-          <View style={styles.container}>
-            <Icon name="warning" size={64} color="red" />
-            <Text style={styles.title}>Security Warning</Text>
-            <Text style={styles.subtitle}>
-              This device appears to be compromised:
-            </Text>
-            {reasons.map((reason, i) => (
-              <Text key={i} style={styles.reason}>{reason}</Text>
-            ))}
-            <Text style={styles.message}>
-              For your security, this app cannot run on compromised devices.
-            </Text>
-            <Button title="Exit App" onPress={onExit} />
-          </View>
-        );
-      };
-      ```
-
-      NATIVE MODULE (Advanced Detection):
-      ```java
-      // android/app/src/main/java/com/myapp/RootDetectionModule.java
-      package com.myapp;
-
-      import com.facebook.react.bridge.ReactApplicationContext;
-      import com.facebook.react.bridge.ReactContextBaseJavaModule;
-      import com.facebook.react.bridge.ReactMethod;
-      import com.facebook.react.bridge.Promise;
-      import java.io.File;
-
-      public class RootDetectionModule extends ReactContextBaseJavaModule {
-          public RootDetectionModule(ReactApplicationContext context) {
-              super(context);
-          }
-
-          @Override
-          public String getName() {
-              return "RootDetection";
-          }
-
-          @ReactMethod
-          public void isRooted(Promise promise) {
-              boolean rooted = checkRootMethod1() ||
-                               checkRootMethod2() ||
-                               checkRootMethod3();
-              promise.resolve(rooted);
-          }
-
-          private boolean checkRootMethod1() {
-              // Check for su binary
-              String[] paths = {
-                  "/system/app/Superuser.apk",
-                  "/sbin/su",
-                  "/system/bin/su",
-                  "/system/xbin/su",
-                  "/data/local/xbin/su",
-                  "/data/local/bin/su",
-                  "/system/sd/xbin/su",
-                  "/system/bin/failsafe/su",
-                  "/data/local/su",
-                  "/su/bin/su"
-              };
-
-              for (String path : paths) {
-                  if (new File(path).exists()) return true;
-              }
-              return false;
-          }
-
-          private boolean checkRootMethod2() {
-              // Check build tags
-              String buildTags = android.os.Build.TAGS;
-              return buildTags != null && buildTags.contains("test-keys");
-          }
-
-          private boolean checkRootMethod3() {
-              // Try executing su
-              try {
-                  Runtime.getRuntime().exec("su");
-                  return true;
-              } catch (Exception e) {
-                  return false;
-              }
-          }
-      }
-      ```
-
-      CONTINUOUS MONITORING:
-      ```javascript
-      import { AppState } from 'react-native';
-
-      class SecurityMonitor {
-        constructor() {
-          this.subscription = null;
-        }
-
-        start() {
-          // Check on app resume
-          this.subscription = AppState.addEventListener('change', (state) => {
-            if (state === 'active') {
-              this.checkSecurity();
-            }
-          });
-
-          // Periodic checks
-          this.interval = setInterval(() => {
-            this.checkSecurity();
-          }, 5 * 60 * 1000); // Every 5 minutes
-        }
-
-        async checkSecurity() {
-          if (JailMonkey.isJailBroken()) {
-            this.handleCompromise();
-          }
-        }
-
-        handleCompromise() {
-          // Logout user
-          // Clear sensitive data
-          // Exit or restrict app
-        }
-
-        stop() {
-          this.subscription?.remove();
-          clearInterval(this.interval);
-        }
-      }
-      ```
-
-      LIMITATIONS:
-      - Detection can be bypassed
-      - False positives (custom ROMs)
-      - Requires native code for robust detection
-      - Combine with server-side attestation
-
-      Reference: OWASP MSTG, JailMonkey library
-    severity: WARNING
-    languages:
-      - javascript
-      - typescript
-    metadata:
-      category: security
-      owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      mastg-test: "MASTG-TEST-0228: Testing Root Detection"
-      confidence: MEDIUM
-      false_positive_likelihood: HIGH
 
   # ============ DEBUGGER DETECTION ============
 
@@ -588,73 +312,6 @@ rules:
 
   # ============ CONSOLE LOGGING ============
 
-  - id: react-native-m7-console-log-sensitive
-    patterns:
-      - pattern-either:
-          - pattern: console.log($DATA)
-          - pattern: console.info($DATA)
-          - pattern: console.debug($DATA)
-      - metavariable-regex:
-          metavariable: $DATA
-          regex: (?i).*(password|token|key|secret|credential|auth|pin|ssn|credit.*card).*
-      - pattern-not-inside: |
-          // Test
-          describe('...', () => { ... })
-    message: |
-      Sensitive data in console.log (OWASP M7: Insufficient Binary Protections).
-      Console statements expose sensitive information in device logs.
-
-      VULNERABLE PATTERN:
-      ```javascript
-      // VULNERABLE
-      const login = (username, password) => {
-        console.log('Login:', username, password); // Exposed!
-        console.log('API Token:', apiToken); // Visible in logs
-      };
-      ```
-
-      SECURE IMPLEMENTATION:
-      ```javascript
-      // utils/logger.js
-      class Logger {
-        static log(message, data = {}) {
-          if (__DEV__) {
-            console.log(message, data);
-          }
-        }
-
-        static secure(operation) {
-          // Only log operation name, never sensitive data
-          if (__DEV__) {
-            console.log(`[SECURE] ${operation}`);
-          }
-        }
-      }
-
-      // Usage
-      const login = (username, password) => {
-        Logger.secure('login_attempt');
-        // Never log credentials
-      };
-
-      // Remove all console.* in production
-      // babel.config.js
-      plugins: [
-        ['transform-remove-console', { exclude: ['error', 'warn'] }]
-      ]
-      ```
-
-      Reference: React Native Logging Best Practices
-    severity: ERROR
-    languages:
-      - javascript
-      - typescript
-    metadata:
-      category: security
-      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
-      owasp-mobile-2024: "M7: Insufficient Binary Protections"
-      confidence: HIGH
-      false_positive_likelihood: LOW
 
   # ============ HERMES BYTECODE ============
 
@@ -688,6 +345,7 @@ rules:
         - "**/package.json"
     metadata:
       category: security
+      cwe: "CWE-538: Insertion of Sensitive Information into Externally-Accessible File or Directory"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM
       false_positive_likelihood: LOW
@@ -739,8 +397,13 @@ rules:
     severity: WARNING
     languages:
       - generic
+    paths:
+      include:
+        - "**/*.gradle"
+        - "**/*.gradle.kts"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: HIGH
       false_positive_likelihood: LOW
@@ -757,6 +420,8 @@ rules:
           Fingerprint.generate()
       - pattern-not-inside: |
           verifyAppIntegrity()
+      - pattern-not-inside: |
+          IntegrityChecker.verify()
     message: |
       Missing app integrity verification (OWASP M7: Insufficient Binary Protections).
       Apps should verify their own integrity to detect tampering.
@@ -794,6 +459,7 @@ rules:
       - typescript
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: HIGH
@@ -836,6 +502,7 @@ rules:
       - typescript
     metadata:
       category: security
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: HIGH

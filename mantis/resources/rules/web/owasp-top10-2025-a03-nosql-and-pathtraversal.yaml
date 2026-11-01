@@ -9,14 +9,39 @@ rules:
       operators via `express-mongo-sanitize`.
 
       OWASP Top 10:2025 — A03 Injection
-    patterns:
+    mode: taint
+    pattern-sources:
       - pattern-either:
-          - pattern: $MODEL.findOne(req.body)
-          - pattern: '$MODEL.findOne({ ..., $K: req.body.$F, ... })'
-          - pattern: '$MODEL.find({ ..., $K: req.body.$F, ... })'
-          - pattern: '$MODEL.findOne({ ..., $K: req.query.$F, ... })'
-          - pattern: '$MODEL.find({ ..., $K: req.query.$F, ... })'
-          - pattern: '$DB.collection($C).findOne({ $K: req.body.$F })'
+          - pattern: $REQ.body
+          - pattern: $REQ.query
+          - pattern: $REQ.params
+          - pattern: $REQ.headers
+          - pattern: $REQ.cookies
+          - pattern: $REQ.body.$F
+          - pattern: $REQ.query.$F
+          - pattern: $REQ.params.$F
+          - pattern: $REQ.headers.$F
+          - pattern: $REQ.cookies.$F
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $MODEL.findOne($Q, ...)
+              - pattern: $MODEL.find($Q, ...)
+              - pattern: $MODEL.findOneAndUpdate($Q, ...)
+              - pattern: $MODEL.updateOne($Q, ...)
+              - pattern: $MODEL.deleteOne($Q, ...)
+              - pattern: $MODEL.countDocuments($Q, ...)
+          # Array.prototype.find(callback) is not a query.
+          - pattern-not: $MODEL.find(($...A) => $B, ...)
+          - pattern-not: $MODEL.find(function ($...A) { ... }, ...)
+          - focus-metavariable: $Q
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: String($X)
+          - pattern: Number($X)
+          - pattern: $X.toString()
+          - pattern: mongoSanitize.sanitize($X, ...)
+          - pattern: sanitize($X)
     metadata:
       category: security
       owasp: "A03:2025 Injection"
@@ -33,23 +58,33 @@ rules:
       the resolved path is inside an allow-list root.
 
       OWASP Top 10:2025 — A03 Injection (Path Traversal)
-    patterns:
+    mode: taint
+    pattern-sources:
       - pattern-either:
-          - pattern: fs.readFile(req.body.$F, ...)
-          - pattern: fs.readFile(req.query.$F, ...)
-          - pattern: fs.readFile(req.params.$F, ...)
-          - pattern: fs.readFileSync(req.body.$F, ...)
-          - pattern: fs.readFileSync(req.query.$F, ...)
-          - pattern: fs.readFileSync(req.params.$F, ...)
-          - pattern: fs.createReadStream(req.body.$F, ...)
-          - pattern: fs.createReadStream(req.query.$F, ...)
-          - pattern: fs.createReadStream(req.params.$F, ...)
-          - pattern: res.sendFile(req.body.$F, ...)
-          - pattern: res.sendFile(req.query.$F, ...)
-          - pattern: res.sendFile(req.params.$F, ...)
-          - pattern: res.download(req.body.$F, ...)
-          - pattern: res.download(req.query.$F, ...)
-          - pattern: res.download(req.params.$F, ...)
+          - pattern: $REQ.body
+          - pattern: $REQ.query
+          - pattern: $REQ.params
+          - pattern: $REQ.headers
+          - pattern: $REQ.cookies
+          - pattern: $REQ.body.$F
+          - pattern: $REQ.query.$F
+          - pattern: $REQ.params.$F
+          - pattern: $REQ.headers.$F
+          - pattern: $REQ.cookies.$F
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fs.readFile($P, ...)
+              - pattern: fs.readFileSync($P, ...)
+              - pattern: fs.promises.readFile($P, ...)
+              - pattern: fs.createReadStream($P, ...)
+              - pattern: $RES.sendFile($P, ...)
+              - pattern: $RES.download($P, ...)
+          # Express rejects paths escaping an explicit `root`.
+          - pattern-not: '$RES.sendFile($P, { ..., root: $ROOT, ... }, ...)'
+          - focus-metavariable: $P
+    pattern-sanitizers:
+      - pattern: path.basename(...)
     metadata:
       category: security
       owasp: "A03:2025 Injection"

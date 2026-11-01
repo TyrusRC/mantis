@@ -52,6 +52,7 @@ rules:
       - generic
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM
 
@@ -156,6 +157,7 @@ rules:
       - generic
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -181,6 +183,7 @@ rules:
       - kotlin
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 

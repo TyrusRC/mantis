@@ -141,6 +141,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: security
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       masvs: "MASVS-NETWORK-1"
       confidence: LOW
@@ -1003,5 +1004,6 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M8: Security Misconfiguration"
       confidence: MEDIUM

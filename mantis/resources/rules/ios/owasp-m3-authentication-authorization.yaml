@@ -47,6 +47,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-287: Improper Authentication"
       owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
       confidence: MEDIUM
 
@@ -344,5 +345,6 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-613: Insufficient Session Expiration"
       owasp-mobile-2024: "M3: Insecure Authentication/Authorization"
       confidence: LOW

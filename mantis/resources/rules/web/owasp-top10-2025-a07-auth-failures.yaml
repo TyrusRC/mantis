@@ -1,95 +1,446 @@
+# One rule per language: a rule's patterns must parse in every language it
+# lists, so a mixed-syntax pattern-either is a parse error for all of them.
 rules:
-  - id: web-a07-weak-password-hash-md5
-    languages: [python, javascript, typescript, java, go, ruby, php]
-    severity: ERROR
-    message: |
-      MD5 used for password hashing. MD5 is cryptographically broken and
-      trivially crackable. Use bcrypt, scrypt, or Argon2id.
+- id: web-a07-weak-password-hash-python
+  languages:
+  - python
+  severity: ERROR
+  message: |
+    MD5/SHA1 used to hash a password. Fast digests are trivially cracked on
+    GPUs. Use bcrypt, scrypt, or Argon2id.
 
-      OWASP Top 10:2025 — A07 Identification and Authentication Failures
-    patterns:
-      - pattern-either:
-          - pattern: hashlib.md5($PASSWORD)
-          - pattern: crypto.createHash("md5").update($PASSWORD)
-          - pattern: md5($PASSWORD)
-          - pattern: MessageDigest.getInstance("MD5")
-          - pattern: Digest::MD5.hexdigest($PASSWORD)
-    metadata:
-      category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
-      cwe: "CWE-328"
-      confidence: HIGH
-      pack: [web, fast, deep, bugbounty]
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: hashlib.md5($PASSWORD, ...)
+    - pattern: hashlib.sha1($PASSWORD, ...)
+    - pattern: hashlib.new("md5", $PASSWORD, ...)
+    - pattern: hashlib.new("sha1", $PASSWORD, ...)
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|passphrase).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-916
+    confidence: HIGH
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-weak-password-hash-javascript
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: |
+    MD5/SHA1 used to hash a password. Fast digests are trivially cracked on
+    GPUs. Use bcrypt, scrypt, or Argon2id.
 
-  - id: web-a07-weak-password-hash-sha1
-    languages: [python, javascript, typescript, java, go, ruby, php]
-    severity: ERROR
-    message: |
-      SHA1 used for password hashing. SHA1 is too fast for password storage
-      and vulnerable to GPU-accelerated cracking. Use bcrypt, scrypt, or Argon2id.
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: $CRYPTO.createHash($ALG).update($PASSWORD, ...)
+  - metavariable-regex:
+      metavariable: $ALG
+      regex: (?i)^['"](md5|sha1)['"]$
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|passphrase).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-916
+    confidence: HIGH
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-weak-password-hash-java
+  languages:
+  - java
+  severity: ERROR
+  message: |
+    MD5/SHA1 MessageDigest used to hash a password. Fast digests are trivially
+    cracked on GPUs. Use bcrypt, scrypt, PBKDF2 with a high work factor, or Argon2id.
 
-      OWASP Top 10:2025 — A07 Identification and Authentication Failures
-    patterns:
-      - pattern-either:
-          - pattern: hashlib.sha1($PASSWORD)
-          - pattern: crypto.createHash("sha1").update($PASSWORD)
-          - pattern: sha1($PASSWORD)
-          - pattern: MessageDigest.getInstance("SHA-1")
-          - pattern: Digest::SHA1.hexdigest($PASSWORD)
-    metadata:
-      category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
-      cwe: "CWE-328"
-      confidence: HIGH
-      pack: [web, fast, deep, bugbounty]
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-inside: |
+      $MD = MessageDigest.getInstance($ALG);
+      ...
+  - pattern-either:
+    - pattern: $MD.digest($PASSWORD, ...)
+    - pattern: $MD.update($PASSWORD, ...)
+  - metavariable-regex:
+      metavariable: $ALG
+      regex: (?i)^"(md5|sha-?1)"$
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|passphrase).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-916
+    confidence: HIGH
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-weak-password-hash-ruby
+  languages:
+  - ruby
+  severity: ERROR
+  message: |
+    MD5/SHA1 used to hash a password. Fast digests are trivially cracked on
+    GPUs. Use bcrypt (has_secure_password) or Argon2.
 
-  - id: web-a07-session-id-in-url
-    languages: [python, javascript, typescript, java, ruby, php]
-    severity: ERROR
-    message: |
-      Session ID or token passed as a URL query parameter. Tokens in URLs leak
-      via Referer headers, browser history, and server logs. Use cookies with
-      HttpOnly+Secure+SameSite or Authorization headers.
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: Digest::MD5.hexdigest($PASSWORD)
+    - pattern: Digest::MD5.digest($PASSWORD)
+    - pattern: Digest::SHA1.hexdigest($PASSWORD)
+    - pattern: Digest::SHA1.digest($PASSWORD)
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|passphrase).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-916
+    confidence: HIGH
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-weak-password-hash-php
+  languages:
+  - php
+  severity: ERROR
+  message: |
+    md5()/sha1() used to hash a password. Use password_hash() with
+    PASSWORD_ARGON2ID or PASSWORD_BCRYPT.
 
-      OWASP Top 10:2025 — A07 Identification and Authentication Failures
-    patterns:
-      - pattern-either:
-          - pattern: redirect_to("..." + "?session_id=" + $TOKEN)
-          - pattern: redirect(f"...?token={$TOKEN}")
-          - pattern: res.redirect(`...?session=${$TOKEN}`)
-          - pattern: response.sendRedirect("...?JSESSIONID=" + $SID)
-    metadata:
-      category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
-      cwe: "CWE-598"
-      confidence: HIGH
-      pack: [web, fast, deep, bugbounty]
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: md5($PASSWORD, ...)
+    - pattern: sha1($PASSWORD, ...)
+    - pattern: hash("md5", $PASSWORD, ...)
+    - pattern: hash("sha1", $PASSWORD, ...)
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|passphrase).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-916
+    confidence: HIGH
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-weak-password-hash-go
+  languages:
+  - go
+  severity: ERROR
+  message: |
+    crypto/md5 or crypto/sha1 used to hash a password. Use
+    golang.org/x/crypto/bcrypt or argon2.
 
-  - id: web-a07-hardcoded-credential-in-auth
-    languages: [python, javascript, typescript, java, go, ruby]
-    severity: ERROR
-    message: |
-      Hardcoded password or secret in authentication logic. Credentials must
-      come from environment variables, a secrets manager, or a config file
-      excluded from version control.
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: md5.Sum($PASSWORD)
+    - pattern: sha1.Sum($PASSWORD)
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|passphrase).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-916
+    confidence: HIGH
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-session-id-in-url-python
+  languages:
+  - python
+  severity: ERROR
+  message: |
+    Session ID or token placed in a redirect URL query string. Tokens in URLs
+    leak via Referer headers, browser history, and server logs. Use cookies
+    with HttpOnly+Secure+SameSite or an Authorization header.
 
-      OWASP Top 10:2025 — A07 Identification and Authentication Failures
-    patterns:
-      - pattern-either:
-          - pattern: |
-              if $PASSWORD == "...":
-                  ...
-          - pattern: |
-              if (password === "...") {
-                  ...
-              }
-          - pattern: |
-              if $PASSWORD.equals("...") {
-                  ...
-              }
-    metadata:
-      category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
-      cwe: "CWE-798"
-      confidence: MEDIUM
-      pack: [web, fast, deep, bugbounty, secrets]
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: redirect($URL, ...)
+    - pattern: HttpResponseRedirect($URL, ...)
+    - pattern: RedirectResponse($URL, ...)
+  - metavariable-regex:
+      metavariable: $URL
+      regex: (?i).*[?&;](session_?id|sessionid|jsessionid|sid|token|access_token)=.*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-598
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-session-id-in-url-javascript
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: |
+    Session ID or token placed in a redirect URL query string. Tokens in URLs
+    leak via Referer headers, browser history, and server logs. Use cookies
+    with HttpOnly+Secure+SameSite or an Authorization header.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: $RES.redirect(..., $URL)
+  - metavariable-regex:
+      metavariable: $URL
+      regex: (?i).*[?&;](session_?id|sessionid|jsessionid|sid|token|access_token)=.*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-598
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-session-id-in-url-java
+  languages:
+  - java
+  severity: ERROR
+  message: |
+    Session ID or token placed in a redirect URL query string. Tokens in URLs
+    leak via Referer headers, browser history, and server logs. Use cookies
+    with HttpOnly+Secure+SameSite or an Authorization header.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: $RES.sendRedirect($URL)
+  - metavariable-regex:
+      metavariable: $URL
+      regex: (?i).*[?&;](session_?id|sessionid|jsessionid|sid|token|access_token)=.*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-598
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-session-id-in-url-ruby
+  languages:
+  - ruby
+  severity: ERROR
+  message: |
+    Session ID or token placed in a redirect URL query string. Tokens in URLs
+    leak via Referer headers, browser history, and server logs. Use cookies
+    with HttpOnly+Secure+SameSite or an Authorization header.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: redirect_to($URL, ...)
+  - metavariable-regex:
+      metavariable: $URL
+      regex: (?i).*[?&;](session_?id|sessionid|sid|token|access_token)=.*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-598
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-session-id-in-url-php
+  languages:
+  - php
+  severity: ERROR
+  message: |
+    Session ID or token placed in a redirect URL query string. Tokens in URLs
+    leak via Referer headers, browser history, and server logs. Use cookies
+    with HttpOnly+Secure+SameSite or an Authorization header.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: header($HDR, ...)
+  - metavariable-regex:
+      metavariable: $HDR
+      regex: (?i).*location:.*[?&;](session_?id|sessionid|phpsessid|sid|token|access_token)=.*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-598
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+- id: web-a07-hardcoded-credential-in-auth-python
+  languages:
+  - python
+  severity: ERROR
+  message: |
+    Password or secret compared against a hardcoded string literal. Credentials
+    must come from environment variables, a secrets manager, or a config file
+    excluded from version control, and be compared in constant time.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: $PASSWORD == "..."
+    - pattern: '"..." == $PASSWORD'
+  - pattern-not: $PASSWORD == ""
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|secret|api_?key|token).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-798
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+    - secrets
+- id: web-a07-hardcoded-credential-in-auth-javascript
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: |
+    Password or secret compared against a hardcoded string literal. Credentials
+    must come from environment variables, a secrets manager, or a config file
+    excluded from version control, and be compared in constant time.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: $PASSWORD === "..."
+    - pattern: $PASSWORD == "..."
+    - pattern: '"..." === $PASSWORD'
+  - pattern-not: $PASSWORD === ""
+  - pattern-not: $PASSWORD == ""
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|secret|api_?key|token).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-798
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+    - secrets
+- id: web-a07-hardcoded-credential-in-auth-java
+  languages:
+  - java
+  severity: ERROR
+  message: |
+    Password or secret compared against a hardcoded string literal. Credentials
+    must come from environment variables, a secrets manager, or a config file
+    excluded from version control, and be compared in constant time.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern-either:
+    - pattern: $PASSWORD.equals("...")
+    - pattern: '"...".equals($PASSWORD)'
+  - pattern-not: $PASSWORD.equals("")
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|secret|api_?key|token).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-798
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+    - secrets
+- id: web-a07-hardcoded-credential-in-auth-go
+  languages:
+  - go
+  severity: ERROR
+  message: |
+    Password or secret compared against a hardcoded string literal. Credentials
+    must come from environment variables, a secrets manager, or a config file
+    excluded from version control, and be compared in constant time.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: $PASSWORD == "..."
+  - pattern-not: $PASSWORD == ""
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|secret|api_?key|token).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-798
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+    - secrets
+- id: web-a07-hardcoded-credential-in-auth-ruby
+  languages:
+  - ruby
+  severity: ERROR
+  message: |
+    Password or secret compared against a hardcoded string literal. Credentials
+    must come from environment variables, a secrets manager, or a config file
+    excluded from version control, and be compared in constant time.
+
+    OWASP Top 10:2025 — A07 Identification and Authentication Failures
+  patterns:
+  - pattern: $PASSWORD == "..."
+  - pattern-not: $PASSWORD == ""
+  - metavariable-regex:
+      metavariable: $PASSWORD
+      regex: (?i).*(passw|pwd|secret|api_?key|token).*
+  metadata:
+    category: security
+    owasp: A07:2025 Identification and Authentication Failures
+    cwe: CWE-798
+    confidence: MEDIUM
+    pack:
+    - web
+    - fast
+    - deep
+    - bugbounty
+    - secrets

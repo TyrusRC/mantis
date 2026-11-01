@@ -39,22 +39,29 @@ rules:
       into OAuth/SAML callback hijacks.
 
       OWASP Top 10:2025 — A01 Broken Access Control
-    patterns:
+    mode: taint
+    pattern-sources:
       - pattern-either:
-          - pattern: $RES.redirect($U)
-          - pattern: $RES.redirect($CODE, $U)
-      - metavariable-pattern:
-          metavariable: $U
-          patterns:
-            - pattern-either:
-                - pattern: req.body.$F
-                - pattern: req.body[$F]
-                - pattern: req.query.$F
-                - pattern: req.query[$F]
-                - pattern: req.params.$F
-                - pattern: req.params[$F]
-                - pattern: req.headers.$F
-                - pattern: req.cookies.$F
+          - pattern: $REQ.body
+          - pattern: $REQ.query
+          - pattern: $REQ.params
+          - pattern: $REQ.headers
+          - pattern: $REQ.cookies
+          - pattern: $REQ.body.$F
+          - pattern: $REQ.query.$F
+          - pattern: $REQ.params.$F
+          - pattern: $REQ.headers.$F
+          - pattern: $REQ.cookies.$F
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.redirect($U)
+              - pattern: $RES.redirect($CODE, $U)
+          # A literal single-slash prefix keeps the redirect same-origin.
+          - metavariable-regex:
+              metavariable: $U
+              regex: ^(?!\s*['"`]/[^/\\])
+          - focus-metavariable: $U
     metadata:
       category: security
       owasp: "A01:2025 Broken Access Control"
@@ -76,6 +83,9 @@ rules:
       - pattern-not: $RES.redirect("...")
       - pattern-not: $RES.redirect('...')
       - pattern-not-regex: 'redirect\s*\(\s*`[^`$]*`\s*\)'
+      - metavariable-regex:
+          metavariable: $U
+          regex: ^(?!\s*['"`]/[^/\\])
     metadata:
       category: security
       owasp: "A01:2025 Broken Access Control"

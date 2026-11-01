@@ -1,0 +1,22 @@
+buildscript {
+  repositories {
+    maven { url 'http://repo.example.com/m2' } // ruleid: owasp-m2-insecure-gradle-plugin
+    maven { url 'https://repo.example.com/m2' } // ok
+  }
+}
+apply plugin: 'com.android.application' // ok
+apply plugin: 'evil.plugin' // ruleid: owasp-m2-untrusted-plugin
+dependencies {
+  implementation 'com.squareup.okhttp:okhttp:2.7.5' // ruleid: owasp-m2-deprecated-library-okhttp2
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0' // ok
+  implementation 'commons-collections:commons-collections:3.2.1' // ruleid: owasp-m2-vulnerable-apache-commons
+  implementation 'commons-collections:commons-collections:3.2.2' // ok: fixed release
+}
+android {
+  // ruleid: react-native-m7-proguard-disabled-android
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+}

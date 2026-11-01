@@ -12,6 +12,8 @@ rules:
           - pattern: |
               flutter build apk
           - pattern: |
+              flutter build appbundle
+          - pattern: |
               flutter build ios
           - pattern: |
               flutter build ipa
@@ -383,7 +385,7 @@ rules:
       - pattern-not-inside: |
           FlutterJailbreakDetection.jailbroken
       - pattern-not-inside: |
-          RootDetector.isRooted()
+          RootDetector.isRooted
       - pattern-not-inside: |
           SafeDevice.isJailBroken
     message: |
@@ -681,6 +683,7 @@ rules:
       - dart
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       mastg-test: "MASTG-TEST-0228: Testing Root Detection"
       confidence: MEDIUM
@@ -809,6 +812,7 @@ rules:
       - dart
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: HIGH
@@ -931,6 +935,7 @@ rules:
       - dart
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: HIGH
@@ -974,6 +979,7 @@ rules:
         - "**/*.yml"
     metadata:
       category: security
+      cwe: "CWE-538: Insertion of Sensitive Information into Externally-Accessible File or Directory"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM
       false_positive_likelihood: LOW
@@ -1042,6 +1048,7 @@ rules:
       - dart
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: HIGH
@@ -1089,8 +1096,13 @@ rules:
     severity: WARNING
     languages:
       - generic
+    paths:
+      include:
+        - "**/*.gradle"
+        - "**/*.gradle.kts"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM
       false_positive_likelihood: LOW
@@ -1153,6 +1165,7 @@ rules:
       - dart
     metadata:
       category: security
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
       false_positive_likelihood: HIGH

@@ -39,21 +39,35 @@ rules:
       req.params. Validate against an allow-list of hosts.
 
       OWASP Top 10:2025 — A10 Server-Side Request Forgery
-    patterns:
+    mode: taint
+    pattern-sources:
       - pattern-either:
-          - pattern: fetch($URL, ...)
-          - pattern: axios.get($URL, ...)
-          - pattern: axios($URL, ...)
-          - pattern: http.get($URL, ...)
-      - metavariable-pattern:
-          metavariable: $URL
-          patterns:
-            - pattern-either:
-                - pattern: req.body.$X
-                - pattern: req.query.$X
-                - pattern: req.params.$X
-                - pattern: req.body[$X]
-                - pattern: req.query[$X]
+          - pattern: $REQ.body
+          - pattern: $REQ.query
+          - pattern: $REQ.params
+          - pattern: $REQ.headers
+          - pattern: $REQ.cookies
+          - pattern: $REQ.body.$F
+          - pattern: $REQ.query.$F
+          - pattern: $REQ.params.$F
+          - pattern: $REQ.headers.$F
+          - pattern: $REQ.cookies.$F
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fetch($URL, ...)
+              - pattern: axios($URL, ...)
+              - pattern: axios.$METHOD($URL, ...)
+              - pattern: http.get($URL, ...)
+              - pattern: https.get($URL, ...)
+              - pattern: http.request($URL, ...)
+              - pattern: https.request($URL, ...)
+              - pattern: got($URL, ...)
+          # A literal scheme+host prefix pins the destination; only the path is user data.
+          - metavariable-regex:
+              metavariable: $URL
+              regex: ^(?!\s*['"`]https?://[^/'"`$]+/)
+          - focus-metavariable: $URL
     metadata:
       category: security
       owasp: "A10:2025 Server-Side Request Forgery"

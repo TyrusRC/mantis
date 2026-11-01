@@ -31,6 +31,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -50,6 +51,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -76,6 +78,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -92,6 +95,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -114,6 +118,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -137,6 +142,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -160,6 +166,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -182,6 +189,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -284,6 +292,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM
 
@@ -308,6 +317,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -329,6 +339,7 @@ rules:
       - swift
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -352,6 +363,7 @@ rules:
         - "**/project.pbxproj"
     metadata:
       category: security
+      cwe: "CWE-693: Protection Mechanism Failure"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -393,6 +405,7 @@ rules:
         - "**/project.pbxproj"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: LOW
 
@@ -412,5 +425,6 @@ rules:
         - "**/project.pbxproj"
     metadata:
       category: security
+      cwe: "CWE-656: Reliance on Security Through Obscurity"
       owasp-mobile-2024: "M7: Insufficient Binary Protections"
       confidence: MEDIUM

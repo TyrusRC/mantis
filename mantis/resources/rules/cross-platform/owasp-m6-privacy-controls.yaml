@@ -44,6 +44,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR Art. 6(1)(a), CCPA 1798.120"
       confidence: HIGH
@@ -69,6 +70,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR, CCPA, ePrivacy Directive"
       confidence: HIGH
@@ -90,6 +92,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR, Google Play Policy"
       confidence: MEDIUM
@@ -116,6 +119,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR Art. 32, CCPA"
       confidence: HIGH
@@ -143,6 +147,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR Art. 7, CCPA"
       confidence: LOW
@@ -174,6 +179,7 @@ rules:
       - kotlin
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR Art. 17, CCPA 1798.105"
       confidence: LOW
@@ -197,6 +203,7 @@ rules:
         - "**/Info.plist"
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR, CCPA, Apple Privacy Policy"
       confidence: HIGH
@@ -214,6 +221,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "Apple ATT Framework, GDPR"
       confidence: MEDIUM
@@ -238,6 +246,7 @@ rules:
       - swift
     metadata:
       category: privacy
+      cwe: "CWE-359: Exposure of Private Personal Information to an Unauthorized Actor"
       owasp-mobile-2024: "M6: Inadequate Privacy Controls"
       compliance: "GDPR Art. 13, CCPA 1798.115"
       confidence: MEDIUM

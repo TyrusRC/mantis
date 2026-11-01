@@ -110,6 +110,7 @@ rules:
         - "**/AndroidManifest.xml"
     metadata:
       category: security
+      cwe: "CWE-530: Exposure of Backup File to an Unauthorized Control Sphere"
       mastg-test: "MASTG-TEST-0009"
       masvs: "MASVS-STORAGE-2"
       owasp-mobile-2024: "M9: Insecure Data Storage"
