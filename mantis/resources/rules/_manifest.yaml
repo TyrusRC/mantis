@@ -11116,7 +11116,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -11137,7 +11137,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -11156,7 +11156,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -11254,7 +11254,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11276,7 +11276,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11298,7 +11298,7 @@ rules:
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -11320,7 +11320,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11342,7 +11342,7 @@ rules:
   cwe:
   - 'CWE-918: Server-Side Request Forgery (SSRF)'
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -11506,7 +11506,7 @@ rules:
   cwe:
   - CWE-321
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -11529,7 +11529,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -11550,7 +11550,7 @@ rules:
   cwe:
   - CWE-347
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -11571,7 +11571,7 @@ rules:
   cwe:
   - CWE-347
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -11593,7 +11593,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -11615,7 +11615,7 @@ rules:
   cwe:
   - CWE-94
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11636,7 +11636,7 @@ rules:
   cwe:
   - CWE-94
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11657,7 +11657,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11677,7 +11677,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11697,7 +11697,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11717,7 +11717,7 @@ rules:
   cwe:
   - 'CWE-611: XML External Entity Reference'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11737,7 +11737,7 @@ rules:
   cwe:
   - 'CWE-918: Server-Side Request Forgery (SSRF)'
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -11777,7 +11777,7 @@ rules:
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -11797,7 +11797,7 @@ rules:
   cwe:
   - CWE-89
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11818,7 +11818,7 @@ rules:
   cwe:
   - CWE-89
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11838,7 +11838,7 @@ rules:
   cwe:
   - CWE-78
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11859,7 +11859,7 @@ rules:
   cwe:
   - CWE-78
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11880,7 +11880,7 @@ rules:
   cwe:
   - CWE-943
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11902,7 +11902,7 @@ rules:
   cwe:
   - CWE-22
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11923,7 +11923,7 @@ rules:
   cwe:
   - CWE-22
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11945,7 +11945,7 @@ rules:
   cwe:
   - CWE-1321
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -11966,7 +11966,7 @@ rules:
   cwe:
   - CWE-89
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -11987,7 +11987,7 @@ rules:
   cwe:
   - CWE-89
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -12008,7 +12008,7 @@ rules:
   cwe:
   - CWE-89
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -12029,7 +12029,7 @@ rules:
   cwe:
   - CWE-1336
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -12050,7 +12050,7 @@ rules:
   cwe:
   - CWE-1336
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -12069,7 +12069,7 @@ rules:
   cwe:
   - CWE-78
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -12090,7 +12090,7 @@ rules:
   cwe:
   - CWE-918
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -12111,7 +12111,7 @@ rules:
   cwe:
   - CWE-639
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12132,7 +12132,7 @@ rules:
   cwe:
   - CWE-639
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12152,7 +12152,7 @@ rules:
   cwe:
   - CWE-770
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12173,7 +12173,7 @@ rules:
   cwe:
   - CWE-20
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12193,7 +12193,7 @@ rules:
   cwe:
   - CWE-256
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12214,7 +12214,7 @@ rules:
   cwe:
   - CWE-256
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12235,7 +12235,7 @@ rules:
   cwe:
   - CWE-330
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12254,7 +12254,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A04:2025 Insecure Design
+  owasp: A06:2025 Insecure Design
   masvs: null
   maswe: null
   cve: []
@@ -12275,7 +12275,7 @@ rules:
   cwe:
   - CWE-942
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12296,7 +12296,7 @@ rules:
   cwe:
   - CWE-942
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12317,7 +12317,7 @@ rules:
   cwe:
   - CWE-352
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12337,7 +12337,7 @@ rules:
   cwe:
   - CWE-1004
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12356,7 +12356,7 @@ rules:
   cwe:
   - CWE-1004
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12375,7 +12375,7 @@ rules:
   cwe:
   - CWE-942
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12395,7 +12395,7 @@ rules:
   cwe:
   - CWE-489
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12415,7 +12415,7 @@ rules:
   cwe:
   - CWE-489
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12437,7 +12437,7 @@ rules:
   cwe:
   - CWE-942
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -12456,7 +12456,7 @@ rules:
   cwe:
   - CWE-427
   owasp_mobile: null
-  owasp: A06:2025 Vulnerable and Outdated Components
+  owasp: A03:2025 Software Supply Chain Failures
   masvs: null
   maswe: null
   cve: []
@@ -12476,7 +12476,7 @@ rules:
   cwe:
   - CWE-494
   owasp_mobile: null
-  owasp: A06:2025 Vulnerable and Outdated Components
+  owasp: A03:2025 Software Supply Chain Failures
   masvs: null
   maswe: null
   cve: []
@@ -12497,7 +12497,7 @@ rules:
   cwe:
   - CWE-1104
   owasp_mobile: null
-  owasp: A06:2025 Vulnerable and Outdated Components
+  owasp: A03:2025 Software Supply Chain Failures
   masvs: null
   maswe: null
   cve: []
@@ -12517,7 +12517,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12539,7 +12539,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12560,7 +12560,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12581,7 +12581,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12602,7 +12602,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12623,7 +12623,7 @@ rules:
   cwe:
   - CWE-916
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12644,7 +12644,7 @@ rules:
   cwe:
   - CWE-598
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12666,7 +12666,7 @@ rules:
   cwe:
   - CWE-598
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12687,7 +12687,7 @@ rules:
   cwe:
   - CWE-598
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12708,7 +12708,7 @@ rules:
   cwe:
   - CWE-598
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12729,7 +12729,7 @@ rules:
   cwe:
   - CWE-598
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12750,7 +12750,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12773,7 +12773,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12795,7 +12795,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12817,7 +12817,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12839,7 +12839,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12861,7 +12861,7 @@ rules:
   cwe:
   - CWE-798
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12882,7 +12882,7 @@ rules:
   cwe:
   - CWE-347
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12903,7 +12903,7 @@ rules:
   cwe:
   - CWE-347
   owasp_mobile: null
-  owasp: A07:2025 Identification and Authentication Failures
+  owasp: A07:2025 Authentication Failures
   masvs: null
   maswe: null
   cve: []
@@ -12924,7 +12924,7 @@ rules:
   cwe:
   - CWE-502
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -12945,7 +12945,7 @@ rules:
   cwe:
   - CWE-502
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -12964,7 +12964,7 @@ rules:
   cwe:
   - CWE-502
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -12985,7 +12985,7 @@ rules:
   cwe:
   - CWE-502
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13005,7 +13005,7 @@ rules:
   cwe:
   - CWE-502
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13025,7 +13025,7 @@ rules:
   cwe:
   - CWE-532
   owasp_mobile: null
-  owasp: A09:2025 Security Logging and Monitoring Failures
+  owasp: A09:2025 Security Logging and Alerting Failures
   masvs: null
   maswe: null
   cve: []
@@ -13046,7 +13046,7 @@ rules:
   cwe:
   - CWE-532
   owasp_mobile: null
-  owasp: A09:2025 Security Logging and Monitoring Failures
+  owasp: A09:2025 Security Logging and Alerting Failures
   masvs: null
   maswe: null
   cve: []
@@ -13066,7 +13066,7 @@ rules:
   cwe:
   - CWE-117
   owasp_mobile: null
-  owasp: A09:2025 Security Logging and Monitoring Failures
+  owasp: A09:2025 Security Logging and Alerting Failures
   masvs: null
   maswe: null
   cve: []
@@ -13086,7 +13086,7 @@ rules:
   cwe:
   - CWE-117
   owasp_mobile: null
-  owasp: A09:2025 Security Logging and Monitoring Failures
+  owasp: A09:2025 Security Logging and Alerting Failures
   masvs: null
   maswe: null
   cve: []
@@ -13105,7 +13105,7 @@ rules:
   cwe:
   - CWE-918
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13126,7 +13126,7 @@ rules:
   cwe:
   - CWE-295
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -13146,7 +13146,7 @@ rules:
   cwe:
   - CWE-918
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13167,7 +13167,7 @@ rules:
   cwe:
   - CWE-918
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13187,7 +13187,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13205,7 +13205,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13223,7 +13223,7 @@ rules:
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13241,7 +13241,7 @@ rules:
   cwe:
   - 'CWE-918: Server-Side Request Forgery'
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13259,7 +13259,7 @@ rules:
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -13277,7 +13277,7 @@ rules:
   cwe:
   - 'CWE-611: XML External Entity Reference'
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -13295,7 +13295,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13313,7 +13313,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13331,7 +13331,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13351,7 +13351,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13370,7 +13370,7 @@ rules:
   cwe:
   - 'CWE-918: Server-Side Request Forgery'
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13388,7 +13388,7 @@ rules:
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -13424,7 +13424,7 @@ rules:
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13442,7 +13442,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13460,7 +13460,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13478,7 +13478,7 @@ rules:
   cwe:
   - 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13514,7 +13514,7 @@ rules:
   cwe:
   - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
   owasp_mobile: null
-  owasp: A02:2025 Cryptographic Failures
+  owasp: A04:2025 Cryptographic Failures
   masvs: null
   maswe: null
   cve: []
@@ -13532,7 +13532,7 @@ rules:
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13550,7 +13550,7 @@ rules:
   cwe:
   - CWE-89
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13571,7 +13571,7 @@ rules:
   cwe:
   - CWE-78
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13592,7 +13592,7 @@ rules:
   cwe:
   - CWE-78
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13613,7 +13613,7 @@ rules:
   cwe:
   - CWE-502
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13634,7 +13634,7 @@ rules:
   cwe:
   - CWE-915
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []
@@ -13673,7 +13673,7 @@ rules:
   cwe:
   - CWE-918
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13694,7 +13694,7 @@ rules:
   cwe:
   - 'CWE-611: Improper Restriction of XML External Entity Reference'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13712,7 +13712,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13730,7 +13730,7 @@ rules:
   cwe:
   - 'CWE-78: OS Command Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13748,7 +13748,7 @@ rules:
   cwe:
   - 'CWE-918: Server-Side Request Forgery'
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13784,7 +13784,7 @@ rules:
   cwe:
   - 'CWE-502: Deserialization of Untrusted Data'
   owasp_mobile: null
-  owasp: A08:2025 Software and Data Integrity Failures
+  owasp: A08:2025 Software or Data Integrity Failures
   masvs: null
   maswe: null
   cve: []
@@ -13802,7 +13802,7 @@ rules:
   cwe:
   - 'CWE-89: SQL Injection'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13820,7 +13820,7 @@ rules:
   cwe:
   - 'CWE-611: XML External Entity Reference'
   owasp_mobile: null
-  owasp: A03:2025 Injection
+  owasp: A05:2025 Injection
   masvs: null
   maswe: null
   cve: []
@@ -13838,7 +13838,7 @@ rules:
   cwe:
   - 'CWE-918: Server-Side Request Forgery'
   owasp_mobile: null
-  owasp: A10:2025 Server-Side Request Forgery
+  owasp: A01:2025 Broken Access Control
   masvs: null
   maswe: null
   cve: []
@@ -13856,7 +13856,7 @@ rules:
   cwe:
   - 'CWE-200: Exposure of Sensitive Information'
   owasp_mobile: null
-  owasp: A05:2025 Security Misconfiguration
+  owasp: A02:2025 Security Misconfiguration
   masvs: null
   maswe: null
   cve: []

@@ -18,7 +18,7 @@ rules:
       regex: (password|passwd|secret|token|api_key|credit_card|ssn|cvv)
     metadata:
       category: security
-      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      owasp: "A09:2025 Security Logging and Alerting Failures"
       cwe: "CWE-532"
       confidence: HIGH
       pack: [web, fast, deep]
@@ -39,7 +39,7 @@ rules:
           - pattern: winston.log("info", `...${$KEY}...`)
     metadata:
       category: security
-      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      owasp: "A09:2025 Security Logging and Alerting Failures"
       cwe: "CWE-532"
       confidence: HIGH
       pack: [web, fast, deep]
@@ -59,7 +59,7 @@ rules:
           - pattern: logger.$LEVEL("User %s" % request.$METHOD.get($KEY))
     metadata:
       category: security
-      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      owasp: "A09:2025 Security Logging and Alerting Failures"
       cwe: "CWE-117"
       confidence: MEDIUM
       pack: [web, deep]
@@ -80,7 +80,7 @@ rules:
           - pattern: logger.info(`...${req.params.$FIELD}...`)
     metadata:
       category: security
-      owasp: "A09:2025 Security Logging and Monitoring Failures"
+      owasp: "A09:2025 Security Logging and Alerting Failures"
       cwe: "CWE-117"
       confidence: MEDIUM
       pack: [web, deep]

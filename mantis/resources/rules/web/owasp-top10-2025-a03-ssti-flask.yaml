@@ -31,7 +31,7 @@ rules:
                 - pattern: $X + request.$F
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-1336"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -51,7 +51,7 @@ rules:
       - pattern-not: render_template_string('...', ...)
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-1336"
       confidence: MEDIUM
       pack: [web, deep]

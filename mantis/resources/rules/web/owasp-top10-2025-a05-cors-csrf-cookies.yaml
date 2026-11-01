@@ -17,7 +17,7 @@ rules:
           - pattern: res.header("Access-Control-Allow-Origin", "*")
     metadata:
       category: security
-      owasp: "A05:2025 Security Misconfiguration"
+      owasp: "A02:2025 Security Misconfiguration"
       cwe: "CWE-942"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -37,7 +37,7 @@ rules:
           - pattern: app.add_middleware(CORSMiddleware, allow_origins=["*"], ...)
     metadata:
       category: security
-      owasp: "A05:2025 Security Misconfiguration"
+      owasp: "A02:2025 Security Misconfiguration"
       cwe: "CWE-942"
       confidence: HIGH
       pack: [web, fast, deep]
@@ -57,7 +57,7 @@ rules:
           - pattern: 'csurf({ ignoreMethods: ["POST", ...] })'
     metadata:
       category: security
-      owasp: "A05:2025 Security Misconfiguration"
+      owasp: "A02:2025 Security Misconfiguration"
       cwe: "CWE-352"
       confidence: HIGH
       pack: [web, deep]
@@ -79,7 +79,7 @@ rules:
           - pattern: 'session({ ..., cookie: { httpOnly: false, ...}, ... })'
     metadata:
       category: security
-      owasp: "A05:2025 Security Misconfiguration"
+      owasp: "A02:2025 Security Misconfiguration"
       cwe: "CWE-1004"
       confidence: HIGH
       pack: [web, deep]
@@ -98,7 +98,7 @@ rules:
           - pattern: $RESP.set_cookie($K, $V, httponly=False, ...)
     metadata:
       category: security
-      owasp: "A05:2025 Security Misconfiguration"
+      owasp: "A02:2025 Security Misconfiguration"
       cwe: "CWE-1004"
       confidence: HIGH
       pack: [web, deep]

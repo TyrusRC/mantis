@@ -20,7 +20,7 @@ rules:
           - pattern: subprocess.call("..." + $X, shell=True, ...)
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-78"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -47,7 +47,7 @@ rules:
               - pattern-not: urlopen("...")
     metadata:
       category: security
-      owasp: "A10:2025 Server-Side Request Forgery"
+      owasp: "A01:2025 Broken Access Control"
       cwe: "CWE-918"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]

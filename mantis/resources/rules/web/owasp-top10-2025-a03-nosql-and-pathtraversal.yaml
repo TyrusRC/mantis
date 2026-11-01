@@ -44,7 +44,7 @@ rules:
           - pattern: sanitize($X)
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-943"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -87,7 +87,7 @@ rules:
       - pattern: path.basename(...)
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-22"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -114,7 +114,7 @@ rules:
           - pattern: send_from_directory($DIR, request.args[...], ...)
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-22"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -141,7 +141,7 @@ rules:
           - pattern: extend(true, $DST, req.body)
     metadata:
       category: security
-      owasp: "A08:2025 Software and Data Integrity Failures"
+      owasp: "A08:2025 Software or Data Integrity Failures"
       cwe: "CWE-1321"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]

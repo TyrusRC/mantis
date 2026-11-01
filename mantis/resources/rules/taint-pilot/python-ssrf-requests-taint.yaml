@@ -47,7 +47,7 @@ rules:
     metadata:
       category: security
       cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
-      owasp: "A10:2025 Server-Side Request Forgery"
+      owasp: "A01:2025 Broken Access Control"
       confidence: HIGH
       pack: [taint, web, fast, deep, bugbounty]
       references:

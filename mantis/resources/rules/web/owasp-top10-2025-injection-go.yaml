@@ -21,7 +21,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-89: SQL Injection"
       confidence: HIGH
       pack: [web]
@@ -45,7 +45,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-78: OS Command Injection"
       confidence: HIGH
       pack: [web]
@@ -66,7 +66,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-78: OS Command Injection"
       confidence: MEDIUM
       pack: [web, deep, bugbounty]
@@ -85,7 +85,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-78: OS Command Injection"
       confidence: MEDIUM
       pack: [web, deep]
@@ -109,7 +109,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A10:2025 Server-Side Request Forgery"
+      owasp: "A01:2025 Broken Access Control"
       cwe: "CWE-918: Server-Side Request Forgery"
       confidence: MEDIUM
       pack: [web]
@@ -128,7 +128,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
       confidence: HIGH
       pack: [web]
@@ -170,7 +170,7 @@ rules:
     severity: INFO
     metadata:
       category: security
-      owasp: "A08:2025 Software and Data Integrity Failures"
+      owasp: "A08:2025 Software or Data Integrity Failures"
       cwe: "CWE-502: Deserialization of Untrusted Data"
       confidence: LOW
       pack: [web]

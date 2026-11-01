@@ -82,3 +82,13 @@ def test_rule_fixtures_fire_exactly_where_annotated(case, tmp_path):
     actual = {(str(Path(f.path).relative_to(target)), f.start_line, f.rule_id.rsplit(".", 1)[-1])
               for f in out.findings}
     assert actual == _expected(case_dir)
+
+
+@pytest.mark.parametrize("case", sorted(_CASES))
+def test_rule_fixture_cases_are_not_vacuous(case):
+    # Without annotations, "no findings == no expectations" passes on a dead rule.
+    expected = _expected(FIXTURES / case)
+    assert expected, f"{case}: fixture has no `ruleid:` annotations"
+    ids = {r["id"] for rel in _CASES[case]
+           for r in (yaml.safe_load((RULES / rel).read_text()) or {}).get("rules", [])}
+    assert {rid for _, _, rid in expected} <= ids

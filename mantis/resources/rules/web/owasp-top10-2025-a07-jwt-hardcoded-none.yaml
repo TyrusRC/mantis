@@ -18,7 +18,7 @@ rules:
                   regex: (?i)^(jwt[_]?secret|jwt[_]?key)$
     metadata:
       category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
+      owasp: "A07:2025 Authentication Failures"
       cwe: "CWE-798"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -39,7 +39,7 @@ rules:
           - pattern: "algorithms=[..., 'none', ...]"
     metadata:
       category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
+      owasp: "A07:2025 Authentication Failures"
       cwe: "CWE-347"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -58,7 +58,7 @@ rules:
           - pattern: 'jwt.decode(..., options={"verify_signature": False})'
     metadata:
       category: security
-      owasp: "A07:2025 Identification and Authentication Failures"
+      owasp: "A07:2025 Authentication Failures"
       cwe: "CWE-347"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]

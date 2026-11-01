@@ -17,7 +17,7 @@ rules:
           - pattern: crypto.createDecipheriv($ALG, '$KEY', $IV)
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-321"
       confidence: HIGH
       pack: [web, fast, deep]
@@ -40,7 +40,7 @@ rules:
           - pattern: MessageDigest.getInstance("SHA-1")
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-916"
       confidence: MEDIUM
       pack: [web, fast, deep]

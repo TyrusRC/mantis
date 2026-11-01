@@ -16,7 +16,7 @@ rules:
           - pattern: dill.loads($X)
     metadata:
       category: security
-      owasp: "A08:2025 Software and Data Integrity Failures"
+      owasp: "A08:2025 Software or Data Integrity Failures"
       cwe: "CWE-502"
       confidence: HIGH
       pack: [web, fast, deep]
@@ -37,7 +37,7 @@ rules:
           - pattern: yaml.load($X, Loader=yaml.FullLoader)
     metadata:
       category: security
-      owasp: "A08:2025 Software and Data Integrity Failures"
+      owasp: "A08:2025 Software or Data Integrity Failures"
       cwe: "CWE-502"
       confidence: HIGH
       pack: [web, fast, deep]

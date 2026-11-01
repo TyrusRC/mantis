@@ -23,7 +23,7 @@ rules:
         - "**/*_test.py"
     metadata:
       category: security
-      owasp: "A04:2025 Insecure Design"
+      owasp: "A06:2025 Insecure Design"
       cwe: "CWE-330"
       confidence: MEDIUM
       pack: [web, deep]
@@ -42,7 +42,7 @@ rules:
           - pattern: $APP.config["SECRET_KEY"] = "..."
     metadata:
       category: security
-      owasp: "A04:2025 Insecure Design"
+      owasp: "A06:2025 Insecure Design"
       cwe: "CWE-798"
       confidence: HIGH
       pack: [web, deep, bugbounty]

@@ -25,7 +25,7 @@ rules:
               - pattern-not: httpx.get("...", ...)
     metadata:
       category: security
-      owasp: "A10:2025 Server-Side Request Forgery"
+      owasp: "A01:2025 Broken Access Control"
       cwe: "CWE-918"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -41,7 +41,7 @@ rules:
     pattern: requests.$METHOD(..., verify=False, ...)
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-295"
       confidence: HIGH
       pack: [web, fast, deep]

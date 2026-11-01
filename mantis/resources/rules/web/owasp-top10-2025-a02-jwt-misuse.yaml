@@ -15,7 +15,7 @@ rules:
           - pattern: 'jsonwebtoken.verify($T, $K, {algorithms: ["none"]})'
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-347"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -36,7 +36,7 @@ rules:
           - pattern: jwt.decode($T, verify=False)
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-347"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -60,7 +60,7 @@ rules:
       - pattern-not: jwt.verify($T, process.env.$E)
     metadata:
       category: security
-      owasp: "A02:2025 Cryptographic Failures"
+      owasp: "A04:2025 Cryptographic Failures"
       cwe: "CWE-798"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]

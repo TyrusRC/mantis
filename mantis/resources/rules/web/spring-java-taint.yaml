@@ -42,7 +42,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-611: Improper Restriction of XML External Entity Reference"
       confidence: HIGH
       pack: [web]
@@ -85,7 +85,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-89: SQL Injection"
       confidence: HIGH
       pack: [web]
@@ -116,7 +116,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-78: OS Command Injection"
       confidence: HIGH
       pack: [web]
@@ -150,7 +150,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A10:2025 Server-Side Request Forgery"
+      owasp: "A01:2025 Broken Access Control"
       cwe: "CWE-918: Server-Side Request Forgery"
       confidence: HIGH
       pack: [web]
@@ -209,7 +209,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A08:2025 Software and Data Integrity Failures"
+      owasp: "A08:2025 Software or Data Integrity Failures"
       cwe: "CWE-502: Deserialization of Untrusted Data"
       confidence: MEDIUM
       pack: [web]
@@ -236,7 +236,7 @@ rules:
     severity: ERROR
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-89: SQL Injection"
       confidence: HIGH
       pack: [web]
@@ -275,7 +275,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-611: XML External Entity Reference"
       confidence: MEDIUM
       pack: [web]
@@ -298,7 +298,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A10:2025 Server-Side Request Forgery"
+      owasp: "A01:2025 Broken Access Control"
       cwe: "CWE-918: Server-Side Request Forgery"
       confidence: MEDIUM
       pack: [web]
@@ -327,7 +327,7 @@ rules:
     severity: WARNING
     metadata:
       category: security
-      owasp: "A05:2025 Security Misconfiguration"
+      owasp: "A02:2025 Security Misconfiguration"
       cwe: "CWE-200: Exposure of Sensitive Information"
       confidence: MEDIUM
       pack: [web]

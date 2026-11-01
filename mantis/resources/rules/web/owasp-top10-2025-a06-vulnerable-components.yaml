@@ -14,7 +14,7 @@ rules:
           {"publishConfig": {"registry": "https://registry.npmjs.org"}}
     metadata:
       category: security
-      owasp: "A06:2025 Vulnerable and Outdated Components"
+      owasp: "A03:2025 Software Supply Chain Failures"
       cwe: "CWE-427"
       confidence: MEDIUM
       pack: [web, deep, sca]
@@ -35,7 +35,7 @@ rules:
           - pattern: os.system("pip install ...")
     metadata:
       category: security
-      owasp: "A06:2025 Vulnerable and Outdated Components"
+      owasp: "A03:2025 Software Supply Chain Failures"
       cwe: "CWE-494"
       confidence: LOW
       pack: [web, deep, sca]
@@ -56,7 +56,7 @@ rules:
           - pattern: require("coffee-script")
     metadata:
       category: security
-      owasp: "A06:2025 Vulnerable and Outdated Components"
+      owasp: "A03:2025 Software Supply Chain Failures"
       cwe: "CWE-1104"
       confidence: LOW
       pack: [web, deep, sca]

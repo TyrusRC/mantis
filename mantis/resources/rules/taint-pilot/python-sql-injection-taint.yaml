@@ -51,7 +51,7 @@ rules:
     metadata:
       category: security
       cwe: "CWE-89: SQL Injection"
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       confidence: HIGH
       pack: [taint, web, fast, deep, bugbounty]
       references:

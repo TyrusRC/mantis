@@ -39,7 +39,7 @@ rules:
                   $OBJ.execute($QUERY)
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-89"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
@@ -60,7 +60,7 @@ rules:
           - pattern: execute_transaction(f"...{$X}...")
     metadata:
       category: security
-      owasp: "A03:2025 Injection"
+      owasp: "A05:2025 Injection"
       cwe: "CWE-89"
       confidence: HIGH
       pack: [web, fast, deep, bugbounty]
