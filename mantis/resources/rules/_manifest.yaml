@@ -3,20 +3,20 @@ _meta:
   schema_version: 1
   note: Auto-generated. Do not edit by hand. Re-run the script after changing rules/.
 summary:
-  total_rules: 762
-  total_files: 120
+  total_rules: 781
+  total_files: 127
   by_severity:
     WARNING: 320
-    ERROR: 362
+    ERROR: 381
     INFO: 80
   by_language:
-    java: 111
+    java: 115
     kotlin: 92
     xml: 81
     generic: 98
-    python: 65
-    javascript: 78
-    typescript: 78
+    python: 72
+    javascript: 84
+    typescript: 84
     dart: 31
     yaml: 33
     ruby: 40
@@ -28,11 +28,11 @@ summary:
     dockerfile: 5
     hcl: 28
     c: 28
-    php: 8
+    php: 10
     go: 10
     csharp: 6
   by_category:
-    security: 730
+    security: 749
     privacy: 32
   by_owasp_mobile:
     'M4: Insufficient Input/Output Validation': 55
@@ -66,8 +66,8 @@ summary:
     MASVS-PLATFORM-2: 16
     MASVS-AUTH-3: 1
   by_confidence:
-    HIGH: 419
-    MEDIUM: 255
+    HIGH: 431
+    MEDIUM: 262
     LOW: 88
   parse_errors: []
 rules:
@@ -11244,7 +11244,72 @@ rules:
   - deep
   - bugbounty
   source: null
-- file: rules/taint-pilot/js-command-injection-child-process-taint.yaml
+- file: rules/taint-pilot/code-injection-taint.yaml
+  id: taint-python-code-injection-eval
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/code-injection-taint.yaml
+  id: taint-js-code-injection
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/command-injection-taint.yaml
+  id: taint-python-command-injection-subprocess
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-78: OS Command Injection'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/command-injection-taint.yaml
   id: taint-js-command-injection-child-process-exec
   severity: ERROR
   languages:
@@ -11267,29 +11332,7 @@ rules:
   - deep
   - bugbounty
   source: null
-- file: rules/taint-pilot/python-command-injection-taint.yaml
-  id: taint-python-command-injection-subprocess
-  severity: ERROR
-  languages:
-  - python
-  category: security
-  cwe:
-  - 'CWE-78: OS Command Injection'
-  owasp_mobile: null
-  owasp: A05:2025 Injection
-  masvs: null
-  maswe: null
-  cve: []
-  cvss: null
-  confidence: HIGH
-  pack:
-  - taint
-  - web
-  - fast
-  - deep
-  - bugbounty
-  source: null
-- file: rules/taint-pilot/python-pickle-deserialization-taint.yaml
+- file: rules/taint-pilot/deserialization-taint.yaml
   id: taint-python-pickle-untrusted-deserialize
   severity: ERROR
   languages:
@@ -11311,7 +11354,177 @@ rules:
   - deep
   - bugbounty
   source: null
-- file: rules/taint-pilot/python-sql-injection-taint.yaml
+- file: rules/taint-pilot/expression-language-injection-taint.yaml
+  id: taint-java-expression-language-injection
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-917: Expression Language Injection'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/ldap-injection-taint.yaml
+  id: taint-python-ldap-injection
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-90: LDAP Injection'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/ldap-injection-taint.yaml
+  id: taint-java-ldap-injection
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-90: LDAP Injection'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/nosql-injection-taint.yaml
+  id: taint-python-nosql-injection-pymongo
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/nosql-injection-taint.yaml
+  id: taint-js-nosql-injection
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/nosql-injection-taint.yaml
+  id: taint-java-nosql-spring-data-mongo
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/path-traversal-taint.yaml
+  id: taint-python-path-traversal
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-22: Path Traversal'
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/path-traversal-taint.yaml
+  id: taint-js-path-traversal
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-22: Path Traversal'
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/sql-injection-taint.yaml
   id: taint-python-sql-injection-cursor-execute
   severity: ERROR
   languages:
@@ -11333,7 +11546,29 @@ rules:
   - deep
   - bugbounty
   source: null
-- file: rules/taint-pilot/python-ssrf-requests-taint.yaml
+- file: rules/taint-pilot/sql-injection-taint.yaml
+  id: taint-js-sql-injection
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-89: SQL Injection'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/ssrf-taint.yaml
   id: taint-python-ssrf-requests-user-url
   severity: ERROR
   languages:
@@ -11352,6 +11587,176 @@ rules:
   - taint
   - web
   - fast
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/ssrf-taint.yaml
+  id: taint-js-ssrf
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-918: Server-Side Request Forgery'
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/ssrf-taint.yaml
+  id: taint-php-ssrf
+  severity: ERROR
+  languages:
+  - php
+  category: security
+  cwe:
+  - 'CWE-918: Server-Side Request Forgery'
+  owasp_mobile: null
+  owasp: A01:2025 Broken Access Control
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/ssti-taint.yaml
+  id: taint-python-ssti-render-template-string
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/xss-taint.yaml
+  id: taint-python-reflected-xss
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-79: Cross-site Scripting (XSS)'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/xss-taint.yaml
+  id: taint-js-reflected-xss
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  category: security
+  cwe:
+  - 'CWE-79: Cross-site Scripting (XSS)'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/xss-taint.yaml
+  id: taint-java-reflected-xss-response-writer
+  severity: ERROR
+  languages:
+  - java
+  category: security
+  cwe:
+  - 'CWE-79: Cross-site Scripting (XSS)'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/xss-taint.yaml
+  id: taint-php-reflected-xss
+  severity: ERROR
+  languages:
+  - php
+  category: security
+  cwe:
+  - 'CWE-79: Cross-site Scripting (XSS)'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: MEDIUM
+  pack:
+  - taint
+  - web
+  - deep
+  - bugbounty
+  source: null
+- file: rules/taint-pilot/xxe-taint.yaml
+  id: taint-python-xxe-lxml
+  severity: ERROR
+  languages:
+  - python
+  category: security
+  cwe:
+  - 'CWE-611: Improper Restriction of XML External Entity Reference'
+  owasp_mobile: null
+  owasp: A05:2025 Injection
+  masvs: null
+  maswe: null
+  cve: []
+  cvss: null
+  confidence: HIGH
+  pack:
+  - taint
+  - web
   - deep
   - bugbounty
   source: null

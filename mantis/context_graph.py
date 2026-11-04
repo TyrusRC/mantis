@@ -195,6 +195,39 @@ class ContextGraph:
                     frontier.append((caller_id, depth + 1))
         return None
 
+    def to_dict(self) -> dict:
+        """Serialize the graph so another tool/agent can consume it.
+
+        Stable, importer-free schema: a caller reads nodes/edges/entry_points
+        and recomputes reachability itself (follow `calls` edges target->source)
+        without depending on mantis internals.
+        """
+        return {
+            "schema": "mantis-context-graph/1",
+            "indexed_files": self.indexed_files,
+            "entry_points": [nid for nid, n in self.nodes.items()
+                             if n.kind == "route"],
+            "nodes": [
+                {"id": n.id, "kind": n.kind, "name": n.name,
+                 "file": n.file, "line": n.line, "end_line": n.end_line}
+                for n in self.nodes.values()
+            ],
+            "edges": [
+                {"source": e.source, "target": e.target,
+                 "relation": e.relation, "confidence": e.confidence}
+                for e in self.edges
+            ],
+        }
+
+    def write_json(self, path) -> None:
+        """Write to_dict() to `path` as JSON (opt-in; integration seam)."""
+        import json
+        from pathlib import Path
+        Path(path).write_text(
+            json.dumps(self.to_dict(), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
 
 # ---------------------------------------------------------------------------
 # Tree-sitter-based extraction

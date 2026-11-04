@@ -1,0 +1,167 @@
+rules:
+- id: taint-python-nosql-injection-pymongo
+  mode: taint
+  languages:
+  - python
+  severity: ERROR
+  message: 'Potential NoSQL injection (CWE-943): user-controlled input flows into a
+
+    MongoDB query. If the input is a dict (e.g. parsed JSON), an attacker can
+
+    inject query operators such as $where, $ne, or $gt to bypass filters or
+
+    run server-side JavaScript. Remediation: cast values to the expected
+
+    scalar type, reject dict/operator input, and never place raw request
+
+    bodies into the query document.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.values[...]
+      - pattern: $REQ.values.get(...)
+      - pattern: $REQ.json[...]
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.get_json(...)
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.GET.get(...)
+      - pattern: $REQ.POST[...]
+      - pattern: $REQ.POST.get(...)
+      - pattern: $REQ.data
+      - pattern: $REQ.body
+      - pattern: $REQ.cookies[...]
+      - pattern: $REQ.cookies.get(...)
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.headers.get(...)
+      - pattern: request.args.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: input(...)
+      - pattern: sys.argv[$N]
+      - pattern: os.environ[$K]
+      - pattern: os.environ.get(...)
+      - pattern: flask.request.$ANY
+      - pattern: fastapi.Query(...)
+      - pattern: fastapi.Form(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $COLL.find($Q, ...)
+      - pattern: $COLL.find_one($Q, ...)
+      - pattern: $COLL.delete_many($Q)
+      - pattern: $COLL.update_many($Q, ...)
+      - pattern: $DB.command($Q)
+  metadata:
+    category: security
+    cwe: 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+    owasp: A05:2025 Injection
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/943.html
+- id: taint-js-nosql-injection
+  mode: taint
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: A raw request object reaches a NoSQL query, allowing operator injection (e.g. $where, $ne, $gt) when an attacker sends a JSON object instead of a scalar. Coerce query values to the expected primitive type, reject object-valued fields, and avoid passing req.body / req.query straight into find/update filters.
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.body.$F
+      - pattern: $REQ.body[...]
+      - pattern: $REQ.query.$F
+      - pattern: $REQ.query[...]
+      - pattern: $REQ.params.$F
+      - pattern: $REQ.params[...]
+      - pattern: $REQ.headers.$F
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.cookies.$F
+      - pattern: req.body
+      - pattern: req.query
+      - pattern: req.params
+      - pattern: process.argv[$N]
+      - pattern: process.env.$F
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $MODEL.find($Q, ...)
+      - pattern: $MODEL.findOne($Q, ...)
+      - pattern: $COLL.find($Q)
+      - pattern: $COLL.deleteMany($Q)
+      - pattern: $COLL.updateMany($Q, ...)
+      - pattern: $MODEL.where($Q)
+  metadata:
+    category: security
+    cwe: 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+    owasp: A05:2025 Injection
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/943.html
+- id: taint-java-nosql-spring-data-mongo
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $RT $M(..., @RequestParam $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @PathVariable $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestBody $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestHeader $T $VAR, ...) { ... }
+    - focus-metavariable: $VAR
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.getParameter(...)
+      - pattern: $REQ.getParameterValues(...)
+      - pattern: $REQ.getHeader(...)
+      - pattern: $REQ.getQueryString()
+      - pattern: $REQ.getCookies()
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $TPL.find($Q, ...)
+      - pattern: $TPL.findOne($Q, ...)
+      - pattern: $TPL.remove($Q, ...)
+      - pattern: new BasicQuery($X)
+      - pattern: new Query(Criteria.where(...).is($X))
+  message: 'Untrusted input flows into a Spring Data MongoDB query (CWE-943). A raw
+
+    tainted JSON string passed to BasicQuery or a Criteria value enables NoSQL
+
+    operator injection ($where, $ne, $gt). Bind values as typed Criteria
+
+    parameters and reject map / JSON-shaped input bound from request bodies.
+
+    '
+  languages:
+  - java
+  severity: ERROR
+  metadata:
+    category: security
+    owasp: A05:2025 Injection
+    cwe: 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/943.html

@@ -52,16 +52,17 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              - pattern: |
-                  @RequestParam $X $VAR
-              - pattern: |
-                  @RequestParam(...) $X $VAR
-              - pattern: |
-                  @PathVariable $X $VAR
-              - pattern: |
-                  @PathVariable(...) $X $VAR
-              - pattern: |
-                  @RequestBody $X $VAR
+              - pattern: $RETT $MNAME(..., @RequestParam $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @PathVariable $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestBody $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestHeader $PT $VAR, ...) { ... }
+          - focus-metavariable: $VAR
+      - patterns:
+          - pattern-either:
+              - pattern: $HREQ.getParameter(...)
+              - pattern: $HREQ.getParameterValues(...)
+              - pattern: $HREQ.getHeader(...)
+              - pattern: $HREQ.getQueryString()
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -95,14 +96,17 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              - pattern: |
-                  @RequestParam $X $VAR
-              - pattern: |
-                  @RequestParam(...) $X $VAR
-              - pattern: |
-                  @PathVariable $X $VAR
-              - pattern: |
-                  @RequestBody $X $VAR
+              - pattern: $RETT $MNAME(..., @RequestParam $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @PathVariable $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestBody $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestHeader $PT $VAR, ...) { ... }
+          - focus-metavariable: $VAR
+      - patterns:
+          - pattern-either:
+              - pattern: $HREQ.getParameter(...)
+              - pattern: $HREQ.getParameterValues(...)
+              - pattern: $HREQ.getHeader(...)
+              - pattern: $HREQ.getQueryString()
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -126,12 +130,17 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              - pattern: |
-                  @RequestParam $X $VAR
-              - pattern: |
-                  @RequestParam(...) $X $VAR
-              - pattern: |
-                  @PathVariable $X $VAR
+              - pattern: $RETT $MNAME(..., @RequestParam $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @PathVariable $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestBody $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestHeader $PT $VAR, ...) { ... }
+          - focus-metavariable: $VAR
+      - patterns:
+          - pattern-either:
+              - pattern: $HREQ.getParameter(...)
+              - pattern: $HREQ.getParameterValues(...)
+              - pattern: $HREQ.getHeader(...)
+              - pattern: $HREQ.getQueryString()
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -160,12 +169,17 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              - pattern: |
-                  @RequestParam $X $VAR
-              - pattern: |
-                  @RequestParam(...) $X $VAR
-              - pattern: |
-                  @PathVariable $X $VAR
+              - pattern: $RETT $MNAME(..., @RequestParam $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @PathVariable $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestBody $PT $VAR, ...) { ... }
+              - pattern: $RETT $MNAME(..., @RequestHeader $PT $VAR, ...) { ... }
+          - focus-metavariable: $VAR
+      - patterns:
+          - pattern-either:
+              - pattern: $HREQ.getParameter(...)
+              - pattern: $HREQ.getParameterValues(...)
+              - pattern: $HREQ.getHeader(...)
+              - pattern: $HREQ.getQueryString()
     pattern-sinks:
       - patterns:
           - pattern-either:

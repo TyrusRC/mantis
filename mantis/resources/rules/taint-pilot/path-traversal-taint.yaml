@@ -1,0 +1,133 @@
+rules:
+- id: taint-python-path-traversal
+  mode: taint
+  languages:
+  - python
+  severity: ERROR
+  message: 'Potential path traversal (CWE-22): user-controlled input flows into a
+
+    filesystem path without normalization. An attacker can supply "../"
+
+    sequences to read or write files outside the intended directory.
+
+    Remediation: validate against an allow-list, strip the directory with
+
+    os.path.basename(), or in Flask use werkzeug.utils.secure_filename()
+
+    before joining the path. Resolve the final path and confirm it stays
+
+    within the intended base directory.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.values[...]
+      - pattern: $REQ.values.get(...)
+      - pattern: $REQ.json[...]
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.get_json(...)
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.GET.get(...)
+      - pattern: $REQ.POST[...]
+      - pattern: $REQ.POST.get(...)
+      - pattern: $REQ.data
+      - pattern: $REQ.body
+      - pattern: $REQ.cookies[...]
+      - pattern: $REQ.cookies.get(...)
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.headers.get(...)
+      - pattern: request.args.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: input(...)
+      - pattern: sys.argv[$N]
+      - pattern: os.environ[$K]
+      - pattern: os.environ.get(...)
+      - pattern: flask.request.$ANY
+      - pattern: fastapi.Query(...)
+      - pattern: fastapi.Form(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: open($P, ...)
+      - pattern: io.open($P, ...)
+      - pattern: send_file($P, ...)
+      - pattern: send_from_directory($D, $P, ...)
+      - pattern: open(os.path.join(..., $P), ...)
+      - pattern: pathlib.Path($P).open(...)
+      - pattern: shutil.copy($P, ...)
+      - pattern: codecs.open($P, ...)
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: os.path.basename($X)
+      - pattern: werkzeug.utils.secure_filename($X)
+      - pattern: secure_filename($X)
+      - pattern: $X.replace("..", "")
+  metadata:
+    category: security
+    cwe: 'CWE-22: Path Traversal'
+    owasp: A01:2025 Broken Access Control
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/22.html
+- id: taint-js-path-traversal
+  mode: taint
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: User-controlled input reaches a filesystem path, allowing path traversal (../) outside the intended directory. Normalize the resolved path and confirm it stays within a fixed base directory, or reduce the input to a bare filename with path.basename() before use.
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.body.$F
+      - pattern: $REQ.body[...]
+      - pattern: $REQ.query.$F
+      - pattern: $REQ.query[...]
+      - pattern: $REQ.params.$F
+      - pattern: $REQ.params[...]
+      - pattern: $REQ.headers.$F
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.cookies.$F
+      - pattern: req.body
+      - pattern: req.query
+      - pattern: req.params
+      - pattern: process.argv[$N]
+      - pattern: process.env.$F
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: fs.readFile($P, ...)
+      - pattern: fs.readFileSync($P, ...)
+      - pattern: fs.createReadStream($P, ...)
+      - pattern: fs.writeFile($P, ...)
+      - pattern: res.sendFile($P, ...)
+      - pattern: res.download($P, ...)
+      - pattern: path.join($D, $P)
+  pattern-sanitizers:
+  - pattern: path.basename($X)
+  metadata:
+    category: security
+    cwe: 'CWE-22: Path Traversal'
+    owasp: A01:2025 Broken Access Control
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/22.html

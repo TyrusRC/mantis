@@ -1,0 +1,252 @@
+rules:
+- id: taint-python-reflected-xss
+  mode: taint
+  languages:
+  - python
+  severity: ERROR
+  message: 'Potential reflected cross-site scripting (CWE-79): user-controlled input
+
+    is written into an HTML response without escaping, letting an attacker
+
+    inject script into the victim''s browser. Remediation: escape with
+
+    markupsafe.escape() or html.escape() before output, sanitize rich HTML
+
+    with bleach.clean(), and do not wrap untrusted input in Markup(), which
+
+    marks it safe and disables auto-escaping.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.values[...]
+      - pattern: $REQ.values.get(...)
+      - pattern: $REQ.json[...]
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.get_json(...)
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.GET.get(...)
+      - pattern: $REQ.POST[...]
+      - pattern: $REQ.POST.get(...)
+      - pattern: $REQ.data
+      - pattern: $REQ.body
+      - pattern: $REQ.cookies[...]
+      - pattern: $REQ.cookies.get(...)
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.headers.get(...)
+      - pattern: request.args.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: input(...)
+      - pattern: sys.argv[$N]
+      - pattern: os.environ[$K]
+      - pattern: os.environ.get(...)
+      - pattern: flask.request.$ANY
+      - pattern: fastapi.Query(...)
+      - pattern: fastapi.Form(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: flask.Markup($X)
+      - pattern: markupsafe.Markup($X)
+      - pattern: Markup($X)
+      - pattern: make_response($X)
+      - pattern: Response($X, mimetype="text/html")
+      - pattern: HttpResponse($X)
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: markupsafe.escape($X)
+      - pattern: html.escape($X)
+      - pattern: escape($X)
+      - pattern: bleach.clean($X)
+  metadata:
+    category: security
+    cwe: 'CWE-79: Cross-site Scripting (XSS)'
+    owasp: A05:2025 Injection
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/79.html
+- id: taint-js-reflected-xss
+  mode: taint
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: User-controlled input is written to an HTTP response body or the DOM without encoding, enabling reflected XSS. Set a non-HTML content type for data responses, HTML-encode untrusted values before embedding them, or sanitize with a trusted library (DOMPurify / he) before rendering.
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.body.$F
+      - pattern: $REQ.body[...]
+      - pattern: $REQ.query.$F
+      - pattern: $REQ.query[...]
+      - pattern: $REQ.params.$F
+      - pattern: $REQ.params[...]
+      - pattern: $REQ.headers.$F
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.cookies.$F
+      - pattern: req.body
+      - pattern: req.query
+      - pattern: req.params
+      - pattern: process.argv[$N]
+      - pattern: process.env.$F
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: res.send($X)
+      - pattern: res.write($X)
+      - pattern: res.end($X)
+      - pattern: $EL.innerHTML = $X
+      - pattern: document.write($X)
+  pattern-sanitizers:
+  - pattern-either:
+    - pattern: escapeHtml($X)
+    - pattern: he.encode($X)
+    - pattern: DOMPurify.sanitize($X)
+    - pattern: validator.escape($X)
+  metadata:
+    category: security
+    cwe: 'CWE-79: Cross-site Scripting (XSS)'
+    owasp: A05:2025 Injection
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/79.html
+- id: taint-java-reflected-xss-response-writer
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $RT $M(..., @RequestParam $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @PathVariable $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestBody $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestHeader $T $VAR, ...) { ... }
+    - focus-metavariable: $VAR
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.getParameter(...)
+      - pattern: $REQ.getParameterValues(...)
+      - pattern: $REQ.getHeader(...)
+      - pattern: $REQ.getQueryString()
+      - pattern: $REQ.getCookies()
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $RESP.getWriter().write($X)
+      - pattern: $RESP.getWriter().print($X)
+      - pattern: $RESP.getWriter().println($X)
+      - pattern: $WRITER.write($X)
+      - pattern: $OUT.print($X)
+    - focus-metavariable: $X
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: org.owasp.encoder.Encode.forHtml($X)
+      - pattern: Encode.forHtml($X)
+      - pattern: HtmlUtils.htmlEscape($X)
+      - pattern: StringEscapeUtils.escapeHtml4($X)
+  message: 'Untrusted input is written directly to the HTTP response body (CWE-79).
+
+    When the content type is HTML this is reflected XSS. HTML-encode output
+
+    with org.owasp.encoder.Encode.forHtml, or return a templated view that
+
+    escapes by default instead of writing to the raw response writer.
+
+    '
+  languages:
+  - java
+  severity: ERROR
+  metadata:
+    category: security
+    owasp: A05:2025 Injection
+    cwe: 'CWE-79: Cross-site Scripting (XSS)'
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/79.html
+- id: taint-php-reflected-xss
+  mode: taint
+  languages:
+  - php
+  severity: ERROR
+  message: 'Potential reflected cross-site scripting (CWE-79): user-controlled input
+
+    is written into the HTTP response without encoding, letting an attacker
+
+    inject script into the victim''s browser. Remediation: encode on output
+
+    with htmlspecialchars($value, ENT_QUOTES, ''UTF-8'') (or htmlentities())
+
+    for HTML context, and strip_tags() where only text is expected. In a
+
+    templating engine, rely on its context-aware auto-escaping rather than
+
+    echoing raw request input.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_SERVER[...]
+      - pattern: $_FILES[...]
+      - pattern: file_get_contents("php://input")
+      - pattern: Input::get(...)
+      - pattern: Request::input(...)
+      - pattern: $REQ->input(...)
+      - pattern: $REQ->get(...)
+      - pattern: $REQ->query(...)
+      - pattern: $REQ->post(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: echo $X;
+      - pattern: print $X;
+      - pattern: printf($X, ...)
+      - pattern: print_r($X)
+      - pattern: print($X)
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: htmlspecialchars($X, ...)
+      - pattern: htmlspecialchars($X)
+      - pattern: htmlentities($X, ...)
+      - pattern: htmlentities($X)
+      - pattern: strip_tags($X)
+  metadata:
+    category: security
+    cwe: 'CWE-79: Cross-site Scripting (XSS)'
+    owasp: A05:2025 Injection
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/79.html

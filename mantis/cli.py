@@ -148,6 +148,14 @@ def _build_parser() -> argparse.ArgumentParser:
              "vulnerability DB (network) — use --engines-offline or 'none' to stay offline.",
     )
     audit.add_argument(
+        "--emit-context-graph",
+        metavar="PATH",
+        default=None,
+        help="Write the code context graph (nodes/edges/entry points) to PATH "
+             "as JSON for another tool or agent to consume when integrating "
+             "mantis into a flow. Opt-in: no file is written otherwise.",
+    )
+    audit.add_argument(
         "--engines-offline",
         action="store_true",
         help="Run network SCA engines (trivy/grype) in offline-DB mode.",
@@ -282,6 +290,7 @@ def cmd_audit(args) -> int:
         decompiled=decompiled,
         engines=getattr(args, "engines", None),
         engines_offline=getattr(args, "engines_offline", False),
+        emit_context_graph=getattr(args, "emit_context_graph", None),
     )
     return pipe.run()
 

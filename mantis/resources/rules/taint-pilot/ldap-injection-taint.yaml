@@ -1,0 +1,125 @@
+rules:
+- id: taint-python-ldap-injection
+  mode: taint
+  languages:
+  - python
+  severity: ERROR
+  message: 'Potential LDAP injection (CWE-90): user-controlled input flows into an
+
+    LDAP search filter without escaping. An attacker can alter the filter to
+
+    bypass authentication or disclose directory entries. Remediation: escape
+
+    every user value with ldap.filter.escape_filter_chars() before placing
+
+    it in the filter string, or build the filter with a parameterized helper.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.values[...]
+      - pattern: $REQ.values.get(...)
+      - pattern: $REQ.json[...]
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.get_json(...)
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.GET.get(...)
+      - pattern: $REQ.POST[...]
+      - pattern: $REQ.POST.get(...)
+      - pattern: $REQ.data
+      - pattern: $REQ.body
+      - pattern: $REQ.cookies[...]
+      - pattern: $REQ.cookies.get(...)
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.headers.get(...)
+      - pattern: request.args.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: input(...)
+      - pattern: sys.argv[$N]
+      - pattern: os.environ[$K]
+      - pattern: os.environ.get(...)
+      - pattern: flask.request.$ANY
+      - pattern: fastapi.Query(...)
+      - pattern: fastapi.Form(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $CONN.search_s($BASE, $SCOPE, $FILTER, ...)
+      - pattern: $CONN.search($BASE, $SCOPE, $FILTER, ...)
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: ldap.filter.escape_filter_chars($X)
+      - pattern: escape_filter_chars($X)
+  metadata:
+    category: security
+    cwe: 'CWE-90: LDAP Injection'
+    owasp: A05:2025 Injection
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/90.html
+- id: taint-java-ldap-injection
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $RT $M(..., @RequestParam $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @PathVariable $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestBody $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestHeader $T $VAR, ...) { ... }
+    - focus-metavariable: $VAR
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.getParameter(...)
+      - pattern: $REQ.getParameterValues(...)
+      - pattern: $REQ.getHeader(...)
+      - pattern: $REQ.getQueryString()
+      - pattern: $REQ.getCookies()
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $CTX.search($BASE, $FILTER, ...)
+      - pattern: $CTX.search($NAME, $FILTER, $CONTROLS)
+      - pattern: $TPL.search($BASE, $FILTER, ...)
+      - pattern: LdapQueryBuilder.query().$X(...).filter($FILTER)
+      - pattern: LdapQueryBuilder.query().filter($FILTER)
+    - focus-metavariable: $FILTER
+  message: 'Untrusted input flows into an LDAP search filter without encoding
+
+    (CWE-90). Encode filter values with
+
+    org.springframework.ldap.support.LdapEncoder.filterEncode, or build the
+
+    filter with parameterised LdapQueryBuilder.where(...).is(...) rather than
+
+    string concatenation.
+
+    '
+  languages:
+  - java
+  severity: ERROR
+  metadata:
+    category: security
+    owasp: A05:2025 Injection
+    cwe: 'CWE-90: LDAP Injection'
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/90.html

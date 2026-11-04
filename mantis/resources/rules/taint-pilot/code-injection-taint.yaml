@@ -1,0 +1,118 @@
+rules:
+- id: taint-python-code-injection-eval
+  mode: taint
+  languages:
+  - python
+  severity: ERROR
+  message: 'Potential code injection (CWE-95): user-controlled input flows into a
+
+    dynamic code evaluation sink (eval/exec/compile). This lets an attacker
+
+    execute arbitrary Python. Remediation: never evaluate untrusted input.
+
+    For parsing literal data structures use ast.literal_eval(); for
+
+    dispatch use an explicit allow-list mapping of names to callables.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.values[...]
+      - pattern: $REQ.values.get(...)
+      - pattern: $REQ.json[...]
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.get_json(...)
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.GET.get(...)
+      - pattern: $REQ.POST[...]
+      - pattern: $REQ.POST.get(...)
+      - pattern: $REQ.data
+      - pattern: $REQ.body
+      - pattern: $REQ.cookies[...]
+      - pattern: $REQ.cookies.get(...)
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.headers.get(...)
+      - pattern: request.args.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: input(...)
+      - pattern: sys.argv[$N]
+      - pattern: os.environ[$K]
+      - pattern: os.environ.get(...)
+      - pattern: flask.request.$ANY
+      - pattern: fastapi.Query(...)
+      - pattern: fastapi.Form(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: eval($X)
+      - pattern: eval($X, ...)
+      - pattern: exec($X)
+      - pattern: exec($X, ...)
+      - pattern: compile($X, ...)
+  metadata:
+    category: security
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'
+    owasp: A05:2025 Injection
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/95.html
+- id: taint-js-code-injection
+  mode: taint
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: User-controlled input reaches a dynamic code-evaluation sink, allowing arbitrary code execution. Remove eval/Function/vm usage on untrusted data; if dynamic behavior is required, dispatch over a fixed allowlist of operations and never pass request data as a code string to setTimeout/setInterval.
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.body.$F
+      - pattern: $REQ.body[...]
+      - pattern: $REQ.query.$F
+      - pattern: $REQ.query[...]
+      - pattern: $REQ.params.$F
+      - pattern: $REQ.params[...]
+      - pattern: $REQ.headers.$F
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.cookies.$F
+      - pattern: req.body
+      - pattern: req.query
+      - pattern: req.params
+      - pattern: process.argv[$N]
+      - pattern: process.env.$F
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: eval($X)
+      - pattern: Function($X)
+      - pattern: new Function($X)
+      - pattern: vm.runInNewContext($X, ...)
+      - pattern: vm.runInThisContext($X)
+      - pattern: vm.compileFunction($X, ...)
+      - pattern: setTimeout($X, ...)
+      - pattern: setInterval($X, ...)
+  metadata:
+    category: security
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'
+    owasp: A05:2025 Injection
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/95.html

@@ -2,7 +2,7 @@
 
 Hybrid SAST + LLM toolkit for local code-security audits.
 
-762 OpenGrep rules across 11 languages (Python, JavaScript/TypeScript, Java, Kotlin, Swift, Go, Ruby, PHP, C#, Dart, C/C++). Covers OWASP Web Top 10 2025 A01--A09 (A10, mishandling of exceptional conditions, has no rules yet), OWASP LLM Top 10, mobile (Android + iOS + Flutter + React Native), IaC (Terraform, Dockerfile, Kubernetes), cloud SDK misuse (AWS/GCP/Azure), SCA, secrets, taint analysis, and native C/C++ binary analysis. 5 WSTG checklists.
+781 OpenGrep rules across 11 languages (Python, JavaScript/TypeScript, Java, Kotlin, Swift, Go, Ruby, PHP, C#, Dart, C/C++). Covers OWASP Web Top 10 2025 A01--A09 (A10, mishandling of exceptional conditions, has no rules yet), OWASP LLM Top 10, mobile (Android + iOS + Flutter + React Native), IaC (Terraform, Dockerfile, Kubernetes), cloud SDK misuse (AWS/GCP/Azure), SCA, secrets, dataflow taint analysis (injection / SSRF / path traversal / deserialization / SSTI / XSS / LDAP / XXE / NoSQL across Python, JS/TS, Java, PHP), and native C/C++ binary analysis. 5 WSTG checklists.
 
 Stage 0b auto-generates a **STRIDE threat model** and **asset map** (entry points, auth boundaries, data stores, external calls, sensitive data) that enriches every downstream stage. A **BM25 linker** connects findings to their most-relevant entry point when call-graph tracing falls short. An LLM reasons on the slices the scanner flags. Runs as a Claude Code slash command, or as a standalone CLI against any provider. Local only.
 
@@ -111,6 +111,7 @@ mantis update [--check]               # query PyPI, upgrade in place
 | `--lite` | skip slicing + deep review |
 | `--fix` | apply patches in a worktree, re-verify |
 | `--fail-on low\|medium\|high\|critical` | exit non-zero if any unsuppressed finding is at or above this severity (pre-commit / local gate) |
+| `--emit-context-graph <path>` | write the code context graph (nodes/edges/entry points) to `<path>` as JSON for another tool or agent to consume when integrating mantis into a flow (opt-in; no file otherwise) |
 | `--engines <list\|all\|none>` | SAST engines run alongside OpenGrep **by default** (installed engines matching the tree, incl. trivy/grype): bandit, gosec, njsscan, eslint-security, checkov, trivy, grype. Pass a list to restrict, `all` for every installed engine, or `none` to disable. |
 | `--engines-offline` | run the network SCA engines (trivy/grype) in offline-DB mode. trivy/grype fetch a vulnerability database (network); every other engine is fully local. |
 | `--pack <name>` | run exactly this pack (repeatable), bypassing mode + inventory |
@@ -147,6 +148,21 @@ findings = audit("decompiled_out", decompiled=True)   # auto stack detection
 # each finding: {rule_id, severity, confidence, path, start_line, end_line,
 #                message, metadata (cwe/owasp/masvs...), verdict}
 ```
+
+Need the code graph itself (nodes, `calls`/`imports` edges, entry points) to drive
+another agent in a flow? Build it and serialize it — requires `tree-sitter-language-pack`:
+
+```python
+from pathlib import Path
+from mantis.context_graph import build_context_graph
+
+g = build_context_graph(Path("src"))      # None if tree-sitter is not installed
+graph = g.to_dict()                        # {schema, indexed_files, entry_points, nodes, edges}
+g.write_json("context-graph.json")         # or dump it to a file for a downstream tool
+```
+
+The schema is importer-free: a consumer recomputes reachability by following
+`calls` edges from an entry point. The CLI equivalent is `--emit-context-graph <path>`.
 
 ### Native C/C++ and malware analysis
 

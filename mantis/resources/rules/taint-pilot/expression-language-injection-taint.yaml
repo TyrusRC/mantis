@@ -1,0 +1,53 @@
+rules:
+- id: taint-java-expression-language-injection
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $RT $M(..., @RequestParam $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @PathVariable $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestBody $T $VAR, ...) { ... }
+      - pattern: $RT $M(..., @RequestHeader $T $VAR, ...) { ... }
+    - focus-metavariable: $VAR
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.getParameter(...)
+      - pattern: $REQ.getParameterValues(...)
+      - pattern: $REQ.getHeader(...)
+      - pattern: $REQ.getQueryString()
+      - pattern: $REQ.getCookies()
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $PARSER.parseExpression($X)
+      - pattern: $PARSER.parseExpression($X, ...)
+      - pattern: Ognl.getValue($X, ...)
+      - pattern: $ENGINE.eval($X)
+      - pattern: new SpelExpressionParser().parseExpression($X)
+      - pattern: MVEL.eval($X)
+      - pattern: MVEL.evalToString($X)
+    - focus-metavariable: $X
+  message: 'Untrusted input flows into a dynamic expression evaluator (SpEL / OGNL /
+
+    MVEL / ScriptEngine), allowing remote code execution (CWE-917). Never
+
+    parse attacker-controlled strings as expressions; if evaluation is
+
+    unavoidable use a SimpleEvaluationContext with a fixed, non-user template.
+
+    '
+  languages:
+  - java
+  severity: ERROR
+  metadata:
+    category: security
+    owasp: A05:2025 Injection
+    cwe: 'CWE-917: Expression Language Injection'
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/917.html

@@ -1,0 +1,176 @@
+rules:
+- id: taint-python-ssrf-requests-user-url
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.POST[...]
+      - pattern: request.args.get(...)
+      - pattern: request.form.get(...)
+      - pattern: request.json.get(...)
+      - pattern: request.values.get(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: requests.get($URL, ...)
+      - pattern: requests.post($URL, ...)
+      - pattern: requests.put($URL, ...)
+      - pattern: requests.delete($URL, ...)
+      - pattern: requests.request($METHOD, $URL, ...)
+      - pattern: requests.head($URL, ...)
+      - pattern: requests.patch($URL, ...)
+      - pattern: httpx.get($URL, ...)
+      - pattern: httpx.post($URL, ...)
+      - pattern: requests.Session().get($URL, ...)
+      - pattern: requests.Session().request($METHOD, $URL, ...)
+      - pattern: urllib.request.urlopen($URL, ...)
+      - pattern: urllib.urlopen($URL, ...)
+      - pattern: urllib.request.Request($URL, ...)
+      - pattern: urllib3.PoolManager(...).request($METHOD, $URL, ...)
+      - pattern: aiohttp.ClientSession(...).get($URL, ...)
+  # NOTE: only transform-style sanitizers (a function that returns the cleaned
+  # value, used downstream) are honored by intrafile taint. A guard like
+  # `if u in ALLOWLIST: requests.get(u)` does NOT suppress - the var is still
+  # tainted - so allowlist-guarded calls are reported for human triage. Erring
+  # toward flagging is the safe default for a security scanner.
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: validate_url($X)
+      - pattern: is_safe_url($X)
+      - pattern: sanitize_url($X)
+  message: 'User-controlled URL flows into an outbound HTTP request — potential SSRF.
+
+    Validate the host against an explicit allowlist before making the request,
+
+    block private IP ranges (RFC1918, link-local, loopback, metadata endpoints),
+
+    and disable redirects unless required.
+
+    '
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+    owasp: A01:2025 Broken Access Control
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - fast
+    - deep
+    - bugbounty
+    references:
+    - https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/
+- id: taint-js-ssrf
+  mode: taint
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: User-controlled input flows into an outbound HTTP request URL, enabling Server-Side Request Forgery. Validate the URL against an allowlist of permitted hosts/schemes, resolve and block private/link-local IP ranges, and never let request data select the destination host.
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.body.$F
+      - pattern: $REQ.body[...]
+      - pattern: $REQ.query.$F
+      - pattern: $REQ.query[...]
+      - pattern: $REQ.params.$F
+      - pattern: $REQ.params[...]
+      - pattern: $REQ.headers.$F
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.cookies.$F
+      - pattern: req.body
+      - pattern: req.query
+      - pattern: req.params
+      - pattern: process.argv[$N]
+      - pattern: process.env.$F
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: axios.get($URL, ...)
+      - pattern: axios.post($URL, ...)
+      - pattern: fetch($URL, ...)
+      - pattern: http.get($URL, ...)
+      - pattern: https.get($URL, ...)
+      - pattern: http.request($URL, ...)
+      - pattern: request($URL, ...)
+      - pattern: got($URL, ...)
+      - pattern: needle.get($URL, ...)
+  metadata:
+    category: security
+    cwe: 'CWE-918: Server-Side Request Forgery'
+    owasp: A01:2025 Broken Access Control
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/918.html
+- id: taint-php-ssrf
+  mode: taint
+  languages:
+  - php
+  severity: ERROR
+  message: 'Potential server-side request forgery (CWE-918): user-controlled input is
+
+    used as the target of a server-initiated network request. An attacker can
+
+    reach internal services, cloud metadata endpoints, or arbitrary hosts.
+
+    Remediation: validate the URL against an allow-list of permitted hosts and
+
+    schemes, resolve and reject private/link-local IP ranges, and disable
+
+    redirects on the client. Do not pass request input straight into the
+
+    request target.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_SERVER[...]
+      - pattern: $_FILES[...]
+      - pattern: file_get_contents("php://input")
+      - pattern: Input::get(...)
+      - pattern: Request::input(...)
+      - pattern: $REQ->input(...)
+      - pattern: $REQ->get(...)
+      - pattern: $REQ->query(...)
+      - pattern: $REQ->post(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: file_get_contents($URL)
+      - pattern: curl_setopt($CH, CURLOPT_URL, $URL)
+      - pattern: fsockopen($URL, ...)
+      - pattern: curl_init($URL)
+      - pattern: get_headers($URL)
+  metadata:
+    category: security
+    cwe: 'CWE-918: Server-Side Request Forgery'
+    owasp: A01:2025 Broken Access Control
+    confidence: MEDIUM
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/918.html

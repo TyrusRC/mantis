@@ -94,6 +94,9 @@ class Pipeline:
     #: None = default on ('auto'), 'none' opts out. See mantis.engines.
     engines: Optional[object] = None
     engines_offline: bool = False
+    #: Opt-in: write the code context graph (nodes/edges/entry points) to this
+    #: path as JSON so another tool/agent can consume it. None = no file.
+    emit_context_graph: Optional[str] = None
 
     def run(self) -> int:
         t0 = time.monotonic()
@@ -147,6 +150,10 @@ class Pipeline:
                   f"({ctx_graph.indexed_files} files, tree-sitter)")
         else:
             print("[mantis] context graph: skipped (tree-sitter not installed)")
+
+        if ctx_graph and self.emit_context_graph:
+            ctx_graph.write_json(self.emit_context_graph)
+            print(f"[mantis] context graph written to {self.emit_context_graph}")
 
         # Stage 1: SAST scan
         print("[mantis] stage 1: SAST scan")

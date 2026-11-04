@@ -27,7 +27,7 @@ Layout:
 - `mantis/asset_patterns.py` — regex pattern definitions for the asset map scanner (entry points, middleware, data stores, external calls, sensitive data across all supported languages)
 - `mantis/assetmap.py` — stage 0b: asset map builder and query API
 - `mantis/threatmodel.py` — STRIDE-based threat model generation from the asset map
-- `mantis/context_graph.py` — optional tree-sitter-based call graph with typed edges (EXTRACTED/INFERRED)
+- `mantis/context_graph.py` — optional tree-sitter-based call graph with typed edges (EXTRACTED/INFERRED); `ContextGraph.to_dict()` / `write_json()` serialize it (schema `mantis-context-graph/1`) for the `--emit-context-graph` flag and external integrators
 - `mantis/resources/agents/` — subagent definitions (markdown with `model:` + `tier:` frontmatter; both modes consume them)
 - `mantis/resources/commands/` — one slash command (`/audit`), MCP-mode only
 - `mantis/resources/rules/` — OpenGrep YAML rules (Semgrep schema) + pack specs + manifest
@@ -52,7 +52,7 @@ If a future feature request implies CI behavior, push back: this toolkit explici
 
 There is one slash command, `/audit`. Modes (`quick`, `deep`, `bugbounty`, `cve`, `mobile`, `web`, `desktop`, `llm`, `taint`, `secrets`, `iac`, `cloud`) and flags (`--fix`, `--lite`, `focus:<area>`) are positional/flag arguments to that one command. Do not split modes back into separate commands.
 
-The standalone CLI also accepts `--since <git-ref>`, `--format md|json|sarif|all`, `--no-cache`, `--skip-llm`, and `--fail-on low|medium|high|critical` (non-zero exit when an unsuppressed finding crosses the threshold — useful for pre-commit gates). A `.mantisignore` YAML at the target root suppresses findings by `rule_id` + path glob before triage.
+The standalone CLI also accepts `--since <git-ref>`, `--format md|json|sarif|all`, `--no-cache`, `--skip-llm`, `--fail-on low|medium|high|critical` (non-zero exit when an unsuppressed finding crosses the threshold — useful for pre-commit gates), and `--emit-context-graph <path>` (opt-in: write the context graph as JSON for another tool/agent to consume; no file otherwise). A `.mantisignore` YAML at the target root suppresses findings by `rule_id` + path glob before triage.
 
 For auditing decompiled / reverse-engineered source (jadx Java, Ghidra pseudo-C — e.g. what chimera emits), where inventory can't see build files: `--pack <name>` (repeatable) runs exactly those packs, bypassing mode and inventory; `--decompiled` detects the stack from source extensions alone. Both are also parameters on the programmatic `mantis.audit()` API (`packs=[...]`, `decompiled=True`) — the SAST-only seam an external tool calls. These are flags/params on the one command, not new commands; the keep-findings-local rule still holds (network use is limited to the approved trivy/grype vuln-DB fetch above).
 

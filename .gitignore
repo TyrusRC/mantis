@@ -66,6 +66,9 @@ temp/
 # Local docs (generated / scratch)
 docs/
 
+# graphify knowledge-graph outputs (generated, local-only)
+graphify-out/
+
 # Local secrets and per-machine config — never commit
 .env
 .env.*

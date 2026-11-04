@@ -1,0 +1,73 @@
+rules:
+- id: taint-python-ssti-render-template-string
+  mode: taint
+  languages:
+  - python
+  severity: ERROR
+  message: 'Potential server-side template injection (CWE-1336): user-controlled
+
+    input is used to build a template that is then rendered. In Jinja2 this
+
+    leads to remote code execution. Remediation: never pass untrusted input
+
+    as the template source. Render a fixed template file with
+
+    render_template() and pass user data as context variables, which are
+
+    auto-escaped, instead of concatenating it into the template string.
+
+    '
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $REQ.args[...]
+      - pattern: $REQ.args.get(...)
+      - pattern: $REQ.form[...]
+      - pattern: $REQ.form.get(...)
+      - pattern: $REQ.values[...]
+      - pattern: $REQ.values.get(...)
+      - pattern: $REQ.json[...]
+      - pattern: $REQ.json.get(...)
+      - pattern: $REQ.get_json(...)
+      - pattern: $REQ.GET[...]
+      - pattern: $REQ.GET.get(...)
+      - pattern: $REQ.POST[...]
+      - pattern: $REQ.POST.get(...)
+      - pattern: $REQ.data
+      - pattern: $REQ.body
+      - pattern: $REQ.cookies[...]
+      - pattern: $REQ.cookies.get(...)
+      - pattern: $REQ.headers[...]
+      - pattern: $REQ.headers.get(...)
+      - pattern: request.args.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: input(...)
+      - pattern: sys.argv[$N]
+      - pattern: os.environ[$K]
+      - pattern: os.environ.get(...)
+      - pattern: flask.request.$ANY
+      - pattern: fastapi.Query(...)
+      - pattern: fastapi.Form(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: flask.render_template_string($X, ...)
+      - pattern: render_template_string($X, ...)
+      - pattern: jinja2.Template($X)
+      - pattern: Template($X).render(...)
+      - pattern: mako.template.Template($X)
+  metadata:
+    category: security
+    cwe: 'CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine'
+    owasp: A05:2025 Injection
+    confidence: HIGH
+    pack:
+    - taint
+    - web
+    - deep
+    - bugbounty
+    references:
+    - https://cwe.mitre.org/data/definitions/1336.html
